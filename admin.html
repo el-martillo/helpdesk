@@ -140,6 +140,8 @@
     </select>
     <input type="text" id="fil-search" placeholder="Search by name or issue…" oninput="renderTable()" />
     <button class="refresh-btn" onclick="loadAndRender()">↻ Refresh</button>
+    <button class="refresh-btn" style="color:#c0392b; margin-left:auto;" onclick="resetData()">⚠ Reset data</button>
+    <span id="gh-status" style="font-size:12px; color:#888; margin-left:4px;"></span>
   </div>
 
   <div style="overflow-x: auto;">
@@ -191,6 +193,14 @@
 </footer>
 
 <script>
+  // ── GitHub storage config ────────────────────────────────
+  const GH_OWNER  = 'el-martillo';
+  const GH_REPO   = 'helpdesk';
+  const GH_FILE   = 'tickets.json';
+  const GH_TOKEN  = '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';
+  const GH_API    = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE}`;
+  const GH_HEADS  = { 'Authorization': `token ${GH_TOKEN}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json' };
+
   const SAMPLE = [
     { id:'TK-001', name:'Maria Gomez',   phone:'+1 555 234 5678',   email:'maria@acme.com',     desc:'Cannot log into the CRM portal — getting a 403 error on every attempt since yesterday morning.', urgency:'critical', status:'Open',        date:'2026-05-12', time:'2026-05-12T09:14:00' },
     { id:'TK-002', name:'Tom Baxter',    phone:'+44 7700 900123',   email:'tom.b@techco.io',    desc:'Email sync has stopped working on Outlook. Sent items not appearing.',                            urgency:'high',     status:'In progress', date:'2026-05-11', time:'2026-05-11T14:32:00' },
@@ -199,18 +209,98 @@
   ];
 
   let tickets = [];
+  let ghSha = null; // current file SHA needed for updates
 
-  function loadAndRender() {
-    const stored = localStorage.getItem('em_tickets');
-    tickets = stored ? JSON.parse(stored) : [...SAMPLE];
-    if (!stored) localStorage.setItem('em_tickets', JSON.stringify(SAMPLE));
+  function setStatus(msg, ok) {
+    const el = document.getElementById('gh-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = ok === false ? '#c0392b' : ok === true ? '#3B6D11' : '#888';
+  }
+
+  async function ghLoad() {
+    setStatus('Loading from GitHub…');
+    try {
+      const res = await fetch(GH_API, { headers: GH_HEADS });
+      if (res.status === 404) {
+        // File doesn't exist yet — seed with SAMPLE
+        tickets = [...SAMPLE];
+        await ghSave();
+        return;
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      ghSha = data.sha;
+      tickets = JSON.parse(atob(data.content.replace(/\n/g, '')));
+      // Cache locally
+      localStorage.setItem('em_tickets', JSON.stringify(tickets));
+      setStatus('Synced with GitHub ✓', true);
+    } catch (err) {
+      console.warn('GitHub load failed, using local cache:', err);
+      setStatus('GitHub unavailable — using local cache', false);
+      const cached = localStorage.getItem('em_tickets');
+      tickets = cached ? JSON.parse(cached) : [...SAMPLE];
+    }
+  }
+
+  async function ghSave() {
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(tickets, null, 2))));
+    const body = { message: `Update tickets ${new Date().toISOString()}`, content };
+    if (ghSha) body.sha = ghSha;
+    setStatus('Saving to GitHub…');
+    try {
+      const res = await fetch(GH_API, { method: 'PUT', headers: GH_HEADS, body: JSON.stringify(body) });
+      if (!res.ok) {
+        const err = await res.json();
+        // SHA conflict — re-fetch and retry once
+        if (res.status === 409 || res.status === 422) {
+          setStatus('Conflict — re-syncing…');
+          await ghLoad();
+          await ghSave();
+          return;
+        }
+        throw new Error(err.message || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      ghSha = data.content.sha;
+      localStorage.setItem('em_tickets', JSON.stringify(tickets));
+      setStatus('Saved to GitHub ✓', true);
+    } catch (err) {
+      console.error('GitHub save failed:', err);
+      setStatus('Save failed — stored locally only', false);
+      localStorage.setItem('em_tickets', JSON.stringify(tickets));
+    }
+  }
+
+  async function loadAndRender() {
+    await ghLoad();
+    syncNextId();
     renderStats();
     renderTable();
     renderCharts();
   }
 
-  function saveTickets() {
-    localStorage.setItem('em_tickets', JSON.stringify(tickets));
+  async function saveTickets() {
+    await ghSave();
+  }
+
+  async function resetData() {
+    if (!confirm('Reset all tickets back to sample data? This cannot be undone.')) return;
+    tickets = [...SAMPLE];
+    await ghSave();
+    syncNextId();
+    renderStats();
+    renderTable();
+    renderCharts();
+  }
+
+  function syncNextId() {
+    const maxId = tickets.reduce((max, t) => {
+      const n = parseInt(t.id.replace('TK-', '')) || 0;
+      return Math.max(max, n);
+    }, 0);
+    const storedNext = parseInt(localStorage.getItem('em_next_id') || '1');
+    if (maxId >= storedNext) localStorage.setItem('em_next_id', String(maxId + 1));
   }
 
   function renderStats() {
@@ -514,9 +604,9 @@
     w.document.close();
   }
 
-  function changeStatus(id, newStatus) {
+  async function changeStatus(id, newStatus) {
     const t = tickets.find(t => t.id === id);
-    if (t) { t.status = newStatus; saveTickets(); renderStats(); renderCharts(); }
+    if (t) { t.status = newStatus; await saveTickets(); renderStats(); renderCharts(); }
   }
 
   // ── Charts ──────────────────────────────────────────────
