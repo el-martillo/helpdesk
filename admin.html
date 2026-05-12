@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>El Martillo — Admin Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f5f4f0; min-height: 100vh; padding: 2rem 1.5rem; color: #1a1a1a; }
+
+  .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-icon { width: 38px; height: 38px; background: #1a1a1a; border-radius: 9px; display: flex; align-items: center; justify-content: center; }
+  .brand-icon svg { width: 20px; height: 20px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .brand-name { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+  .brand-sub { font-size: 11px; color: #777; margin-top: 2px; }
+  .back-link { font-size: 13px; color: #555; text-decoration: none; border: 1px solid #ddd; border-radius: 7px; padding: 6px 12px; background: #fff; }
+  .back-link:hover { background: #f0f0f0; }
+
+  .page-title { font-size: 22px; font-weight: 600; margin-bottom: 1.25rem; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+  .stat { background: #fff; border-radius: 10px; border: 1px solid #e8e8e8; padding: 14px 16px; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; user-select: none; }
+  .stat:hover { border-color: #1a1a1a; box-shadow: 0 1px 6px rgba(0,0,0,0.08); }
+  .stat.active { border-color: #1a1a1a; box-shadow: 0 0 0 2px #1a1a1a; }
+  .stat-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+  .stat-value { font-size: 24px; font-weight: 600; }
+
+  .card { background: #fff; border-radius: 12px; border: 1px solid #e8e8e8; padding: 1.25rem; }
+
+  .filters { display: flex; gap: 8px; margin-bottom: 1rem; align-items: center; flex-wrap: wrap; }
+  .filter-label { font-size: 13px; color: #888; }
+  select, input[type="text"] { font-family: inherit; font-size: 13px; border: 1px solid #ddd; border-radius: 7px; padding: 7px 10px; background: #fafafa; color: #1a1a1a; outline: none; }
+  select:focus, input[type="text"]:focus { border-color: #1a1a1a; }
+  input[type="text"] { flex: 1; min-width: 160px; }
+
+  .ticket-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+  .ticket-table th { text-align: left; padding: 8px 10px; font-weight: 500; font-size: 12px; color: #888; border-bottom: 1px solid #eee; }
+  .ticket-table td { padding: 11px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+  .ticket-table tr:last-child td { border-bottom: none; }
+  .ticket-table tbody tr:nth-child(even) td { background: rgba(0,0,0,0.04); }
+  .ticket-table tbody tr { cursor: pointer; }
+  .ticket-table tr:hover td { background: rgba(0,0,0,0.08) !important; }
+  .ticket-table th:nth-child(1), .ticket-table td:nth-child(1) { width: 60px; }
+  .ticket-table th:nth-child(2), .ticket-table td:nth-child(2) { width: 150px; }
+  .ticket-table th:nth-child(3), .ticket-table td:nth-child(3) { width: auto; }
+  .ticket-table th:nth-child(4), .ticket-table td:nth-child(4) { width: 90px; }
+  .ticket-table th:nth-child(5), .ticket-table td:nth-child(5) { width: 110px; }
+  .ticket-table th:nth-child(6), .ticket-table td:nth-child(6) { width: 96px; }
+
+  .ticket-id { font-size: 12px; color: #aaa; font-weight: 500; }
+  .td-name { font-weight: 500; font-size: 13px; }
+  .td-contact { font-size: 12px; color: #888; margin-top: 1px; }
+  .td-desc { color: #777; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .badge-low      { background: #EAF3DE; color: #3B6D11; }
+  .badge-medium   { background: #FAEEDA; color: #854F0B; }
+  .badge-high     { background: #FAECE7; color: #993C1D; }
+  .badge-critical { background: #FCEBEB; color: #A32D2D; }
+  .badge-open     { background: #E6F1FB; color: #185FA5; }
+  .badge-progress { background: #FAEEDA; color: #854F0B; }
+  .badge-resolved { background: #EAF3DE; color: #3B6D11; }
+
+  .status-sel { font-size: 12px; font-family: inherit; border: 1px solid #ddd; border-radius: 6px; padding: 4px 7px; background: #fafafa; color: #1a1a1a; cursor: pointer; width: 100%; }
+
+  .empty { padding: 3rem; text-align: center; color: #aaa; font-size: 14px; }
+  .empty-icon { font-size: 32px; display: block; margin-bottom: 10px; }
+
+  .refresh-btn { font-size: 13px; font-family: inherit; border: 1px solid #ddd; border-radius: 7px; padding: 6px 12px; background: #fff; cursor: pointer; color: #555; }
+  .refresh-btn:hover { background: #f0f0f0; }
+
+  @media (max-width: 640px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .ticket-table th:nth-child(3), .ticket-table td:nth-child(3),
+    .ticket-table th:nth-child(6), .ticket-table td:nth-child(6) { display: none; }
+  }
+
+  .footer { margin-top: 2rem; font-size: 12px; color: #aaa; display: flex; gap: 20px; flex-wrap: wrap; }
+  .footer a { color: #888; text-decoration: none; }
+  .footer a:hover { color: #1a1a1a; }
+
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.25rem; }
+  .chart-card { background: #fff; border-radius: 12px; border: 1px solid #e8e8e8; padding: 1.25rem; }
+  .chart-card.wide { grid-column: 1 / -1; }
+  .chart-title { font-size: 13px; font-weight: 600; color: #1a1a1a; margin-bottom: 2px; }
+  .chart-sub { font-size: 11px; color: #aaa; margin-bottom: 1rem; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .kpi { text-align: center; padding: 12px 8px; background: #fafafa; border-radius: 8px; border: 1px solid #f0f0f0; }
+  .kpi-value { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .kpi-label { font-size: 11px; color: #888; }
+  .kpi-week .kpi-value { color: #185FA5; }
+  .kpi-month .kpi-value { color: #854F0B; }
+  .kpi-closed .kpi-value { color: #3B6D11; }
+
+  @media (max-width: 640px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .charts-grid { grid-template-columns: 1fr; }
+    .chart-card.wide { grid-column: auto; }
+    .ticket-table th:nth-child(3), .ticket-table td:nth-child(3),
+    .ticket-table th:nth-child(6), .ticket-table td:nth-child(6) { display: none; }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24"><path d="M15 4l5 5-9.5 9.5-3 .5.5-3L15 4z"/><path d="M14 5l5 5"/></svg>
+    </div>
+    <div>
+      <div class="brand-name">El Martillo</div>
+      <div class="brand-sub">Admin Dashboard</div>
+    </div>
+  </div>
+  <a href="index.html" class="back-link">← Client form</a>
+</div>
+
+<h1 class="page-title">Tickets</h1>
+
+<div class="stats" id="stats-row"></div>
+
+<div class="card">
+  <div class="filters">
+    <span class="filter-label">Filter:</span>
+    <select id="fil-status" onchange="renderTable()">
+      <option value="">All statuses</option>
+      <option value="Open">Open</option>
+      <option value="In progress">In progress</option>
+      <option value="Resolved">Resolved</option>
+    </select>
+    <select id="fil-urgency" onchange="renderTable()">
+      <option value="">All urgencies</option>
+      <option value="critical">Critical</option>
+      <option value="high">High</option>
+      <option value="medium">Medium</option>
+      <option value="low">Low</option>
+    </select>
+    <input type="text" id="fil-search" placeholder="Search by name or issue…" oninput="renderTable()" />
+    <button class="refresh-btn" onclick="loadAndRender()">↻ Refresh</button>
+    <button class="refresh-btn" style="color:#c0392b; margin-left:auto;" onclick="resetData()">⚠ Reset data</button>
+    <span id="gh-status" style="font-size:12px; color:#888; margin-left:4px;"></span>
+  </div>
+
+  <div style="overflow-x: auto;">
+    <table class="ticket-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Client</th>
+          <th>Issue</th>
+          <th>Urgency</th>
+          <th>Status</th>
+          <th>Submitted</th>
+        </tr>
+      </thead>
+      <tbody id="ticket-tbody"></tbody>
+    </table>
+    <div id="empty-state" class="empty" style="display:none;">
+      <span class="empty-icon">📭</span>
+      No tickets found
+    </div>
+  </div>
+</div>
+
+<div class="charts-grid">
+  <div class="chart-card">
+    <div class="chart-title">At a glance</div>
+    <div class="chart-sub">Key metrics for current period</div>
+    <div class="kpi-grid">
+      <div class="kpi kpi-week"><div class="kpi-value" id="kpi-week">—</div><div class="kpi-label">New this week</div></div>
+      <div class="kpi kpi-month"><div class="kpi-value" id="kpi-month">—</div><div class="kpi-label">New this month</div></div>
+      <div class="kpi kpi-closed"><div class="kpi-value" id="kpi-closed">—</div><div class="kpi-label">Closed this month</div></div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">By urgency</div>
+    <div class="chart-sub">All tickets breakdown</div>
+    <canvas id="chart-urgency" height="120"></canvas>
+  </div>
+  <div class="chart-card wide">
+    <div class="chart-title">New tickets — last 8 weeks</div>
+    <div class="chart-sub">Tickets submitted per week</div>
+    <canvas id="chart-weekly" height="90"></canvas>
+  </div>
+</div>
+
+<footer class="footer">
+  <span>📞 <a href="tel:+35020050630">+350 200 50630 x 820</a></span>
+  <span>✉️ <a href="mailto:helpdesk@el-martillo.com">helpdesk@el-martillo.com</a></span>
+</footer>
+
+<script>
+  // ── GitHub storage config ────────────────────────────────
+  const GH_OWNER  = 'el-martillo';
+  const GH_REPO   = 'helpdesk';
+  const GH_FILE   = 'tickets.json';
+  const GH_TOKEN  = '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';
+  const GH_API    = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE}`;
+  const GH_HEADS  = { 'Authorization': `token ${GH_TOKEN}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json' };
+
+  const SAMPLE = [
+    { id:'TK-001', name:'Maria Gomez',   phone:'+1 555 234 5678',   email:'maria@acme.com',     desc:'Cannot log into the CRM portal — getting a 403 error on every attempt since yesterday morning.', urgency:'critical', status:'Open',        date:'2026-05-12', time:'2026-05-12T09:14:00' },
+    { id:'TK-002', name:'Tom Baxter',    phone:'+44 7700 900123',   email:'tom.b@techco.io',    desc:'Email sync has stopped working on Outlook. Sent items not appearing.',                            urgency:'high',     status:'In progress', date:'2026-05-11', time:'2026-05-11T14:32:00' },
+    { id:'TK-003', name:'Priya Nair',    phone:'+91 98765 43210',   email:'priya@startupx.in',  desc:'Printer on floor 2 is offline. Tried restarting, did not help.',                                 urgency:'low',      status:'Open',        date:'2026-05-11', time:'2026-05-11T11:05:00' },
+    { id:'TK-004', name:'Leo Fontaine',  phone:'+33 6 12 34 56 78', email:'leo.f@corp.fr',      desc:'VPN keeps disconnecting every 10–15 minutes during video calls.',                                urgency:'medium',   status:'Resolved',    date:'2026-05-10', time:'2026-05-10T16:47:00' },
+  ];
+
+  let tickets = [];
+  let ghSha = null; // current file SHA needed for updates
+
+  function setStatus(msg, ok) {
+    const el = document.getElementById('gh-status');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = ok === false ? '#c0392b' : ok === true ? '#3B6D11' : '#888';
+  }
+
+  async function ghLoad() {
+    setStatus('Loading from GitHub…');
+    try {
+      const res = await fetch(GH_API, { headers: GH_HEADS });
+      if (res.status === 404) {
+        // File doesn't exist yet — seed with SAMPLE
+        tickets = [...SAMPLE];
+        await ghSave();
+        return;
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      ghSha = data.sha;
+      tickets = JSON.parse(atob(data.content.replace(/\n/g, '')));
+      // Cache locally
+      localStorage.setItem('em_tickets', JSON.stringify(tickets));
+      setStatus('Synced with GitHub ✓', true);
+    } catch (err) {
+      console.warn('GitHub load failed, using local cache:', err);
+      setStatus('GitHub unavailable — using local cache', false);
+      const cached = localStorage.getItem('em_tickets');
+      tickets = cached ? JSON.parse(cached) : [...SAMPLE];
+    }
+  }
+
+  async function ghSave() {
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(tickets, null, 2))));
+    const body = { message: `Update tickets ${new Date().toISOString()}`, content };
+    if (ghSha) body.sha = ghSha;
+    setStatus('Saving to GitHub…');
+    try {
+      const res = await fetch(GH_API, { method: 'PUT', headers: GH_HEADS, body: JSON.stringify(body) });
+      if (!res.ok) {
+        const err = await res.json();
+        // SHA conflict — re-fetch and retry once
+        if (res.status === 409 || res.status === 422) {
+          setStatus('Conflict — re-syncing…');
+          await ghLoad();
+          await ghSave();
+          return;
+        }
+        throw new Error(err.message || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      ghSha = data.content.sha;
+      localStorage.setItem('em_tickets', JSON.stringify(tickets));
+      setStatus('Saved to GitHub ✓', true);
+    } catch (err) {
+      console.error('GitHub save failed:', err);
+      setStatus('Save failed — stored locally only', false);
+      localStorage.setItem('em_tickets', JSON.stringify(tickets));
+    }
+  }
+
+  async function loadAndRender() {
+    await ghLoad();
+    syncNextId();
+    renderStats();
+    renderTable();
+    renderCharts();
+  }
+
+  async function saveTickets() {
+    await ghSave();
+  }
+
+  async function resetData() {
+    if (!confirm('Reset all tickets back to sample data? This cannot be undone.')) return;
+    tickets = [...SAMPLE];
+    await ghSave();
+    syncNextId();
+    renderStats();
+    renderTable();
+    renderCharts();
+  }
+
+  function syncNextId() {
+    const maxId = tickets.reduce((max, t) => {
+      const n = parseInt(t.id.replace('TK-', '')) || 0;
+      return Math.max(max, n);
+    }, 0);
+    const storedNext = parseInt(localStorage.getItem('em_next_id') || '1');
+    if (maxId >= storedNext) localStorage.setItem('em_next_id', String(maxId + 1));
+  }
+
+  function renderStats() {
+    const total  = tickets.length;
+    const open   = tickets.filter(t => t.status === 'Open').length;
+    const inprog = tickets.filter(t => t.status === 'In progress').length;
+    const crit   = tickets.filter(t => t.urgency === 'critical').length;
+    const cards = [
+      { label: 'Total tickets', value: total,  filter: () => clearFilters() },
+      { label: 'Open',          value: open,   filter: () => setStatusFilter('Open') },
+      { label: 'In progress',   value: inprog, filter: () => setStatusFilter('In progress') },
+      { label: 'Critical',      value: crit,   filter: () => setUrgencyFilter('critical') },
+    ];
+    document.getElementById('stats-row').innerHTML = cards.map((r, i) =>
+      `<div class="stat" id="stat-${i}" onclick="statClick(${i})">
+        <div class="stat-label">${r.label}</div>
+        <div class="stat-value">${r.value}</div>
+      </div>`
+    ).join('');
+  }
+
+  let activeStatIdx = null;
+  const statFilters = [
+    () => clearFilters(),
+    () => setStatusFilter('Open'),
+    () => setStatusFilter('In progress'),
+    () => setUrgencyFilter('critical'),
+  ];
+
+  function statClick(idx) {
+    if (activeStatIdx === idx) {
+      activeStatIdx = null;
+      clearFilters();
+    } else {
+      activeStatIdx = idx;
+      statFilters[idx]();
+    }
+    // Update active style
+    document.querySelectorAll('.stat').forEach((el, i) =>
+      el.classList.toggle('active', i === activeStatIdx)
+    );
+    // Scroll to ticket table
+    document.querySelector('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function clearFilters() {
+    document.getElementById('fil-status').value = '';
+    document.getElementById('fil-urgency').value = '';
+    document.getElementById('fil-search').value = '';
+    renderTable();
+  }
+
+  function setStatusFilter(val) {
+    document.getElementById('fil-status').value = val;
+    document.getElementById('fil-urgency').value = '';
+    document.getElementById('fil-search').value = '';
+    renderTable(true);
+  }
+
+  function setUrgencyFilter(val) {
+    document.getElementById('fil-urgency').value = val;
+    document.getElementById('fil-status').value = '';
+    document.getElementById('fil-search').value = '';
+    renderTable(true);
+  }
+
+  function renderTable(fromStat = false) {
+    if (!fromStat) {
+      activeStatIdx = null;
+      document.querySelectorAll('.stat').forEach(el => el.classList.remove('active'));
+    }
+    const fs = document.getElementById('fil-status').value;
+    const fu = document.getElementById('fil-urgency').value;
+    const fq = document.getElementById('fil-search').value.toLowerCase();
+    const filtered = tickets.filter(t => {
+      if (fs && t.status !== fs) return false;
+      if (fu && t.urgency !== fu) return false;
+      if (fq && !t.name.toLowerCase().includes(fq) && !t.desc.toLowerCase().includes(fq)) return false;
+      return true;
+    });
+    const tbody = document.getElementById('ticket-tbody');
+    const empty = document.getElementById('empty-state');
+    if (!filtered.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    tbody.innerHTML = filtered.map(t => `
+      <tr onclick="openTicket('${t.id}')">
+        <td class="ticket-id">${t.id}</td>
+        <td>
+          <div class="td-name">${t.name}</div>
+          <div class="td-contact"><a href="mailto:${t.email}" style="color:inherit; text-decoration:underline;" onclick="event.stopPropagation()">${t.email}</a></div>
+          <div class="td-contact">${t.phone}</div>
+        </td>
+        <td><div class="td-desc" title="${t.desc}">${t.desc}</div></td>
+        <td><span class="badge badge-${t.urgency}">${t.urgency.charAt(0).toUpperCase()+t.urgency.slice(1)}</span></td>
+        <td onclick="event.stopPropagation()">
+          <select class="status-sel" onchange="changeStatus('${t.id}', this.value)">
+            <option ${t.status==='Open'        ?'selected':''}>Open</option>
+            <option ${t.status==='In progress' ?'selected':''}>In progress</option>
+            <option ${t.status==='Resolved'    ?'selected':''}>Resolved</option>
+          </select>
+        </td>
+        <td style="font-size:12px; color:#aaa; white-space:nowrap;">
+          ${t.date}<br>
+          <span style="font-size:11px;">${t.time ? new Date(t.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '—'}</span>
+        </td>
+      </tr>`).join('');
+  }
+
+  function openTicket(id) {
+    const t = tickets.find(t => t.id === id);
+    if (!t) return;
+    const timeStr = t.time ? new Date(t.time).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : t.date;
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${t.id} — El Martillo Helpdesk</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:system-ui,-apple-system,sans-serif;background:#f5f4f0;min-height:100vh;padding:2rem 1.5rem;color:#1a1a1a;}
+  .top{display:flex;align-items:center;gap:12px;margin-bottom:2rem;}
+  .icon{width:38px;height:38px;background:#1a1a1a;border-radius:9px;display:flex;align-items:center;justify-content:center;}
+  .icon svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .brand-name{font-size:17px;font-weight:600;}
+  .brand-sub{font-size:11px;color:#777;margin-top:2px;}
+  .card{background:#fff;border-radius:14px;border:1px solid #e8e8e8;padding:2rem;max-width:640px;}
+  .ticket-id-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;}
+  .ticket-id{font-size:13px;font-weight:600;color:#aaa;}
+  .submitted{font-size:12px;color:#bbb;}
+  .divider{border:none;border-top:1px solid #f0f0f0;margin:1.25rem 0;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field.full{grid-column:1/-1;}
+  label{font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.5px;}
+  input,textarea,select{font-family:inherit;font-size:14px;border:1px solid #ddd;border-radius:8px;padding:8px 10px;background:#fafafa;color:#1a1a1a;outline:none;width:100%;transition:border-color .15s;}
+  input:focus,textarea:focus,select:focus{border-color:#1a1a1a;background:#fff;}
+  textarea{resize:vertical;min-height:90px;line-height:1.5;}
+  .urgency-row{display:flex;gap:6px;}
+  .urgency-btn{flex:1;padding:7px 0;border:1px solid #ddd;border-radius:7px;font-size:12px;cursor:pointer;background:#fafafa;font-family:inherit;color:#555;transition:all .15s;}
+  .urgency-btn.sel-low    {background:#EAF3DE;color:#3B6D11;border-color:#639922;}
+  .urgency-btn.sel-medium {background:#FAEEDA;color:#854F0B;border-color:#BA7517;}
+  .urgency-btn.sel-high   {background:#FAECE7;color:#993C1D;border-color:#D85A30;}
+  .urgency-btn.sel-critical{background:#FCEBEB;color:#A32D2D;border-color:#E24B4A;}
+  .btn-row{display:flex;gap:8px;margin-top:1.5rem;}
+  .save-btn{flex:1;padding:10px;background:#1a1a1a;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:opacity .15s;}
+  .save-btn:hover{opacity:.85;}
+  .close-btn{padding:10px 18px;background:#fff;color:#1a1a1a;border:1px solid #ddd;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;}
+  .close-btn:hover{background:#f0f0f0;}
+  .toast{display:none;margin-top:1rem;background:#EAF3DE;border:1px solid #639922;border-radius:8px;padding:10px 14px;color:#3B6D11;font-size:13px;}
+  .section-heading{font-size:13px;font-weight:600;color:#1a1a1a;margin-bottom:1rem;display:flex;align-items:center;gap:8px;}
+  .section-heading::after{content:'';flex:1;height:1px;background:#f0f0f0;}
+  .resolution-card{background:#F7FBF2;border:1px solid #C4DFA0;border-radius:10px;padding:1.25rem;margin-top:.25rem;}
+  .resolution-card .field label{color:#4a7a1a;}
+  .resolution-card input,.resolution-card textarea,.resolution-card select{background:#fff;}
+  .resolved-time{font-size:12px;color:#639922;margin-top:4px;}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="icon"><svg viewBox="0 0 24 24"><path d="M15 4l5 5-9.5 9.5-3 .5.5-3L15 4z"/><path d="M14 5l5 5"/></svg></div>
+  <div><div class="brand-name">El Martillo</div><div class="brand-sub">Edit Ticket</div></div>
+</div>
+<div class="card">
+  <div class="ticket-id-row">
+    <span class="ticket-id">${t.id}</span>
+    <span class="submitted">Submitted: ${timeStr}</span>
+  </div>
+  <hr class="divider"/>
+  <div class="grid">
+    <div class="field">
+      <label>Full name</label>
+      <input id="e-name" type="text" value="${t.name}"/>
+    </div>
+    <div class="field">
+      <label>Telephone</label>
+      <input id="e-phone" type="tel" value="${t.phone}"/>
+    </div>
+    <div class="field full">
+      <label>Email address</label>
+      <input id="e-email" type="email" value="${t.email}"/>
+    </div>
+    <div class="field full">
+      <label>Issue description</label>
+      <textarea id="e-desc">${t.desc}</textarea>
+    </div>
+    <div class="field full">
+      <label>Urgency</label>
+      <div class="urgency-row">
+        <button class="urgency-btn" data-level="low"      onclick="selUrgency(this)">Low</button>
+        <button class="urgency-btn" data-level="medium"   onclick="selUrgency(this)">Medium</button>
+        <button class="urgency-btn" data-level="high"     onclick="selUrgency(this)">High</button>
+        <button class="urgency-btn" data-level="critical" onclick="selUrgency(this)">Critical</button>
+      </div>
+    </div>
+    <div class="field full">
+      <label>Status</label>
+      <select id="e-status" onchange="onStatusChange(this.value)">
+        <option ${t.status==='Open'?'selected':''}>Open</option>
+        <option ${t.status==='In progress'?'selected':''}>In progress</option>
+        <option ${t.status==='Resolved'?'selected':''}>Resolved</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="margin-top:1.5rem;">
+    <div class="section-heading">Resolution</div>
+    <div class="resolution-card">
+      <div class="grid">
+        <div class="field full">
+          <label>Resolution notes</label>
+          <textarea id="e-resolution" placeholder="Describe how the issue was resolved…" style="min-height:80px;" oninput="checkResolutionComplete()">${t.resolution || ''}</textarea>
+        </div>
+        <div class="field">
+          <label>Resolved by</label>
+          <input id="e-resolved-by" type="text" placeholder="Agent name" value="${t.resolvedBy || ''}" oninput="checkResolutionComplete()"/>
+        </div>
+        <div class="field">
+          <label>Resolution date</label>
+          <input id="e-resolved-date" type="date" value="${t.resolvedDate || ''}" onchange="checkResolutionComplete()"/>
+        </div>
+      </div>
+      <div class="resolved-time" id="resolved-time-display" style="display:${t.resolvedTime ? 'block' : 'none'};">
+        ✓ Resolved at: ${t.resolvedTime ? new Date(t.resolvedTime).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}) : ''}
+      </div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="save-btn" onclick="saveTicket()">Save changes</button>
+    <button class="close-btn" onclick="window.close()">Cancel</button>
+  </div>
+  <div class="toast" id="toast">✓ Changes saved successfully.</div>
+</div>
+<script>
+  let urgency = '${t.urgency}';
+  document.querySelectorAll('.urgency-btn').forEach(b => {
+    if (b.dataset.level === urgency) b.classList.add('sel-' + urgency);
+  });
+  function selUrgency(btn) {
+    document.querySelectorAll('.urgency-btn').forEach(b => b.className = 'urgency-btn');
+    urgency = btn.dataset.level;
+    btn.classList.add('sel-' + urgency);
+  }
+  function onStatusChange(val) {
+    if (val === 'Resolved') {
+      const dateField = document.getElementById('e-resolved-date');
+      if (!dateField.value) dateField.value = new Date().toISOString().slice(0,10);
+    }
+  }
+  function checkResolutionComplete() {
+    const notes  = document.getElementById('e-resolution').value.trim();
+    const by     = document.getElementById('e-resolved-by').value.trim();
+    const date   = document.getElementById('e-resolved-date').value;
+    const status = document.getElementById('e-status');
+    if (notes && by && date && status.value !== 'Resolved') {
+      status.value = 'Resolved';
+      status.style.borderColor = '#639922';
+      status.style.background = '#EAF3DE';
+      setTimeout(() => { status.style.background = ''; status.style.borderColor = ''; }, 1500);
+    }
+  }
+  function saveTicket() {
+    const newStatus = document.getElementById('e-status').value;
+    const wasResolved = '${t.status}' !== 'Resolved' && newStatus === 'Resolved';
+    const updated = {
+      id: '${t.id}',
+      name:         document.getElementById('e-name').value.trim(),
+      phone:        document.getElementById('e-phone').value.trim(),
+      email:        document.getElementById('e-email').value.trim(),
+      desc:         document.getElementById('e-desc').value.trim(),
+      urgency:      urgency,
+      status:       newStatus,
+      date:         '${t.date}',
+      time:         '${t.time || ''}',
+      resolution:   document.getElementById('e-resolution').value.trim(),
+      resolvedBy:   document.getElementById('e-resolved-by').value.trim(),
+      resolvedDate: document.getElementById('e-resolved-date').value,
+      resolvedTime: wasResolved ? new Date().toISOString() : '${t.resolvedTime || ''}'
+    };
+    if (!updated.name || !updated.email || !updated.desc) {
+      alert('Name, email and description are required.'); return;
+    }
+    // Save back to localStorage
+    const all = JSON.parse(localStorage.getItem('em_tickets') || '[]');
+    const idx = all.findIndex(x => x.id === updated.id);
+    if (idx !== -1) all[idx] = updated;
+    localStorage.setItem('em_tickets', JSON.stringify(all));
+    // Refresh parent table
+    if (window.opener && !window.opener.closed) {
+      window.opener.loadAndRender();
+    }
+    const toast = document.getElementById('toast');
+    toast.style.display = 'block';
+    setTimeout(() => toast.style.display = 'none', 3000);
+  }
+<\/script>
+</body>
+</html>`;
+    const w = window.open('', '_blank', 'width=720,height=820,resizable=yes,scrollbars=yes');
+    w.document.write(html);
+    w.document.close();
+  }
+
+  async function changeStatus(id, newStatus) {
+    const t = tickets.find(t => t.id === id);
+    if (t) { t.status = newStatus; await saveTickets(); renderStats(); renderCharts(); }
+  }
+
+  // ── Charts ──────────────────────────────────────────────
+  let chartWeekly = null, chartUrgency = null;
+
+  function getWeekStart(d) {
+    const dt = new Date(d);
+    dt.setHours(0,0,0,0);
+    dt.setDate(dt.getDate() - dt.getDay()); // Sunday
+    return dt;
+  }
+
+  function fmtWeekLabel(dt) {
+    return (dt.getMonth()+1) + '/' + dt.getDate();
+  }
+
+  function renderCharts() {
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0,10);
+
+    // Week start (Sunday) and month boundaries
+    const weekStart = getWeekStart(now);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // KPIs
+    const newWeek  = tickets.filter(t => new Date(t.date) >= weekStart).length;
+    const newMonth = tickets.filter(t => new Date(t.date) >= monthStart).length;
+    const closedMonth = tickets.filter(t => t.status === 'Resolved' && new Date(t.date) >= monthStart).length;
+    document.getElementById('kpi-week').textContent   = newWeek;
+    document.getElementById('kpi-month').textContent  = newMonth;
+    document.getElementById('kpi-closed').textContent = closedMonth;
+
+    // Build last-8-weeks buckets
+    const weeks = [];
+    for (let i = 7; i >= 0; i--) {
+      const ws = new Date(weekStart);
+      ws.setDate(ws.getDate() - i * 7);
+      const we = new Date(ws);
+      we.setDate(we.getDate() + 7);
+      weeks.push({ label: fmtWeekLabel(ws), start: ws, end: we, count: 0 });
+    }
+    tickets.forEach(t => {
+      const d = new Date(t.date);
+      weeks.forEach(w => { if (d >= w.start && d < w.end) w.count++; });
+    });
+
+    // Weekly bar chart
+    const wCtx = document.getElementById('chart-weekly').getContext('2d');
+    if (chartWeekly) chartWeekly.destroy();
+    chartWeekly = new Chart(wCtx, {
+      type: 'bar',
+      data: {
+        labels: weeks.map(w => w.label),
+        datasets: [{
+          label: 'New tickets',
+          data: weeks.map(w => w.count),
+          backgroundColor: weeks.map((w, i) => i === 7 ? '#185FA5' : '#D1E4F5'),
+          borderRadius: 5,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: '#f0f0f0' } },
+          x: { ticks: { font: { size: 11 } }, grid: { display: false } }
+        }
+      }
+    });
+
+    // Urgency doughnut
+    const urgencyCounts = ['critical','high','medium','low'].map(u => tickets.filter(t => t.urgency === u).length);
+    const uCtx = document.getElementById('chart-urgency').getContext('2d');
+    if (chartUrgency) chartUrgency.destroy();
+    chartUrgency = new Chart(uCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Critical','High','Medium','Low'],
+        datasets: [{
+          data: urgencyCounts,
+          backgroundColor: ['#E24B4A','#D85A30','#BA7517','#639922'],
+          borderWidth: 0,
+          hoverOffset: 4,
+        }]
+      },
+      options: {
+        plugins: {
+          legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } }
+        },
+        cutout: '62%',
+      }
+    });
+  }
+
+  loadAndRender();
+</script>
+</body>
+</html>
