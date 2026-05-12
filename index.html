@@ -104,18 +104,10 @@
 
 <footer class="footer">
   <span>📞 <a href="tel:+35020050630">+350 200 50630 x 820</a></span>
-  <span>✉️ <a href="mailto:helpdesk@el-martillo.com">helpdesk@el-martillo.com</a></span>
+  <span>✉️ <a href="mailto:helpdesk@YOUR_GITHUB_USERNAME.com">helpdesk@YOUR_GITHUB_USERNAME.com</a></span>
 </footer>
 
 <script>
-  // ── GitHub storage config ────────────────────────────────
-  const GH_OWNER = 'el-martillo';
-  const GH_REPO  = 'helpdesk';
-  const GH_FILE  = 'tickets.json';
-  const GH_TOKEN = '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';
-  const GH_API   = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE}`;
-  const GH_HEADS = { 'Authorization': `token ${GH_TOKEN}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json' };
-
   let selectedUrgency = '';
 
   function selectUrgency(btn) {
@@ -124,7 +116,7 @@
     btn.classList.add('sel-' + selectedUrgency);
   }
 
-  async function submitTicket() {
+  function submitTicket() {
     const name  = document.getElementById('f-name').value.trim();
     const phone = document.getElementById('f-phone').value.trim();
     const email = document.getElementById('f-email').value.trim();
@@ -133,60 +125,24 @@
       alert('Please fill in all fields and select an urgency level.');
       return;
     }
+    const tickets = JSON.parse(localStorage.getItem('em_tickets') || '[]');
+    const maxId   = tickets.reduce((max, t) => Math.max(max, parseInt(t.id.replace('TK-','')) || 0), 0);
+    const id      = 'TK-' + String(maxId + 1).padStart(3, '0');
+    const now     = new Date();
+    tickets.unshift({ id, name, phone, email, desc, urgency: selectedUrgency, status: 'Open', date: now.toISOString().slice(0,10), time: now.toISOString() });
+    localStorage.setItem('em_tickets', JSON.stringify(tickets));
+    localStorage.setItem('em_next_id', String(maxId + 2));
 
-    const btn = document.querySelector('.submit-btn');
-    btn.disabled = true;
-    btn.textContent = 'Submitting…';
-
-    try {
-      // 1. Fetch current file from GitHub
-      let tickets = [], sha = null;
-      const res = await fetch(GH_API, { headers: GH_HEADS });
-      if (res.ok) {
-        const data = await res.json();
-        sha = data.sha;
-        tickets = JSON.parse(atob(data.content.replace(/\n/g, '')));
-      }
-
-      // 2. Build new ticket with next ID
-      const maxId = tickets.reduce((max, t) => Math.max(max, parseInt(t.id.replace('TK-','')) || 0), 0);
-      const id  = 'TK-' + String(maxId + 1).padStart(3, '0');
-      const now = new Date();
-      tickets.unshift({ id, name, phone, email, desc, urgency: selectedUrgency, status: 'Open', date: now.toISOString().slice(0,10), time: now.toISOString() });
-
-      // 3. Write back to GitHub
-      const content = btoa(unescape(encodeURIComponent(JSON.stringify(tickets, null, 2))));
-      const body = { message: `New ticket ${id}`, content };
-      if (sha) body.sha = sha;
-      const putRes = await fetch(GH_API, { method: 'PUT', headers: GH_HEADS, body: JSON.stringify(body) });
-      if (!putRes.ok) {
-        const err = await putRes.json();
-        throw new Error(err.message || `HTTP ${putRes.status}`);
-      }
-
-      // 4. Also cache locally
-      localStorage.setItem('em_tickets', JSON.stringify(tickets));
-      localStorage.setItem('em_next_id', String(maxId + 2));
-
-      // 5. Clear form and show confirmation
-      document.getElementById('f-name').value  = '';
-      document.getElementById('f-phone').value = '';
-      document.getElementById('f-email').value = '';
-      document.getElementById('f-desc').value  = '';
-      document.querySelectorAll('.urgency-btn').forEach(b => b.className = 'urgency-btn');
-      selectedUrgency = '';
-      document.getElementById('ticket-ref').textContent = 'Reference: ' + id;
-      const sm = document.getElementById('success-msg');
-      sm.style.display = 'block';
-      setTimeout(() => sm.style.display = 'none', 6000);
-
-    } catch (err) {
-      console.error('Submit failed:', err);
-      alert('Could not save ticket to GitHub: ' + err.message + '\n\nPlease try again.');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Submit ticket';
-    }
+    document.getElementById('f-name').value  = '';
+    document.getElementById('f-phone').value = '';
+    document.getElementById('f-email').value = '';
+    document.getElementById('f-desc').value  = '';
+    document.querySelectorAll('.urgency-btn').forEach(b => b.className = 'urgency-btn');
+    selectedUrgency = '';
+    document.getElementById('ticket-ref').textContent = 'Reference: ' + id;
+    const sm = document.getElementById('success-msg');
+    sm.style.display = 'block';
+    setTimeout(() => sm.style.display = 'none', 6000);
   }
 </script>
 </body>
