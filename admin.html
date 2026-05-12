@@ -100,10 +100,56 @@
     .ticket-table th:nth-child(3), .ticket-table td:nth-child(3),
     .ticket-table th:nth-child(6), .ticket-table td:nth-child(6) { display: none; }
   }
+
+  /* ── Login overlay ── */
+  .login-overlay { position: fixed; inset: 0; background: #f5f4f0; display: flex; align-items: center; justify-content: center; z-index: 999; }
+  .login-card { background: #fff; border-radius: 14px; border: 1px solid #e8e8e8; padding: 2rem; width: 100%; max-width: 360px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+  .login-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 1.75rem; }
+  .login-brand .brand-icon { width: 36px; height: 36px; background: #1a1a1a; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .login-brand .brand-icon svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .login-brand .brand-name { font-size: 16px; font-weight: 600; }
+  .login-brand .brand-sub { font-size: 11px; color: #777; margin-top: 1px; }
+  .login-title { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+  .login-sub { font-size: 13px; color: #888; margin-bottom: 1.5rem; }
+  .login-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  .login-field label { font-size: 12px; font-weight: 500; color: #555; }
+  .login-field input { font-family: inherit; font-size: 14px; border: 1px solid #ddd; border-radius: 8px; padding: 9px 12px; outline: none; background: #fafafa; transition: border-color .15s; }
+  .login-field input:focus { border-color: #1a1a1a; background: #fff; }
+  .login-btn { width: 100%; padding: 10px; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; margin-top: 6px; transition: opacity .15s; }
+  .login-btn:hover { opacity: .85; }
+  .login-error { display: none; margin-top: 10px; background: #FCEBEB; border: 1px solid #E24B4A; border-radius: 7px; padding: 8px 12px; color: #A32D2D; font-size: 13px; }
+  .logout-btn { font-size: 12px; font-family: inherit; border: 1px solid #ddd; border-radius: 7px; padding: 5px 10px; background: #fff; cursor: pointer; color: #888; }
+  .logout-btn:hover { background: #f0f0f0; color: #1a1a1a; }
+  .dashboard { display: none; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
+
+<!-- Login overlay -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="brand-icon"><svg viewBox="0 0 24 24"><path d="M15 4l5 5-9.5 9.5-3 .5.5-3L15 4z"/><path d="M14 5l5 5"/></svg></div>
+      <div><div class="brand-name">El Martillo</div><div class="brand-sub">Admin Dashboard</div></div>
+    </div>
+    <div class="login-title">Sign in</div>
+    <p class="login-sub">Enter your credentials to continue.</p>
+    <div class="login-field">
+      <label for="l-user">Username</label>
+      <input type="text" id="l-user" placeholder="admin" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div class="login-field">
+      <label for="l-pass">Password</label>
+      <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign in</button>
+    <div class="login-error" id="login-error">Incorrect username or password.</div>
+  </div>
+</div>
+
+<!-- Dashboard (hidden until logged in) -->
+<div class="dashboard" id="dashboard">
 
 <div class="top-bar">
   <div class="brand">
@@ -116,6 +162,7 @@
     </div>
   </div>
   <a href="index.html" class="back-link">← Client form</a>
+  <button class="logout-btn" onclick="doLogout()">Sign out</button>
 </div>
 
 <h1 class="page-title">Tickets</h1>
@@ -192,12 +239,56 @@
   <span>✉️ <a href="mailto:helpdesk@el-martillo.com">helpdesk@el-martillo.com</a></span>
 </footer>
 
+</div><!-- end .dashboard -->
+
 <script>
+  // ── Credentials (change these) ───────────────────────────
+  const ADMIN_USERS = [
+    { username: 'admin',    password: 'admin123' },
+    { username: 'helpdesk', password: 'helpdesk123' },
+  ];
+  const SESSION_KEY = 'em_admin_session';
+
+  function doLogin() {
+    const user = document.getElementById('l-user').value.trim();
+    const pass = document.getElementById('l-pass').value;
+    const match = ADMIN_USERS.find(u => u.username === user && u.password === pass);
+    if (match) {
+      sessionStorage.setItem(SESSION_KEY, user);
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      loadAndRender();
+    } else {
+      const err = document.getElementById('login-error');
+      err.style.display = 'block';
+      document.getElementById('l-pass').value = '';
+      document.getElementById('l-pass').focus();
+      setTimeout(() => err.style.display = 'none', 3000);
+    }
+  }
+
+  function doLogout() {
+    sessionStorage.removeItem(SESSION_KEY);
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('login-overlay').style.display = 'flex';
+    document.getElementById('l-user').value = '';
+    document.getElementById('l-pass').value = '';
+  }
+
+  // Check session on load
+  window.addEventListener('DOMContentLoaded', () => {
+    if (sessionStorage.getItem(SESSION_KEY)) {
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      loadAndRender();
+    }
+  });
+
   // ── GitHub storage config ────────────────────────────────
-  const GH_OWNER  = 'el-martillo';
-  const GH_REPO   = 'helpdesk';
+  const GH_OWNER  = 'YOUR_GITHUB_USERNAME';
+  const GH_REPO   = 'YOUR_REPO_NAME';
   const GH_FILE   = 'tickets.json';
-  const GH_TOKEN  = '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';
+  const GH_TOKEN  = 'YOUR_GITHUB_TOKEN';
   const GH_API    = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_FILE}`;
   const GH_HEADS  = { 'Authorization': `token ${GH_TOKEN}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json' };
 
@@ -701,7 +792,6 @@
     });
   }
 
-  loadAndRender();
 </script>
 </body>
 </html>
