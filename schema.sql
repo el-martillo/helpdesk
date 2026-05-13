@@ -47,7 +47,7 @@ create table if not exists tickets (
                     check (status in ('open','in_progress','waiting','resolved','closed')),
   priority        text not null default 'medium'
                     check (priority in ('low','medium','high','critical')),
-  category_id     int references categories(id),
+  category        text default 'General',
   requester_id    uuid references profiles(id),
   assignee_id     uuid references profiles(id),
   first_response_at  timestamptz,
