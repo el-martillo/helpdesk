@@ -449,7 +449,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
 <script>
 /* ── State ── */
-let supabase = null, currentUser = null, currentProfile = null;
+let sbClient = null, currentUser = null, currentProfile = null;
 let tickets = [], profiles = [];
 let demoMode = false;
 const CATS = {1:'Billing',2:'Technical',3:'Account',4:'General'};
@@ -502,8 +502,8 @@ async function connectSupabase() {
   const key = document.getElementById('cfg-key').value.trim();
   if (!url||!key) { alert('Please enter both URL and key.'); return; }
   try {
-    supabase = window.supabase.createClient(url, key);
-    const {error} = await supabase.from('profiles').select('id').limit(1);
+    sbClient = window.supabase.createClient(url, key);
+    const {error} = await sbClient.from('profiles').select('id').limit(1);
     if (error) throw error;
     localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
     document.getElementById('cfg-screen').classList.remove('active');
@@ -520,13 +520,13 @@ function loadDemo() {
   loadTickets(); renderAgents(); renderReports();
 }
 async function signIn() {
-  if (!supabase) { loadDemo(); return; }
+  if (!sbClient) { loadDemo(); return; }
   const email = document.getElementById('auth-email').value;
   const pass  = document.getElementById('auth-password').value;
-  const {data,error} = await supabase.auth.signInWithPassword({email,password:pass});
+  const {data,error} = await sbClient.auth.signInWithPassword({email,password:pass});
   if (error) { document.getElementById('auth-err').textContent = error.message; return; }
   currentUser = data.user;
-  const {data:prof} = await supabase.from('profiles').select('*').eq('id',currentUser.id).single();
+  const {data:prof} = await sbClient.from('profiles').select('*').eq('id',currentUser.id).single();
   currentProfile = prof;
   if (prof?.role==='client') { document.getElementById('auth-err').textContent='Access denied. Client accounts must use the client portal.'; return; }
   document.getElementById('auth-screen').classList.remove('active');
@@ -537,14 +537,14 @@ async function signIn() {
   document.getElementById('settings-url').value = localStorage.getItem('sb_url')||'';
   loadTickets(); loadProfiles();
 }
-async function signOut() { if(supabase) await supabase.auth.signOut(); location.reload(); }
+async function signOut() { if(sbClient) await sbClient.auth.signOut(); location.reload(); }
 function clearCreds() { localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key'); location.reload(); }
 
 /* ── Data ── */
 async function loadTickets() {
   if (demoMode) { renderTable(); updateStats(); updateBadges(); return; }
   document.getElementById('admin-tbody').innerHTML='<tr class="loading-row"><td colspan="8"><div class="loader"></div></td></tr>';
-  const {data,error} = await supabase.from('tickets')
+  const {data,error} = await sbClient.from('tickets')
     .select('*, requester:profiles!requester_id(id,full_name), assignee:profiles!assignee_id(id,full_name)')
     .order('updated_at',{ascending:false});
   if (error) { toast('Error: '+error.message); return; }
@@ -553,7 +553,7 @@ async function loadTickets() {
 }
 async function loadProfiles() {
   if (demoMode) { renderAgents(); return; }
-  const {data} = await supabase.from('profiles').select('*').in('role',['agent','admin']);
+  const {data} = await sbClient.from('profiles').select('*').in('role',['agent','admin']);
   if (data) profiles=data; renderAgents();
 }
 
@@ -629,7 +629,7 @@ async function openTicketDetail(id) {
   document.getElementById('detail-sub').textContent   = `#${t.ticket_number} · ${CATS[t.category_id]||'General'} · ${timeAgo(t.updated_at)}`;
   let comments=[];
   if (demoMode) { comments=DEMO_COMMENTS[id]||[]; }
-  else { const {data}=await supabase.from('comments').select('*,author:profiles(id,full_name,role)').eq('ticket_id',id).order('created_at'); comments=data||[]; }
+  else { const {data}=await sbClient.from('comments').select('*,author:profiles(id,full_name,role)').eq('ticket_id',id).order('created_at'); comments=data||[]; }
   const agentOpts = profiles.filter(p=>p.role==='agent'||p.role==='admin')
     .map(p=>`<option value="${p.id}" ${p.id===t.assignee_id?'selected':''}>${p.full_name}</option>`).join('');
   document.getElementById('detail-body').innerHTML=`
@@ -690,17 +690,17 @@ async function addComment(ticketId) {
     document.getElementById('comments-list').innerHTML=renderComments(DEMO_COMMENTS[ticketId],true);
     document.getElementById('reply-text').value=''; toast('Reply added'); return;
   }
-  const {error}=await supabase.from('comments').insert({ticket_id:ticketId,author_id:currentUser.id,body,is_internal:isInternal});
+  const {error}=await sbClient.from('comments').insert({ticket_id:ticketId,author_id:currentUser.id,body,is_internal:isInternal});
   if (error){toast('Error: '+error.message);return;}
   document.getElementById('reply-text').value=''; toast('Reply sent'); openTicketDetail(ticketId);
 }
 async function updateStatus(id, status) {
   if (demoMode) { const t=tickets.find(x=>x.id===id); if(t){t.status=status;t.updated_at=new Date().toISOString();} updateStats();updateBadges();renderTable();toast('Status updated');return; }
-  await supabase.from('tickets').update({status}).eq('id',id); loadTickets(); toast('Status updated');
+  await sbClient.from('tickets').update({status}).eq('id',id); loadTickets(); toast('Status updated');
 }
 async function updateAssignee(id, assigneeId) {
   if (demoMode) { const t=tickets.find(x=>x.id===id); if(t) t.assignee_id=assigneeId||null; renderTable();toast('Assignee updated');return; }
-  await supabase.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id); loadTickets(); toast('Assignee updated');
+  await sbClient.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id); loadTickets(); toast('Assignee updated');
 }
 
 /* ── Create ticket ── */
@@ -713,7 +713,7 @@ async function createTicket() {
     renderTable();updateStats();updateBadges();closeModal('modal-new-ticket');
     document.getElementById('nt-subject').value='';document.getElementById('nt-description').value='';toast('Ticket created');return;
   }
-  const {error}=await supabase.from('tickets').insert({...payload,requester_id:currentUser.id});
+  const {error}=await sbClient.from('tickets').insert({...payload,requester_id:currentUser.id});
   if (error){toast('Error: '+error.message);return;}
   closeModal('modal-new-ticket');loadTickets();toast('Ticket created');
 }
@@ -736,7 +736,7 @@ async function inviteAgent() {
   const name=document.getElementById('ia-name').value.trim(),email=document.getElementById('ia-email').value.trim();
   if (!name||!email){toast('Name and email required');return;}
   if (demoMode){profiles.push({id:'p'+Date.now(),full_name:name,email,role:document.getElementById('ia-role').value,status:'offline'});renderAgents();closeModal('modal-invite-agent');toast('Agent invited (demo)');return;}
-  const {error}=await supabase.auth.admin.inviteUserByEmail(email,{data:{full_name:name,role:document.getElementById('ia-role').value}});
+  const {error}=await sbClient.auth.admin.inviteUserByEmail(email,{data:{full_name:name,role:document.getElementById('ia-role').value}});
   if (error){toast('Error: '+error.message);return;}
   closeModal('modal-invite-agent');toast('Invitation sent!');
 }
@@ -756,36 +756,45 @@ function renderReports() {
 /* ── Auto-restore session ── */
 const SB_URL = 'https://gtcrmqbmlvtlyiwnshma.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
-(async()=>{
-  // Use hardcoded credentials — skip config screen
+
+async function initSupabase() {
+  if (!window.supabase) { console.error('Supabase SDK not loaded'); return; }
   const url = SB_URL, key = SB_KEY;
   localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
-  document.getElementById('cfg-url').value = url;
-  document.getElementById('cfg-key').value = key;
-  supabase = window.supabase.createClient(url, key);
-  document.getElementById('db-dot').className = 'dot connected';
-  document.getElementById('db-label').textContent = 'Supabase connected';
-  document.getElementById('settings-url').value = url;
+  const cfgUrl = document.getElementById('cfg-url');
+  const cfgKey = document.getElementById('cfg-key');
+  if (cfgUrl) cfgUrl.value = url;
+  if (cfgKey) cfgKey.value = key;
+  sbClient = window.supabase.createClient(url, key);
+  const dbDot = document.getElementById('db-dot');
+  const dbLabel = document.getElementById('db-label');
+  if (dbDot) dbDot.className = 'dot connected';
+  if (dbLabel) dbLabel.textContent = 'Supabase connected';
+  const settingsUrl = document.getElementById('settings-url');
+  if (settingsUrl) settingsUrl.value = url;
   try {
-    const {data:{session}} = await supabase.auth.getSession();
+    const { data: { session } } = await sbClient.auth.getSession();
     if (session) {
       currentUser = session.user;
-      const {data:prof} = await supabase.from('profiles').select('*').eq('id',currentUser.id).single();
+      const { data: prof } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).single();
       currentProfile = prof;
       document.getElementById('cfg-screen').classList.remove('active');
-      document.getElementById('topbar-user').textContent = prof?.full_name||currentUser.email;
+      const tu = document.getElementById('topbar-user');
+      if (tu) tu.textContent = prof?.full_name || currentUser.email;
       document.getElementById('app').style.display = 'flex';
       loadTickets(); loadProfiles();
     } else {
-      // Connected but not signed in — skip to auth
       document.getElementById('cfg-screen').classList.remove('active');
       document.getElementById('auth-screen').classList.add('active');
     }
   } catch(e) {
+    console.error('Session restore error:', e);
     document.getElementById('cfg-screen').classList.remove('active');
     document.getElementById('auth-screen').classList.add('active');
   }
-})();
+}
+
+document.addEventListener('DOMContentLoaded', initSupabase);
 </script>
 </body>
 </html>

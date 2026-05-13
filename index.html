@@ -349,7 +349,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
 <script>
 /* ── State ── */
-let supabase = null, currentUser = null, currentProfile = null;
+let sbClient = null, currentUser = null, currentProfile = null;
 let myTickets = [], allDemoTickets = [];
 let demoMode = false, activeFilter = '';
 const CATS = {1:'Billing',2:'Technical',3:'Account',4:'General'};
@@ -402,8 +402,8 @@ async function connectSupabase() {
   const url=document.getElementById('cfg-url').value.trim(), key=document.getElementById('cfg-key').value.trim();
   if (!url||!key){alert('Please enter both URL and key.');return;}
   try {
-    supabase=window.supabase.createClient(url,key);
-    const {error}=await supabase.from('profiles').select('id').limit(1);
+    sbClient=window.supabase.createClient(url,key);
+    const {error}=await sbClient.from('profiles').select('id').limit(1);
     if (error) throw error;
     localStorage.setItem('sb_url',url); localStorage.setItem('sb_key',key);
     document.getElementById('cfg-screen').classList.remove('active');
@@ -426,33 +426,33 @@ function loadDemo() {
 
 /* ── Auth ── */
 async function signIn() {
-  if (!supabase){loadDemo();return;}
+  if (!sbClient){loadDemo();return;}
   const email=document.getElementById('si-email').value, pass=document.getElementById('si-password').value;
-  const {data,error}=await supabase.auth.signInWithPassword({email,password:pass});
+  const {data,error}=await sbClient.auth.signInWithPassword({email,password:pass});
   if (error){document.getElementById('si-err').textContent=error.message;return;}
   currentUser=data.user;
-  const {data:prof}=await supabase.from('profiles').select('*').eq('id',currentUser.id).single();
+  const {data:prof}=await sbClient.from('profiles').select('*').eq('id',currentUser.id).single();
   currentProfile=prof;
   showApp();
 }
 async function signUp() {
-  if (!supabase){loadDemo();return;}
+  if (!sbClient){loadDemo();return;}
   const name=document.getElementById('su-name').value.trim();
   const email=document.getElementById('su-email').value.trim();
   const pass=document.getElementById('su-password').value;
   if (!name||!email||!pass){document.getElementById('su-err').textContent='All fields are required.';return;}
   if (pass.length<8){document.getElementById('su-err').textContent='Password must be at least 8 characters.';return;}
-  const {data,error}=await supabase.auth.signUp({email,password:pass,options:{data:{full_name:name,role:'client'}}});
+  const {data,error}=await sbClient.auth.signUp({email,password:pass,options:{data:{full_name:name,role:'client'}}});
   if (error){document.getElementById('su-err').textContent=error.message;return;}
   currentUser=data.user;
   // Profile auto-created by trigger; wait briefly then load
   await new Promise(r=>setTimeout(r,500));
-  const {data:prof}=await supabase.from('profiles').select('*').eq('id',currentUser.id).single();
+  const {data:prof}=await sbClient.from('profiles').select('*').eq('id',currentUser.id).single();
   currentProfile=prof||{id:currentUser.id,full_name:name,role:'client'};
   toast('Account created! Welcome, '+name);
   showApp();
 }
-async function signOut() { if(supabase) await supabase.auth.signOut(); location.reload(); }
+async function signOut() { if(sbClient) await sbClient.auth.signOut(); location.reload(); }
 
 function showApp() {
   document.getElementById('auth-screen').classList.remove('active');
@@ -471,7 +471,7 @@ function updateUserHeader() {
 async function loadClientTickets() {
   if (demoMode) { renderTickets(); return; }
   document.getElementById('ticket-list').innerHTML='<div style="text-align:center;padding:32px;color:var(--text3)"><div class="loader"></div></div>';
-  const {data,error}=await supabase.from('tickets')
+  const {data,error}=await sbClient.from('tickets')
     .select('*, assignee:profiles!assignee_id(id,full_name)')
     .eq('requester_id',currentUser.id)
     .order('updated_at',{ascending:false});
@@ -520,7 +520,7 @@ async function openTicketDetail(id) {
   let comments=[];
   if (demoMode){comments=(DEMO_COMMENTS[id]||[]).filter(c=>!c.is_internal);}
   else {
-    const {data}=await supabase.from('comments')
+    const {data}=await sbClient.from('comments')
       .select('*,author:profiles(id,full_name,role)')
       .eq('ticket_id',id).eq('is_internal',false).order('created_at');
     comments=data||[];
@@ -585,14 +585,14 @@ async function addReply(ticketId) {
     document.getElementById('comments-list').innerHTML=renderComments(DEMO_COMMENTS[ticketId].filter(c=>!c.is_internal));
     document.getElementById('reply-text').value=''; toast('Reply sent'); return;
   }
-  const {error}=await supabase.from('comments').insert({ticket_id:ticketId,author_id:currentUser.id,body,is_internal:false});
+  const {error}=await sbClient.from('comments').insert({ticket_id:ticketId,author_id:currentUser.id,body,is_internal:false});
   if (error){toast('Error: '+error.message);return;}
   document.getElementById('reply-text').value=''; toast('Reply sent'); openTicketDetail(ticketId);
 }
 
 async function reopenTicket(ticketId) {
   if (demoMode){const t=myTickets.find(x=>x.id===ticketId);if(t){t.status='open';t.updated_at=new Date().toISOString();}renderTickets();closeModal('modal-ticket-detail');toast('Ticket reopened');return;}
-  await supabase.from('tickets').update({status:'open'}).eq('id',ticketId);
+  await sbClient.from('tickets').update({status:'open'}).eq('id',ticketId);
   loadClientTickets(); closeModal('modal-ticket-detail'); toast('Ticket reopened');
 }
 
@@ -614,7 +614,7 @@ async function submitTicket() {
     document.getElementById('nt-subject').value=''; document.getElementById('nt-desc').value='';
     renderTickets(); toast('Request submitted! We\'ll be in touch soon.'); return;
   }
-  const {error}=await supabase.from('tickets').insert({...payload,requester_id:currentUser.id});
+  const {error}=await sbClient.from('tickets').insert({...payload,requester_id:currentUser.id});
   if (error){toast('Error: '+error.message);return;}
   closeModal('modal-new-ticket');
   document.getElementById('nt-subject').value=''; document.getElementById('nt-desc').value='';
@@ -624,17 +624,21 @@ async function submitTicket() {
 /* ── Auto-restore ── */
 const SB_URL = 'https://gtcrmqbmlvtlyiwnshma.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
-(async()=>{
+
+async function initSupabase() {
+  if (!window.supabase) { console.error('Supabase SDK not loaded'); return; }
   const url = SB_URL, key = SB_KEY;
   localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
-  document.getElementById('cfg-url').value = url;
-  document.getElementById('cfg-key').value = key;
-  supabase = window.supabase.createClient(url, key);
+  const cfgUrl = document.getElementById('cfg-url');
+  const cfgKey = document.getElementById('cfg-key');
+  if (cfgUrl) cfgUrl.value = url;
+  if (cfgKey) cfgKey.value = key;
+  sbClient = window.supabase.createClient(url, key);
   try {
-    const {data:{session}} = await supabase.auth.getSession();
+    const { data: { session } } = await sbClient.auth.getSession();
     if (session) {
       currentUser = session.user;
-      const {data:prof} = await supabase.from('profiles').select('*').eq('id',currentUser.id).single();
+      const { data: prof } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).single();
       currentProfile = prof;
       document.getElementById('cfg-screen').classList.remove('active');
       showApp();
@@ -643,10 +647,13 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
       document.getElementById('auth-screen').classList.add('active');
     }
   } catch(e) {
+    console.error('Session restore error:', e);
     document.getElementById('cfg-screen').classList.remove('active');
     document.getElementById('auth-screen').classList.add('active');
   }
-})();
+}
+
+document.addEventListener('DOMContentLoaded', initSupabase);
 </script>
 </body>
 </html>
