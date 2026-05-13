@@ -1,5 +1,3 @@
-require('dotenv').config();
-
 /**
  * El Martillo Helpdesk — API Server (Supabase / PostgreSQL)
  * Run: node server.js
@@ -22,6 +20,8 @@ require('dotenv').config();
  *   PORT           HTTP port for this API server (default: 3000)
  */
 
+require('dotenv').config();   // loads .env file if present
+
 const express = require('express');
 const { Pool } = require('pg');
 const cors    = require('cors');
@@ -31,7 +31,6 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('.'));   // serves index.html and admin.html from same folder
 
 // ── Database connection ──────────────────────────────────────────────────────
 const pool = new Pool(
@@ -198,6 +197,15 @@ app.patch('/api/tickets/:id/status', async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
+
+// ── Global error handler ─────────────────────────────────────────────────────
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ ok: false, error: err.message });
+});
+
+// ── Static files (must be AFTER API routes) ─────────────────────────────────
+app.use(express.static('.'));   // serves index.html and admin.html from same folder
 
 // ── Start ────────────────────────────────────────────────────────────────────
 initDB().then(() => {
