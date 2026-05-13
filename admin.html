@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DeskFlow — Admin Panel</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:       #f5f5f4;
+  --surface:  #ffffff;
+  --surface2: #f9f9f8;
+  --border:   rgba(0,0,0,.08);
+  --border2:  rgba(0,0,0,.14);
+  --text1:    #1a1917;
+  --text2:    #6b6963;
+  --text3:    #9e9a94;
+  --accent:   #185FA5;
+  --accent-l: #E6F1FB;
+  --purple:   #534AB7;
+  --purple-l: #EEEDFE;
+  --success:  #3B6D11;
+  --success-l:#EAF3DE;
+  --warn:     #854F0B;
+  --warn-l:   #FAEEDA;
+  --danger:   #A32D2D;
+  --danger-l: #FCEBEB;
+  --radius:   8px;
+  --radius-l: 12px;
+  --font:     'Inter', system-ui, sans-serif;
+  --mono:     'JetBrains Mono', monospace;
+  --shadow:   0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#111110; --surface:#1c1c1a; --surface2:#232320;
+    --border:rgba(255,255,255,.08); --border2:rgba(255,255,255,.14);
+    --text1:#e8e6e1; --text2:#9e9a94; --text3:#6b6963;
+    --accent-l:#0c2a45; --purple-l:#231e52; --success-l:#192e09;
+    --warn-l:#371f04; --danger-l:#3a0f0f;
+  }
+}
+html, body { height: 100%; font-family: var(--font); background: var(--bg); color: var(--text1); font-size: 14px; }
+#app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+/* Topbar */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; height: 52px; flex-shrink: 0;
+  background: var(--surface); border-bottom: 1px solid var(--border); gap: 12px;
+}
+.logo { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.logo svg { color: var(--accent); }
+.topbar-center { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--text2); }
+.topbar-center .badge-admin { background: var(--accent); color: #fff; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.db-indicator { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text3); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: #ccc; }
+.dot.connected { background: #5cb85c; }
+.portal-link {
+  font-size: 12px; font-weight: 500; color: var(--accent);
+  text-decoration: none; padding: 5px 10px; border-radius: 6px;
+  border: 1px solid var(--accent-l); background: var(--accent-l);
+  transition: all .15s;
+}
+.portal-link:hover { opacity: .8; }
+
+/* Layout */
+.body { display: flex; flex: 1; overflow: hidden; }
+.sidebar {
+  width: 210px; flex-shrink: 0;
+  background: var(--surface2); border-right: 1px solid var(--border);
+  padding: 14px 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
+}
+.sidebar-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--text3); padding: 4px 8px 6px; }
+.nav-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 9px; border-radius: 6px; cursor: pointer;
+  font-size: 13px; color: var(--text2); transition: all .12s;
+}
+.nav-item:hover { background: var(--surface); color: var(--text1); }
+.nav-item.active { background: var(--accent-l); color: var(--accent); font-weight: 500; }
+.nav-item svg { flex-shrink: 0; }
+.nav-badge { margin-left: auto; background: var(--accent); color: #fff; font-size: 10px; font-weight: 600; border-radius: 10px; padding: 1px 6px; }
+.nav-badge.warn { background: var(--warn); }
+.sep { height: 1px; background: var(--border); margin: 4px 8px; }
+.content { flex: 1; overflow-y: auto; padding: 24px; background: var(--bg); }
+.page { display: none; }
+.page.active { display: block; }
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; gap: 12px; }
+.page-header h1 { font-size: 18px; font-weight: 600; }
+.page-header p { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; font-size: 13px; font-weight: 500;
+  border-radius: var(--radius); border: 1px solid var(--border2);
+  background: var(--surface); color: var(--text1);
+  cursor: pointer; transition: all .12s; font-family: var(--font); line-height: 1;
+}
+.btn:hover { background: var(--bg); }
+.btn:active { transform: scale(.98); }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn.primary:hover { opacity: .9; }
+.btn.sm { padding: 4px 10px; font-size: 12px; }
+
+/* Stats */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-l); padding: 16px; }
+.stat-card .label { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+.stat-card .value { font-size: 26px; font-weight: 600; line-height: 1; }
+.stat-card .sub { font-size: 11px; color: var(--text3); margin-top: 6px; }
+.stat-card .sub.up { color: var(--success); }
+
+/* Table */
+.table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-l); overflow: hidden; }
+.table-toolbar { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.search-wrap { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--bg); border: 1px solid var(--border2); border-radius: var(--radius); flex: 1; min-width: 180px; max-width: 300px; }
+.search-wrap input { border: none; background: transparent; outline: none; font-size: 13px; color: var(--text1); width: 100%; font-family: var(--font); }
+.filter-sel { padding: 6px 10px; font-size: 12px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text1); cursor: pointer; font-family: var(--font); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { padding: 10px 16px; text-align: left; font-size: 10px; font-weight: 600; color: var(--text3); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; background: var(--surface2); }
+td { padding: 11px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--bg); cursor: pointer; }
+.empty-row td { text-align: center; padding: 40px; color: var(--text3); }
+.loading-row td { text-align: center; padding: 32px; }
+
+/* Badges */
+.sb { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.s-open        { background: var(--accent-l);  color: var(--accent); }
+.s-in_progress { background: var(--purple-l);  color: var(--purple); }
+.s-waiting     { background: var(--warn-l);    color: var(--warn); }
+.s-resolved    { background: var(--success-l); color: var(--success); }
+.s-closed      { background: var(--bg); color: var(--text2); border: 1px solid var(--border); }
+.pdot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+.pdot.critical { background: #E24B4A; } .pdot.high { background: #EF9F27; } .pdot.medium { background: #378ADD; } .pdot.low { background: #9e9a94; }
+.p-critical { color: #E24B4A; font-weight: 600; } .p-high { color: #EF9F27; font-weight: 600; } .p-medium { color: var(--accent); } .p-low { color: var(--text3); }
+
+/* Avatar */
+.avatar { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; flex-shrink: 0; }
+.av-blue { background: var(--accent-l); color: var(--accent); }
+.av-purple { background: var(--purple-l); color: var(--purple); }
+.av-teal { background: #E1F5EE; color: #0F6E56; }
+.av-coral { background: #FAECE7; color: #993C1D; }
+.av-green { background: var(--success-l); color: var(--success); }
+
+/* Modal */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: flex-start; justify-content: center; padding: 40px 16px; z-index: 200; overflow-y: auto; }
+.overlay.open { display: flex; }
+.modal { background: var(--surface); border-radius: var(--radius-l); border: 1px solid var(--border2); width: 100%; max-width: 560px; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,.2); }
+.modal.wide { max-width: 680px; }
+.modal-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 12px; }
+.modal-title { font-size: 15px; font-weight: 600; }
+.modal-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+.close-x { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 18px; line-height: 1; padding: 2px; }
+.close-x:hover { color: var(--text1); }
+
+/* Forms */
+.fg { margin-bottom: 14px; }
+.fl { display: block; font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 5px; }
+.fc { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface); color: var(--text1); outline: none; transition: border-color .15s; font-family: var(--font); }
+.fc:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(24,95,165,.12); }
+textarea.fc { resize: vertical; min-height: 80px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
+/* Ticket detail */
+.detail-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.dmi .key { font-size: 11px; color: var(--text3); margin-bottom: 3px; }
+.dmi .val { font-size: 13px; font-weight: 500; }
+.desc-box { font-size: 13px; color: var(--text2); line-height: 1.65; padding: 12px 14px; background: var(--bg); border-radius: var(--radius); margin-bottom: 18px; border: 1px solid var(--border); }
+.activity { border-top: 1px solid var(--border); padding-top: 16px; }
+.activity-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); margin-bottom: 14px; }
+.comment-item { display: flex; gap: 10px; margin-bottom: 14px; }
+.comment-bubble { flex: 1; background: var(--bg); border-radius: var(--radius); padding: 10px 12px; border: 1px solid var(--border); font-size: 13px; line-height: 1.55; }
+.comment-bubble.agent-bubble { background: var(--accent-l); border-color: transparent; }
+.comment-bubble.internal-bubble { background: var(--warn-l); border-color: transparent; }
+.comment-meta { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+.reply-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+.internal-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); cursor: pointer; }
+
+/* Auth / config screens */
+.screen { display: none; height: 100vh; align-items: center; justify-content: center; background: var(--bg); }
+.screen.active { display: flex; }
+.screen-card { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-l); padding: 32px; width: 100%; max-width: 420px; box-shadow: var(--shadow); }
+.screen-card h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+.screen-card .desc { font-size: 13px; color: var(--text2); margin-bottom: 22px; line-height: 1.6; }
+.hint { font-size: 11px; color: var(--text3); margin-top: 4px; }
+.demo-link { font-size: 12px; color: var(--accent); cursor: pointer; text-decoration: underline; background: none; border: none; font-family: var(--font); display: block; text-align: center; margin-top: 12px; }
+
+/* Loader / toast */
+.loader { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#toast { position: fixed; bottom: 24px; right: 24px; background: var(--text1); color: var(--surface); padding: 10px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 500; opacity: 0; transform: translateY(8px); transition: all .2s; pointer-events: none; z-index: 999; }
+#toast.show { opacity: 1; transform: translateY(0); }
+.tid { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+.flex-c { display: flex; align-items: center; gap: 6px; }
+</style>
+</head>
+<body>
+
+<!-- Config screen -->
+<div id="cfg-screen" class="screen active">
+  <div class="screen-card">
+    <h2>🎫 DeskFlow Admin</h2>
+    <p class="desc">Connect your Supabase project to get started. Your credentials are saved locally after the first connection.</p>
+    <div class="fg">
+      <label class="fl">Supabase Project URL</label>
+      <input id="cfg-url" class="fc" type="url" placeholder="https://xxxxxxxxxxxx.supabase.co"/>
+      <div class="hint">Project Settings → API</div>
+    </div>
+    <div class="fg">
+      <label class="fl">Anon / Public Key</label>
+      <input id="cfg-key" class="fc" type="text" placeholder="eyJhbGci..."/>
+    </div>
+    <button class="btn primary" style="width:100%;justify-content:center" onclick="connectSupabase()">Connect</button>
+    <button class="demo-link" onclick="loadDemo()">Or continue with demo data</button>
+  </div>
+</div>
+
+<!-- Auth screen -->
+<div id="auth-screen" class="screen">
+  <div class="screen-card">
+    <h2>Admin sign in</h2>
+    <p class="desc">Sign in with your admin or agent account.</p>
+    <div class="fg"><label class="fl">Email</label><input id="auth-email" class="fc" type="email" placeholder="admin@example.com"/></div>
+    <div class="fg"><label class="fl">Password</label><input id="auth-password" class="fc" type="password" placeholder="••••••••"/></div>
+    <button class="btn primary" style="width:100%;justify-content:center" onclick="signIn()">Sign in</button>
+    <div id="auth-err" style="text-align:center;margin-top:10px;font-size:12px;color:var(--danger)"></div>
+    <button class="demo-link" onclick="loadDemo()">Continue as demo</button>
+  </div>
+</div>
+
+<!-- Main app -->
+<div id="app" style="display:none">
+  <div class="topbar">
+    <div class="logo">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h4M8 12h.01"/></svg>
+      DeskFlow
+    </div>
+    <div class="topbar-center">
+      <span class="badge-admin">Admin</span>
+      <span id="topbar-user" style="color:var(--text3)"></span>
+    </div>
+    <div class="topbar-right">
+      <div class="db-indicator"><div class="dot" id="db-dot"></div><span id="db-label">Demo mode</span></div>
+      <a href="client.html" class="portal-link">→ Client portal</a>
+      <button class="btn sm" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="sidebar">
+      <div class="sidebar-label">Tickets</div>
+      <div class="nav-item active" onclick="adminNav(this,'all')">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8h18M3 12h18M3 16h18"/></svg>
+        All tickets <span class="nav-badge" id="badge-all">—</span>
+      </div>
+      <div class="nav-item" onclick="adminNav(this,'open')">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+        Open <span class="nav-badge" id="badge-open">—</span>
+      </div>
+      <div class="nav-item" onclick="adminNav(this,'in_progress')">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83"/></svg>
+        In progress <span class="nav-badge warn" id="badge-inprog">—</span>
+      </div>
+      <div class="nav-item" onclick="adminNav(this,'waiting')">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        Waiting
+      </div>
+      <div class="nav-item" onclick="adminNav(this,'resolved')">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+        Resolved
+      </div>
+      <div class="sep"></div>
+      <div class="sidebar-label">Manage</div>
+      <div class="nav-item" onclick="adminNav(this,'agents')">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Agents
+      </div>
+      <div class="nav-item" onclick="adminNav(this,'reports')">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="4" height="11"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="3" width="4" height="18"/></svg>
+        Reports
+      </div>
+      <div class="nav-item" onclick="adminNav(this,'settings')">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- All tickets -->
+      <div class="page active" id="page-all">
+        <div class="page-header">
+          <div><h1>All tickets</h1><p id="ticket-count-sub">Loading…</p></div>
+          <button class="btn primary" onclick="openModal('modal-new-ticket')">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            New ticket
+          </button>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="label">Open</div><div class="value" id="stat-open" style="color:var(--accent)">—</div><div class="sub"></div></div>
+          <div class="stat-card"><div class="label">In progress</div><div class="value" id="stat-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to agents</div></div>
+          <div class="stat-card"><div class="label">Resolved</div><div class="value" id="stat-resolved" style="color:var(--success)">—</div><div class="sub"></div></div>
+          <div class="stat-card"><div class="label">Total</div><div class="value" id="stat-total">—</div><div class="sub">All time</div></div>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <div class="search-wrap">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" id="search-input" placeholder="Search tickets…" oninput="renderTable()"/>
+            </div>
+            <select class="filter-sel" id="filter-status" onchange="renderTable()">
+              <option value="">All statuses</option>
+              <option value="open">Open</option>
+              <option value="in_progress">In progress</option>
+              <option value="waiting">Waiting</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
+            </select>
+            <select class="filter-sel" id="filter-priority" onchange="renderTable()">
+              <option value="">All priorities</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+            <button class="btn sm" onclick="loadTickets()">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+              Refresh
+            </button>
+          </div>
+          <table><thead><tr><th>ID</th><th>Subject</th><th>Status</th><th>Priority</th><th>Requester</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
+          <tbody id="admin-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- Filtered pages -->
+      <div class="page" id="page-open"></div>
+      <div class="page" id="page-in_progress"></div>
+      <div class="page" id="page-waiting"></div>
+      <div class="page" id="page-resolved"></div>
+
+      <!-- Agents -->
+      <div class="page" id="page-agents">
+        <div class="page-header">
+          <div><h1>Agents</h1><p>Support team members</p></div>
+          <button class="btn primary" onclick="openModal('modal-invite-agent')">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Invite agent
+          </button>
+        </div>
+        <div id="agents-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
+      </div>
+
+      <!-- Reports -->
+      <div class="page" id="page-reports">
+        <div class="page-header"><div><h1>Reports</h1><p>Support performance overview</p></div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="table-card" style="padding:18px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:14px">Tickets by status</div>
+            <div id="report-status-bars"></div>
+          </div>
+          <div class="table-card" style="padding:18px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:14px">Tickets by priority</div>
+            <div id="report-priority-bars"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="page" id="page-settings">
+        <div class="page-header"><div><h1>Settings</h1><p>System configuration</p></div></div>
+        <div class="table-card" style="padding:20px;max-width:460px">
+          <div class="fg"><label class="fl">Company name</label><input class="fc" value="Acme Corp" type="text"/></div>
+          <div class="fg"><label class="fl">Support email</label><input class="fc" value="support@acme.com" type="email"/></div>
+          <div class="fg">
+            <label class="fl">SLA response target</label>
+            <select class="fc"><option>4 hours</option><option>8 hours</option><option>24 hours</option></select>
+          </div>
+          <div class="fg">
+            <label class="fl">Connected Supabase project</label>
+            <input class="fc" id="settings-url" readonly style="font-family:var(--mono);font-size:12px"/>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn primary" onclick="toast('Settings saved')">Save settings</button>
+            <button class="btn" onclick="clearCreds()">Disconnect Supabase</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New ticket modal -->
+<div class="overlay" id="modal-new-ticket">
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title">Create ticket</div><button class="close-x" onclick="closeModal('modal-new-ticket')">✕</button></div>
+    <div class="fg"><label class="fl">Subject *</label><input id="nt-subject" class="fc" type="text" placeholder="Brief description"/></div>
+    <div class="fg"><label class="fl">Description</label><textarea id="nt-description" class="fc" placeholder="Provide full details…"></textarea></div>
+    <div class="form-row">
+      <div class="fg"><label class="fl">Priority</label>
+        <select id="nt-priority" class="fc"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="critical">Critical</option></select>
+      </div>
+      <div class="fg"><label class="fl">Category</label>
+        <select id="nt-category" class="fc"><option value="1">Billing</option><option value="2">Technical</option><option value="3">Account</option><option value="4">General</option></select>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Requester email</label><input id="nt-requester" class="fc" type="email" placeholder="client@example.com"/></div>
+    <div class="form-footer">
+      <button class="btn" onclick="closeModal('modal-new-ticket')">Cancel</button>
+      <button class="btn primary" onclick="createTicket()">Create ticket</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ticket detail modal -->
+<div class="overlay" id="modal-ticket-detail">
+  <div class="modal wide">
+    <div class="modal-head">
+      <div><div class="modal-title" id="detail-title">Ticket</div><div class="modal-sub" id="detail-sub"></div></div>
+      <button class="close-x" onclick="closeModal('modal-ticket-detail')">✕</button>
+    </div>
+    <div id="detail-body"></div>
+  </div>
+</div>
+
+<!-- Invite agent modal -->
+<div class="overlay" id="modal-invite-agent">
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title">Invite agent</div><button class="close-x" onclick="closeModal('modal-invite-agent')">✕</button></div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">The agent will receive an email invitation to set their password.</p>
+    <div class="fg"><label class="fl">Full name</label><input id="ia-name" class="fc" type="text" placeholder="Jane Smith"/></div>
+    <div class="fg"><label class="fl">Email address</label><input id="ia-email" class="fc" type="email" placeholder="agent@support.com"/></div>
+    <div class="fg"><label class="fl">Role</label><select id="ia-role" class="fc"><option value="agent">Agent</option><option value="admin">Admin</option></select></div>
+    <div class="form-footer">
+      <button class="btn" onclick="closeModal('modal-invite-agent')">Cancel</button>
+      <button class="btn primary" onclick="inviteAgent()">Send invitation</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ── State ── */
+let supabase = null, currentUser = null, currentProfile = null;
+let tickets = [], profiles = [];
+let demoMode = false;
+const CATS = {1:'Billing',2:'Technical',3:'Account',4:'General'};
+const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
+
+/* ── Demo data ── */
+const DEMO_PROFILES = [
+  {id:'p1',full_name:'Sarah Johnson', email:'sarah@support.com', role:'agent', status:'online'},
+  {id:'p2',full_name:'Marcus Reid',   email:'marcus@support.com',role:'agent', status:'online'},
+  {id:'p3',full_name:'Aiko Lim',      email:'aiko@support.com',  role:'agent', status:'away'},
+  {id:'p4',full_name:'Dev Kumar',     email:'dev@support.com',   role:'admin', status:'online'},
+  {id:'p5',full_name:'Jane Doe',      email:'jane@client.com',   role:'client',status:'online'},
+  {id:'p6',full_name:'Robert Chen',   email:'robert@client.com', role:'client',status:'offline'},
+];
+const DEMO_TICKETS = [
+  {id:'t1',ticket_number:12,subject:'Cannot export invoices to PDF',description:'When clicking Export PDF the page just spins. Happens on Chrome and Firefox.',status:'open',priority:'high',category_id:1,requester_id:'p5',assignee_id:'p1',updated_at:new Date(Date.now()-2*60000).toISOString(),created_at:new Date(Date.now()-30*60000).toISOString()},
+  {id:'t2',ticket_number:11,subject:'Two-factor auth not sending SMS codes',description:'2FA codes stopped arriving after yesterday\'s update. Multiple users affected.',status:'in_progress',priority:'critical',category_id:3,requester_id:'p6',assignee_id:'p2',updated_at:new Date(Date.now()-18*60000).toISOString(),created_at:new Date(Date.now()-2*3600000).toISOString()},
+  {id:'t3',ticket_number:10,subject:'Dashboard loads slowly on mobile',description:'The main dashboard takes 8-10 seconds on mobile. Desktop is fine.',status:'open',priority:'medium',category_id:2,requester_id:'p5',assignee_id:null,updated_at:new Date(Date.now()-3600000).toISOString(),created_at:new Date(Date.now()-4*3600000).toISOString()},
+  {id:'t4',ticket_number:9, subject:'Incorrect billing amount on last invoice',description:'Invoice #INV-2094 shows $520 but should be $480.',status:'waiting',priority:'high',category_id:1,requester_id:'p6',assignee_id:'p1',updated_at:new Date(Date.now()-3*3600000).toISOString(),created_at:new Date(Date.now()-6*3600000).toISOString()},
+  {id:'t5',ticket_number:8, subject:'API rate limit errors on /v2/orders',description:'Getting 429 errors far below the documented rate limit.',status:'in_progress',priority:'critical',category_id:2,requester_id:'p5',assignee_id:'p4',updated_at:new Date(Date.now()-4*3600000).toISOString(),created_at:new Date(Date.now()-8*3600000).toISOString()},
+  {id:'t6',ticket_number:7, subject:'User cannot be removed from workspace',description:'Delete user button does nothing. No error shown.',status:'open',priority:'medium',category_id:3,requester_id:'p5',assignee_id:'p3',updated_at:new Date(Date.now()-5*3600000).toISOString(),created_at:new Date(Date.now()-10*3600000).toISOString()},
+  {id:'t7',ticket_number:6, subject:'Email notifications not being received',description:'Notification emails stopped arriving yesterday around 3pm UTC.',status:'in_progress',priority:'high',category_id:2,requester_id:'p6',assignee_id:'p2',updated_at:new Date(Date.now()-8*3600000).toISOString(),created_at:new Date(Date.now()-12*3600000).toISOString()},
+  {id:'t8',ticket_number:5, subject:'How to bulk import contacts via CSV?',description:'Looking for documentation on importing large contact lists.',status:'resolved',priority:'low',category_id:4,requester_id:'p5',assignee_id:'p3',updated_at:new Date(Date.now()-24*3600000).toISOString(),created_at:new Date(Date.now()-2*24*3600000).toISOString()},
+  {id:'t9',ticket_number:4, subject:'Change subscription plan to Enterprise',description:'Want to upgrade from Pro to Enterprise.',status:'resolved',priority:'medium',category_id:1,requester_id:'p6',assignee_id:'p1',updated_at:new Date(Date.now()-2*24*3600000).toISOString(),created_at:new Date(Date.now()-3*24*3600000).toISOString()},
+  {id:'t10',ticket_number:3,subject:'Single sign-on setup assistance',description:'Need help setting up SAML SSO with Okta.',status:'in_progress',priority:'high',category_id:3,requester_id:'p5',assignee_id:'p4',updated_at:new Date(Date.now()-3*24*3600000).toISOString(),created_at:new Date(Date.now()-4*24*3600000).toISOString()},
+];
+const DEMO_COMMENTS = {
+  't1':[
+    {id:'c1',author_id:'p5',body:'Tried clearing cache and incognito — still broken.',is_internal:false,created_at:new Date(Date.now()-10*60000).toISOString()},
+    {id:'c2',author_id:'p1',body:'Thanks for reaching out! Looking into this now.',is_internal:false,created_at:new Date(Date.now()-5*60000).toISOString()},
+    {id:'c3',author_id:'p1',body:'Internal: Looks like the wkhtmltopdf upgrade issue from last deploy. Escalating to eng.',is_internal:true,created_at:new Date(Date.now()-3*60000).toISOString()},
+  ],
+  't2':[{id:'c4',author_id:'p2',body:'Identified the SMS provider issue. Fix deploying — resolved in ~30 min.',is_internal:false,created_at:new Date(Date.now()-5*60000).toISOString()}],
+};
+
+/* ── Helpers ── */
+const initials = n => n ? n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '?';
+const avColor  = id => AV_COLORS[(id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0) % AV_COLORS.length];
+const timeAgo  = iso => { if(!iso) return '—'; const m=Math.floor((Date.now()-new Date(iso))/60000); if(m<1) return 'just now'; if(m<60) return m+'m ago'; const h=Math.floor(m/60); if(h<24) return h+'h ago'; return Math.floor(h/24)+'d ago'; };
+const sLabel   = s => ({open:'Open',in_progress:'In progress',waiting:'Waiting',resolved:'Resolved',closed:'Closed'}[s]||s);
+const profileById = id => profiles.find(p=>p.id===id);
+function toast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+
+/* ── Connect ── */
+async function connectSupabase() {
+  const url = document.getElementById('cfg-url').value.trim();
+  const key = document.getElementById('cfg-key').value.trim();
+  if (!url||!key) { alert('Please enter both URL and key.'); return; }
+  try {
+    supabase = window.supabase.createClient(url, key);
+    const {error} = await supabase.from('profiles').select('id').limit(1);
+    if (error) throw error;
+    localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
+    document.getElementById('cfg-screen').classList.remove('active');
+    document.getElementById('auth-screen').classList.add('active');
+  } catch(e) { alert('Connection failed: '+e.message); }
+}
+function loadDemo() {
+  demoMode = true; tickets=[...DEMO_TICKETS]; profiles=[...DEMO_PROFILES];
+  currentProfile = {id:'p4',full_name:'Dev Kumar',role:'admin'};
+  document.getElementById('cfg-screen').classList.remove('active');
+  document.getElementById('auth-screen').classList.remove('active');
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('topbar-user').textContent = 'Dev Kumar';
+  loadTickets(); renderAgents(); renderReports();
+}
+async function signIn() {
+  if (!supabase) { loadDemo(); return; }
+  const email = document.getElementById('auth-email').value;
+  const pass  = document.getElementById('auth-password').value;
+  const {data,error} = await supabase.auth.signInWithPassword({email,password:pass});
+  if (error) { document.getElementById('auth-err').textContent = error.message; return; }
+  currentUser = data.user;
+  const {data:prof} = await supabase.from('profiles').select('*').eq('id',currentUser.id).single();
+  currentProfile = prof;
+  if (prof?.role==='client') { document.getElementById('auth-err').textContent='Access denied. Client accounts must use the client portal.'; return; }
+  document.getElementById('auth-screen').classList.remove('active');
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('db-dot').className = 'dot connected';
+  document.getElementById('db-label').textContent = 'Supabase connected';
+  document.getElementById('topbar-user').textContent = prof?.full_name||email;
+  document.getElementById('settings-url').value = localStorage.getItem('sb_url')||'';
+  loadTickets(); loadProfiles();
+}
+async function signOut() { if(supabase) await supabase.auth.signOut(); location.reload(); }
+function clearCreds() { localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key'); location.reload(); }
+
+/* ── Data ── */
+async function loadTickets() {
+  if (demoMode) { renderTable(); updateStats(); updateBadges(); return; }
+  document.getElementById('admin-tbody').innerHTML='<tr class="loading-row"><td colspan="8"><div class="loader"></div></td></tr>';
+  const {data,error} = await supabase.from('tickets')
+    .select('*, requester:profiles!requester_id(id,full_name), assignee:profiles!assignee_id(id,full_name)')
+    .order('updated_at',{ascending:false});
+  if (error) { toast('Error: '+error.message); return; }
+  tickets = data||[]; renderTable(); updateStats(); updateBadges();
+  document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
+}
+async function loadProfiles() {
+  if (demoMode) { renderAgents(); return; }
+  const {data} = await supabase.from('profiles').select('*').in('role',['agent','admin']);
+  if (data) profiles=data; renderAgents();
+}
+
+/* ── Render table ── */
+function renderTable(statusFilter) {
+  const q  = (document.getElementById('search-input')?.value||'').toLowerCase();
+  const sf = statusFilter||document.getElementById('filter-status')?.value||'';
+  const pf = document.getElementById('filter-priority')?.value||'';
+  let list = tickets;
+  if (sf) list=list.filter(t=>t.status===sf);
+  if (pf) list=list.filter(t=>t.priority===pf);
+  if (q)  list=list.filter(t=>t.subject.toLowerCase().includes(q)||(t.ticket_number+'').includes(q)||getReqName(t).toLowerCase().includes(q));
+  const tbody = document.getElementById('admin-tbody');
+  if (!tbody) return;
+  if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="8">No tickets found</td></tr>'; return; }
+  tbody.innerHTML = list.map(t => {
+    const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
+    const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
+    return `<tr onclick="openTicketDetail('${t.id}')">
+      <td><span class="tid">#${t.ticket_number}</span></td>
+      <td style="max-width:240px"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</div><div style="font-size:11px;color:var(--text3);margin-top:1px">${CATS[t.category_id]||'General'}</div></td>
+      <td><span class="sb s-${t.status}">${sLabel(t.status)}</span></td>
+      <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
+      <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${req?.full_name||'—'}</span></div></td>
+      <td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td>
+      <td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td>
+      <td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td>
+    </tr>`;
+  }).join('');
+}
+const getReqName = t => { const p = demoMode ? profileById(t.requester_id) : t.requester; return p?.full_name||''; };
+
+function updateStats() {
+  document.getElementById('stat-open').textContent    = tickets.filter(t=>t.status==='open').length;
+  document.getElementById('stat-inprog').textContent  = tickets.filter(t=>t.status==='in_progress').length;
+  document.getElementById('stat-resolved').textContent= tickets.filter(t=>t.status==='resolved').length;
+  document.getElementById('stat-total').textContent   = tickets.length;
+  document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
+}
+function updateBadges() {
+  document.getElementById('badge-all').textContent   = tickets.length;
+  document.getElementById('badge-open').textContent  = tickets.filter(t=>t.status==='open').length;
+  document.getElementById('badge-inprog').textContent= tickets.filter(t=>t.status==='in_progress').length;
+}
+
+/* ── Navigation ── */
+function adminNav(el, page) {
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const pg = document.getElementById('page-'+page);
+  if (!pg) return;
+  pg.classList.add('active');
+  if (['open','in_progress','waiting','resolved'].includes(page)) {
+    const filtered = tickets.filter(t=>t.status===page);
+    pg.innerHTML = `<div class="page-header"><div><h1>${sLabel(page)} tickets</h1><p>${filtered.length} tickets</p></div></div>
+    <div class="table-card"><table><thead><tr><th>ID</th><th>Subject</th><th>Priority</th><th>Requester</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
+    <tbody>${filtered.length ? filtered.map(t=>{
+      const req=demoMode?profileById(t.requester_id):(t.requester||{});
+      const asgn=demoMode?profileById(t.assignee_id):(t.assignee||{});
+      return `<tr onclick="openTicketDetail('${t.id}')"><td><span class="tid">#${t.ticket_number}</span></td><td style="font-weight:500;max-width:260px">${t.subject}</td><td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td><td style="font-size:12px">${req?.full_name||'—'}</td><td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td><td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td><td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td></tr>`;
+    }).join('') : '<tr class="empty-row"><td colspan="7">No tickets in this status</td></tr>'}</tbody></table></div>`;
+  }
+  if (page==='reports') renderReports();
+}
+
+/* ── Ticket detail ── */
+async function openTicketDetail(id) {
+  const t = tickets.find(x=>x.id===id); if (!t) return;
+  const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
+  const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
+  document.getElementById('detail-title').textContent = t.subject;
+  document.getElementById('detail-sub').textContent   = `#${t.ticket_number} · ${CATS[t.category_id]||'General'} · ${timeAgo(t.updated_at)}`;
+  let comments=[];
+  if (demoMode) { comments=DEMO_COMMENTS[id]||[]; }
+  else { const {data}=await supabase.from('comments').select('*,author:profiles(id,full_name,role)').eq('ticket_id',id).order('created_at'); comments=data||[]; }
+  const agentOpts = profiles.filter(p=>p.role==='agent'||p.role==='admin')
+    .map(p=>`<option value="${p.id}" ${p.id===t.assignee_id?'selected':''}>${p.full_name}</option>`).join('');
+  document.getElementById('detail-body').innerHTML=`
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+      <span class="sb s-${t.status}">${sLabel(t.status)}</span>
+      <span style="font-size:12px;color:var(--text2)"><span class="pdot ${t.priority}"></span>${t.priority} priority</span>
+      <select class="filter-sel" style="margin-left:auto" onchange="updateStatus('${t.id}',this.value)">
+        <option value="open" ${t.status==='open'?'selected':''}>Open</option>
+        <option value="in_progress" ${t.status==='in_progress'?'selected':''}>In progress</option>
+        <option value="waiting" ${t.status==='waiting'?'selected':''}>Waiting</option>
+        <option value="resolved" ${t.status==='resolved'?'selected':''}>Resolved</option>
+        <option value="closed" ${t.status==='closed'?'selected':''}>Closed</option>
+      </select>
+      <select class="filter-sel" onchange="updateAssignee('${t.id}',this.value)">
+        <option value="">Unassigned</option>${agentOpts}
+      </select>
+    </div>
+    <div class="detail-meta-grid">
+      <div class="dmi"><div class="key">Requester</div><div class="val flex-c"><div class="avatar ${avColor(req?.id)}" style="width:22px;height:22px;font-size:9px">${initials(req?.full_name||'?')}</div>${req?.full_name||'—'}</div></div>
+      <div class="dmi"><div class="key">Assignee</div><div class="val">${asgn?.full_name||'Unassigned'}</div></div>
+      <div class="dmi"><div class="key">Created</div><div class="val">${timeAgo(t.created_at||t.updated_at)}</div></div>
+      <div class="dmi"><div class="key">Category</div><div class="val">${CATS[t.category_id]||'General'}</div></div>
+    </div>
+    <div class="desc-box">${t.description||'<em style="color:var(--text3)">No description provided.</em>'}</div>
+    <div class="activity">
+      <div class="activity-label">Activity (${comments.length} comments)</div>
+      <div id="comments-list">${renderComments(comments,true)}</div>
+      <div style="margin-top:14px">
+        <textarea id="reply-text" class="fc" placeholder="Write a reply or internal note…" style="min-height:70px;resize:none"></textarea>
+        <div class="reply-actions" style="margin-top:6px">
+          <label class="internal-toggle"><input type="checkbox" id="reply-internal"/> Internal note only</label>
+          <button class="btn primary sm" onclick="addComment('${t.id}')">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Send reply
+          </button>
+        </div>
+      </div>
+    </div>`;
+  openModal('modal-ticket-detail');
+}
+function renderComments(comments, showInternal=false) {
+  if (!comments.length) return '<div style="color:var(--text3);font-size:13px;padding:8px 0">No comments yet.</div>';
+  return comments.filter(c=>showInternal||!c.is_internal).map(c=>{
+    const author=demoMode?profileById(c.author_id):(c.author||{});
+    const isAgent=author?.role==='agent'||author?.role==='admin';
+    const cls=c.is_internal?'internal-bubble':(isAgent?'agent-bubble':'');
+    return `<div class="comment-item"><div class="avatar ${avColor(author?.id)}" style="flex-shrink:0">${initials(author?.full_name||'?')}</div>
+      <div class="comment-bubble ${cls}"><div class="comment-meta">${author?.full_name||'Unknown'} ${isAgent?'(agent)':''} ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${c.body}</div></div>`;
+  }).join('');
+}
+async function addComment(ticketId) {
+  const body=document.getElementById('reply-text').value.trim();
+  const isInternal=document.getElementById('reply-internal').checked;
+  if (!body) return;
+  if (demoMode) {
+    if (!DEMO_COMMENTS[ticketId]) DEMO_COMMENTS[ticketId]=[];
+    DEMO_COMMENTS[ticketId].push({id:'c'+Date.now(),author_id:currentProfile.id,body,is_internal:isInternal,created_at:new Date().toISOString()});
+    document.getElementById('comments-list').innerHTML=renderComments(DEMO_COMMENTS[ticketId],true);
+    document.getElementById('reply-text').value=''; toast('Reply added'); return;
+  }
+  const {error}=await supabase.from('comments').insert({ticket_id:ticketId,author_id:currentUser.id,body,is_internal:isInternal});
+  if (error){toast('Error: '+error.message);return;}
+  document.getElementById('reply-text').value=''; toast('Reply sent'); openTicketDetail(ticketId);
+}
+async function updateStatus(id, status) {
+  if (demoMode) { const t=tickets.find(x=>x.id===id); if(t){t.status=status;t.updated_at=new Date().toISOString();} updateStats();updateBadges();renderTable();toast('Status updated');return; }
+  await supabase.from('tickets').update({status}).eq('id',id); loadTickets(); toast('Status updated');
+}
+async function updateAssignee(id, assigneeId) {
+  if (demoMode) { const t=tickets.find(x=>x.id===id); if(t) t.assignee_id=assigneeId||null; renderTable();toast('Assignee updated');return; }
+  await supabase.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id); loadTickets(); toast('Assignee updated');
+}
+
+/* ── Create ticket ── */
+async function createTicket() {
+  const subject=document.getElementById('nt-subject').value.trim();
+  if (!subject){toast('Subject is required');return;}
+  const payload={subject,description:document.getElementById('nt-description').value,priority:document.getElementById('nt-priority').value,category_id:parseInt(document.getElementById('nt-category').value),status:'open'};
+  if (demoMode) {
+    tickets.unshift({id:'t'+Date.now(),ticket_number:tickets.length+1,...payload,requester_id:'p4',assignee_id:null,updated_at:new Date().toISOString(),created_at:new Date().toISOString()});
+    renderTable();updateStats();updateBadges();closeModal('modal-new-ticket');
+    document.getElementById('nt-subject').value='';document.getElementById('nt-description').value='';toast('Ticket created');return;
+  }
+  const {error}=await supabase.from('tickets').insert({...payload,requester_id:currentUser.id});
+  if (error){toast('Error: '+error.message);return;}
+  closeModal('modal-new-ticket');loadTickets();toast('Ticket created');
+}
+
+/* ── Agents ── */
+function renderAgents() {
+  const agents=profiles.filter(p=>p.role==='agent'||p.role==='admin');
+  const openByAgent={};
+  tickets.forEach(t=>{if(t.assignee_id&&t.status!=='resolved'&&t.status!=='closed') openByAgent[t.assignee_id]=(openByAgent[t.assignee_id]||0)+1;});
+  const ss={online:'s-open',away:'s-waiting',offline:'s-closed'};
+  document.getElementById('agents-grid').innerHTML=agents.map(p=>`
+    <div class="table-card" style="display:flex;align-items:center;gap:14px;padding:16px">
+      <div class="avatar ${avColor(p.id)}" style="width:42px;height:42px;font-size:15px">${initials(p.full_name)}</div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:600">${p.full_name}</div>
+      <div style="font-size:12px;color:var(--text2)">${p.role==='admin'?'Admin':'Support Agent'} · ${openByAgent[p.id]||0} open</div></div>
+      <span class="sb ${ss[p.status]||'s-closed'}">${p.status||'offline'}</span>
+    </div>`).join('');
+}
+async function inviteAgent() {
+  const name=document.getElementById('ia-name').value.trim(),email=document.getElementById('ia-email').value.trim();
+  if (!name||!email){toast('Name and email required');return;}
+  if (demoMode){profiles.push({id:'p'+Date.now(),full_name:name,email,role:document.getElementById('ia-role').value,status:'offline'});renderAgents();closeModal('modal-invite-agent');toast('Agent invited (demo)');return;}
+  const {error}=await supabase.auth.admin.inviteUserByEmail(email,{data:{full_name:name,role:document.getElementById('ia-role').value}});
+  if (error){toast('Error: '+error.message);return;}
+  closeModal('modal-invite-agent');toast('Invitation sent!');
+}
+
+/* ── Reports ── */
+function renderReports() {
+  const statuses=['open','in_progress','waiting','resolved','closed'];
+  const priorities=['critical','high','medium','low'];
+  const max=Math.max(...statuses.map(s=>tickets.filter(t=>t.status===s).length),1);
+  const pmax=Math.max(...priorities.map(p=>tickets.filter(t=>t.priority===p).length),1);
+  const sc={open:'var(--accent)',in_progress:'var(--purple)',waiting:'var(--warn)',resolved:'var(--success)',closed:'var(--text3)'};
+  const pc={critical:'#E24B4A',high:'#EF9F27',medium:'#378ADD',low:'#9e9a94'};
+  document.getElementById('report-status-bars').innerHTML=statuses.map(s=>{const c=tickets.filter(t=>t.status===s).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${sLabel(s)}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/max*100)}%;height:100%;background:${sc[s]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
+  document.getElementById('report-priority-bars').innerHTML=priorities.map(p=>{const c=tickets.filter(t=>t.priority===p).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${p}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/pmax*100)}%;height:100%;background:${pc[p]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
+}
+
+/* ── Auto-restore session ── */
+(async()=>{
+  const url=localStorage.getItem('sb_url'),key=localStorage.getItem('sb_key');
+  if (url&&key) { document.getElementById('cfg-url').value=url; document.getElementById('cfg-key').value=key;
+    try {
+      supabase=window.supabase.createClient(url,key);
+      const {data:{session}}=await supabase.auth.getSession();
+      if (session) {
+        currentUser=session.user;
+        const {data:prof}=await supabase.from('profiles').select('*').eq('id',currentUser.id).single();
+        currentProfile=prof;
+        document.getElementById('cfg-screen').classList.remove('active');
+        document.getElementById('db-dot').className='dot connected';
+        document.getElementById('db-label').textContent='Supabase connected';
+        document.getElementById('topbar-user').textContent=prof?.full_name||currentUser.email;
+        document.getElementById('settings-url').value=url;
+        document.getElementById('app').style.display='flex';
+        loadTickets(); loadProfiles();
+      }
+    } catch(e){}
+  }
+})();
+</script>
+</body>
+</html>
