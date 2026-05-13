@@ -424,14 +424,26 @@ function loadDemo() {
 }
 
 /* ── Auth ── */
+async function ensureProfile(user, fallbackName) {
+  // Try to load existing profile
+  const {data:existing} = await sbClient.from('profiles').select('*').eq('id', user.id).single();
+  if (existing) return existing;
+  // No profile yet — create it (trigger may have missed it)
+  const name = fallbackName || user.email.split('@')[0];
+  await sbClient.from('profiles').upsert({
+    id: user.id, full_name: name, role: 'client'
+  }, { onConflict: 'id' });
+  const {data:created} = await sbClient.from('profiles').select('*').eq('id', user.id).single();
+  return created || { id: user.id, full_name: name, role: 'client' };
+}
+
 async function signIn() {
   if (!sbClient){loadDemo();return;}
   const email=document.getElementById('si-email').value, pass=document.getElementById('si-password').value;
   const {data,error}=await sbClient.auth.signInWithPassword({email,password:pass});
   if (error){document.getElementById('si-err').textContent=error.message;return;}
   currentUser=data.user;
-  const {data:prof}=await sbClient.from('profiles').select('*').eq('id',currentUser.id).single();
-  currentProfile=prof;
+  currentProfile = await ensureProfile(currentUser);
   showApp();
 }
 async function signUp() {
@@ -444,10 +456,8 @@ async function signUp() {
   const {data,error}=await sbClient.auth.signUp({email,password:pass,options:{data:{full_name:name,role:'client'}}});
   if (error){document.getElementById('su-err').textContent=error.message;return;}
   currentUser=data.user;
-  // Profile auto-created by trigger; wait briefly then load
-  await new Promise(r=>setTimeout(r,500));
-  const {data:prof}=await sbClient.from('profiles').select('*').eq('id',currentUser.id).single();
-  currentProfile=prof||{id:currentUser.id,full_name:name,role:'client'};
+  await new Promise(r=>setTimeout(r,800));
+  currentProfile = await ensureProfile(currentUser, name);
   toast('Account created! Welcome, '+name);
   showApp();
 }
