@@ -1,0 +1,6 @@
+# El Martillo Helpdesk — Supabase environment config
+# Add .env to .gitignore — never commit this file
+
+DATABASE_URL=postgresql://postgres:e+&K2&rRyhFc@9y@db.dvgtsfthkgeiohjtmvbr.supabase.co:5432/postgres
+
+PORT=3000
