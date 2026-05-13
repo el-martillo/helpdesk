@@ -622,24 +622,29 @@ async function submitTicket() {
 }
 
 /* ── Auto-restore ── */
+const SB_URL = 'https://gtcrmqbmlvtlyiwnshma.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
 (async()=>{
-  const url=localStorage.getItem('sb_url'),key=localStorage.getItem('sb_key');
-  if (url&&key){
-    document.getElementById('cfg-url').value=url; document.getElementById('cfg-key').value=key;
-    try {
-      supabase=window.supabase.createClient(url,key);
-      const {data:{session}}=await supabase.auth.getSession();
-      if (session){
-        currentUser=session.user;
-        const {data:prof}=await supabase.from('profiles').select('*').eq('id',currentUser.id).single();
-        currentProfile=prof;
-        document.getElementById('cfg-screen').classList.remove('active');
-        showApp();
-      } else {
-        document.getElementById('cfg-screen').classList.remove('active');
-        document.getElementById('auth-screen').classList.add('active');
-      }
-    } catch(e){}
+  const url = SB_URL, key = SB_KEY;
+  localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
+  document.getElementById('cfg-url').value = url;
+  document.getElementById('cfg-key').value = key;
+  supabase = window.supabase.createClient(url, key);
+  try {
+    const {data:{session}} = await supabase.auth.getSession();
+    if (session) {
+      currentUser = session.user;
+      const {data:prof} = await supabase.from('profiles').select('*').eq('id',currentUser.id).single();
+      currentProfile = prof;
+      document.getElementById('cfg-screen').classList.remove('active');
+      showApp();
+    } else {
+      document.getElementById('cfg-screen').classList.remove('active');
+      document.getElementById('auth-screen').classList.add('active');
+    }
+  } catch(e) {
+    document.getElementById('cfg-screen').classList.remove('active');
+    document.getElementById('auth-screen').classList.add('active');
   }
 })();
 </script>
