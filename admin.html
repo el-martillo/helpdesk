@@ -185,8 +185,7 @@
     </select>
     <input type="text" id="fil-search" placeholder="Search by name or issue…" oninput="renderTable()" />
     <button class="refresh-btn" onclick="loadAndRender()">↻ Refresh</button>
-    <button class="refresh-btn" style="color:#c0392b; margin-left:auto;" onclick="resetData()">⚠ Reset data</button>
-    <span id="gh-status" style="font-size:12px; color:#888; margin-left:4px;"></span>
+    <span id="gh-status" style="font-size:12px; color:#888; margin-left:auto;"></span>
   </div>
 
   <div style="overflow-x: auto;">
@@ -347,10 +346,6 @@
     } catch (err) {
       setStatus('Save failed: ' + err.message, false);
     }
-  }
-
-  async function resetData() {
-    alert('Reset is disabled when using a live database. Delete tickets directly in the database if needed.');
   }
 
   function renderStats() {
