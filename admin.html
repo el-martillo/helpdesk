@@ -326,6 +326,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Agents
       </div>
+      <div class="nav-item" onclick="adminNav(this,'users');loadAllProfiles()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Users
+      </div>
       <div class="nav-item" onclick="adminNav(this,'reports')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="4" height="11"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="3" width="4" height="18"/></svg>
         Reports
@@ -399,6 +403,47 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </button>
         </div>
         <div id="agents-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
+      </div>
+
+      <!-- Users -->
+      <div class="page" id="page-users">
+        <div class="page-header">
+          <div><h1>Users</h1><p id="users-count-sub">All registered profiles</p></div>
+          <button class="btn primary" onclick="openModal('modal-add-user')">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Add user
+          </button>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <div class="search-wrap">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" id="users-search" placeholder="Search users…" oninput="renderUsersTable()"/>
+            </div>
+            <select class="filter-sel" id="users-role-filter" onchange="renderUsersTable()">
+              <option value="">All roles</option>
+              <option value="admin">Admin</option>
+              <option value="agent">Agent</option>
+              <option value="client">Client</option>
+            </select>
+            <button class="btn sm" onclick="loadAllProfiles()">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+              Refresh
+            </button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Open tickets</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Reports -->
@@ -506,6 +551,55 @@ textarea.fc { resize: vertical; min-height: 80px; }
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-new-ticket')">Cancel</button>
       <button class="btn primary" onclick="createTicket()">Create ticket</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add user modal -->
+<div class="overlay" id="modal-add-user">
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title">Add user</div><button class="close-x" onclick="closeModal('modal-add-user')">✕</button></div>
+    <div class="fg"><label class="fl">Full name *</label><input id="au-name" class="fc" type="text" placeholder="Jane Smith"/></div>
+    <div class="fg"><label class="fl">Email *</label><input id="au-email" class="fc" type="email" placeholder="user@example.com"/></div>
+    <div class="fg"><label class="fl">Role</label>
+      <select id="au-role" class="fc">
+        <option value="client">Client</option>
+        <option value="agent">Agent</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:4px;line-height:1.6">A profile row will be created. To also create a login, invite the user via <a href="https://supabase.com/dashboard/project/gtcrmqbmlvtlyiwnshma/auth/users" target="_blank" style="color:var(--accent)">Supabase Auth</a>.</p>
+    <div class="form-footer">
+      <button class="btn" onclick="closeModal('modal-add-user')">Cancel</button>
+      <button class="btn primary" onclick="addUser()">Add user</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit user modal -->
+<div class="overlay" id="modal-edit-user">
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title">Edit user</div><button class="close-x" onclick="closeModal('modal-edit-user')">✕</button></div>
+    <input type="hidden" id="eu-id"/>
+    <div class="fg"><label class="fl">Full name</label><input id="eu-name" class="fc" type="text"/></div>
+    <div class="fg"><label class="fl">Role</label>
+      <select id="eu-role" class="fc">
+        <option value="client">Client</option>
+        <option value="agent">Agent</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Status</label>
+      <select id="eu-status" class="fc">
+        <option value="online">Online</option>
+        <option value="away">Away</option>
+        <option value="offline">Offline</option>
+      </select>
+    </div>
+    <div class="form-footer">
+      <button class="btn" onclick="closeModal('modal-edit-user')">Cancel</button>
+      <button class="btn danger" onclick="deleteUser(document.getElementById('eu-id').value)" style="margin-right:auto">Delete</button>
+      <button class="btn primary" onclick="saveUser()">Save changes</button>
     </div>
   </div>
 </div>
@@ -913,6 +1007,129 @@ async function initSupabase() {
     document.getElementById('cfg-screen').classList.remove('active');
     document.getElementById('auth-screen').classList.add('active');
   }
+}
+
+/* ── Users management ── */
+let allProfiles = [];
+
+async function loadAllProfiles() {
+  const tbody = document.getElementById('users-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr class="loading-row"><td colspan="5"><div class="loader"></div></td></tr>';
+  if (demoMode) {
+    allProfiles = [...DEMO_PROFILES];
+    renderUsersTable(); return;
+  }
+  const { data, error } = await sbClient.from('profiles').select('*').order('full_name');
+  if (error) { toast('Error loading users: ' + error.message); return; }
+  allProfiles = data || [];
+  renderUsersTable();
+  document.getElementById('users-count-sub').textContent = allProfiles.length + ' registered profiles';
+}
+
+function renderUsersTable() {
+  const q  = (document.getElementById('users-search')?.value || '').toLowerCase();
+  const rf = document.getElementById('users-role-filter')?.value || '';
+  let list = allProfiles;
+  if (rf) list = list.filter(p => p.role === rf);
+  if (q)  list = list.filter(p => (p.full_name||'').toLowerCase().includes(q) || (p.email||'').toLowerCase().includes(q));
+  const tbody = document.getElementById('users-tbody');
+  if (!tbody) return;
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No users found</td></tr>'; return; }
+  const roleBadge = r => ({
+    admin:  '<span class="sb s-in_progress">Admin</span>',
+    agent:  '<span class="sb s-open">Agent</span>',
+    client: '<span class="sb s-closed">Client</span>',
+  }[r] || r);
+  const statusBadge = s => ({
+    online:  '<span class="sb s-resolved">Online</span>',
+    away:    '<span class="sb s-waiting">Away</span>',
+    offline: '<span class="sb s-closed">Offline</span>',
+  }[s] || '<span class="sb s-closed">—</span>');
+  tbody.innerHTML = list.map(p => {
+    const openCount = tickets.filter(t => t.requester_id === p.id && !['resolved','closed'].includes(t.status)).length;
+    return `<tr>
+      <td>
+        <div class="flex-c">
+          <div class="avatar ${avColor(p.id)}" style="width:30px;height:30px;font-size:11px">${initials(p.full_name||'?')}</div>
+          <div>
+            <div style="font-weight:500;font-size:13px">${p.full_name||'—'}</div>
+            <div style="font-size:11px;color:var(--text3)">${p.email||p.id}</div>
+          </div>
+        </div>
+      </td>
+      <td>${roleBadge(p.role)}</td>
+      <td>${statusBadge(p.status)}</td>
+      <td style="font-size:13px;color:var(--text2)">${openCount || '—'}</td>
+      <td>
+        <div class="flex-c" style="gap:6px">
+          <button class="btn sm" onclick="openEditUser('${p.id}')">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openEditUser(id) {
+  const p = allProfiles.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('eu-id').value      = p.id;
+  document.getElementById('eu-name').value    = p.full_name || '';
+  document.getElementById('eu-role').value    = p.role || 'client';
+  document.getElementById('eu-status').value  = p.status || 'offline';
+  openModal('modal-edit-user');
+}
+
+async function saveUser() {
+  const id     = document.getElementById('eu-id').value;
+  const name   = document.getElementById('eu-name').value.trim();
+  const role   = document.getElementById('eu-role').value;
+  const status = document.getElementById('eu-status').value;
+  if (!name) { toast('Name is required'); return; }
+  if (demoMode) {
+    const p = allProfiles.find(x => x.id === id);
+    if (p) { p.full_name = name; p.role = role; p.status = status; }
+    closeModal('modal-edit-user'); renderUsersTable(); toast('User updated'); return;
+  }
+  const { error } = await sbClient.from('profiles').update({ full_name: name, role, status }).eq('id', id);
+  if (error) { toast('Error: ' + error.message); return; }
+  closeModal('modal-edit-user');
+  loadAllProfiles(); loadProfiles(); toast('User updated');
+}
+
+async function deleteUser(id) {
+  if (!confirm('Delete this profile? This cannot be undone.')) return;
+  if (demoMode) {
+    allProfiles = allProfiles.filter(x => x.id !== id);
+    closeModal('modal-edit-user'); renderUsersTable(); toast('User deleted'); return;
+  }
+  const { error } = await sbClient.from('profiles').delete().eq('id', id);
+  if (error) { toast('Error: ' + error.message); return; }
+  closeModal('modal-edit-user');
+  loadAllProfiles(); loadProfiles(); toast('User deleted');
+}
+
+async function addUser() {
+  const name  = document.getElementById('au-name').value.trim();
+  const email = document.getElementById('au-email').value.trim();
+  const role  = document.getElementById('au-role').value;
+  if (!name || !email) { toast('Name and email are required'); return; }
+  if (demoMode) {
+    allProfiles.push({ id: 'p'+Date.now(), full_name: name, email, role, status: 'offline' });
+    closeModal('modal-add-user');
+    document.getElementById('au-name').value = '';
+    document.getElementById('au-email').value = '';
+    renderUsersTable(); toast('User added (demo)'); return;
+  }
+  const { error } = await sbClient.from('profiles').insert({ full_name: name, email, role, status: 'offline' });
+  if (error) { toast('Error: ' + error.message); return; }
+  closeModal('modal-add-user');
+  document.getElementById('au-name').value = '';
+  document.getElementById('au-email').value = '';
+  loadAllProfiles(); toast('User added');
 }
 
 /* ── Backup ── */
