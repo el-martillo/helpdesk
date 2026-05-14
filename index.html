@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>DeskFlow — Support Portal</title>
+<title>El Martillo I.T. Ticketing System</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
@@ -52,7 +52,7 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
   padding: 0 24px; height: 56px; flex-shrink: 0;
   background: var(--surface); border-bottom: 1px solid var(--border);
 }
-.logo { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.logo { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .logo svg { color: var(--accent); }
 .logo-sub { font-size: 12px; color: var(--text3); margin-left: 2px; }
 .topbar-right { display: flex; align-items: center; gap: 10px; }
@@ -148,6 +148,11 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .ticket-card-left { flex: 1; min-width: 0; }
 .ticket-card h4 { font-size: 14px; font-weight: 500; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ticket-card p { font-size: 12px; color: var(--text3); }
+.cat-badge { display:inline-flex; align-items:center; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:600; white-space:nowrap; flex-shrink:0; }
+.cat-billing   { background:#EAF3DE; color:#3B6D11; }
+.cat-technical { background:#E6F1FB; color:#185FA5; }
+.cat-account   { background:#EEEDFE; color:#534AB7; }
+.cat-general   { background:#F1EFE8; color:#5F5E5A; }
 .ticket-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
 .empty-state { text-align: center; padding: 48px 24px; color: var(--text3); }
 .empty-state .icon { font-size: 36px; margin-bottom: 12px; }
@@ -193,7 +198,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 <!-- Config screen (only shown if no saved URL) -->
 <div id="cfg-screen" class="screen active">
   <div class="screen-card">
-    <h2>🎫 DeskFlow</h2>
+    <h2>🎫 El Martillo I.T. Ticketing System</h2>
     <p class="desc">Connect to your support desk to submit and track tickets.</p>
     <div class="fg">
       <label class="fl">Supabase Project URL</label>
@@ -249,7 +254,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
   <div class="topbar">
     <div class="logo">
       <img src="logo.png" alt="Logo" style="height:28px;width:auto;display:block;"/>
-      DeskFlow <span class="logo-sub">Support Portal</span>
+      El Martillo I.T. Ticketing System <span class="logo-sub">Support Portal</span>
     </div>
     <div class="topbar-right">
       <div class="user-pill">
@@ -308,6 +313,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
     <div class="fg"><label class="fl">Subject *</label><input id="nt-subject" class="fc" type="text" placeholder="What do you need help with?"/></div>
     <div class="fg"><label class="fl">Description</label><textarea id="nt-desc" class="fc" placeholder="Please describe the issue in detail, including any steps to reproduce it…"></textarea></div>
+    <div class="form-row">
+      <div class="fg"><label class="fl">Your email *</label><input id="nt-email" class="fc" type="email" placeholder="you@example.com"/></div>
+      <div class="fg"><label class="fl">Telephone</label><input id="nt-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
+    </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Category</label>
         <select id="nt-cat" class="fc"><option value="Billing">Billing</option><option value="Technical">Technical</option><option value="Account">Account</option><option value="General">General</option></select>
@@ -509,10 +518,15 @@ function renderTickets() {
   }
   el.innerHTML=list.map(t => {
     const asgn=demoMode?profileById(t.assignee_id):(t.assignee||null);
+    const catColors = {Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'};
+    const catClass = catColors[t.category] || 'cat-general';
     return `<div class="ticket-card" onclick="openTicketDetail('${t.id}')">
       <div class="ticket-card-left">
-        <h4>${t.subject}</h4>
-        <p><span class="tid">#${t.ticket_number}</span> · ${t.category||'General'} · Updated ${timeAgo(t.updated_at)}${asgn?' · Assigned to '+asgn.full_name:''}</p>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <h4 style="margin-bottom:0">${t.subject}</h4>
+          <span class="cat-badge ${catClass}">${t.category||'General'}</span>
+        </div>
+        <p><span class="tid">#${t.ticket_number}</span> · Updated ${timeAgo(t.updated_at)}${asgn?' · '+asgn.full_name:''}</p>
       </div>
       <div class="ticket-card-right">
         <span class="sb s-${t.status}">${sLabel(t.status)}</span>
@@ -539,6 +553,7 @@ async function openTicketDetail(id) {
   document.getElementById('detail-body').innerHTML=`
     <div class="detail-chips">
       <span class="sb s-${t.status}">${sLabel(t.status)}</span>
+      <span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}">${t.category||'General'}</span>
       <span class="chip"><span class="pdot ${t.priority}"></span>${t.priority} priority</span>
       <span class="chip">
         <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
@@ -550,6 +565,8 @@ async function openTicketDetail(id) {
       <div class="dmi"><div class="key">Category</div><div class="val">${t.category||'General'}</div></div>
       <div class="dmi"><div class="key">Opened</div><div class="val">${timeAgo(t.created_at||t.updated_at)}</div></div>
       <div class="dmi"><div class="key">Last updated</div><div class="val">${timeAgo(t.updated_at)}</div></div>
+      ${t.contact_email?`<div class="dmi"><div class="key">Email</div><div class="val"><a href="mailto:${t.contact_email}" style="color:var(--accent)">${t.contact_email}</a></div></div>`:''}
+      ${t.contact_phone?`<div class="dmi"><div class="key">Telephone</div><div class="val"><a href="tel:${t.contact_phone}" style="color:var(--accent)">${t.contact_phone}</a></div></div>`:''}
     </div>
     <div class="desc-box">${t.description||'<em style="color:var(--text3)">No description provided.</em>'}</div>
     <div class="activity">
@@ -610,25 +627,33 @@ async function reopenTicket(ticketId) {
 /* ── Submit ticket ── */
 async function submitTicket() {
   const subject=document.getElementById('nt-subject').value.trim();
+  const email=document.getElementById('nt-email').value.trim();
   if (!subject){toast('Subject is required');return;}
+  if (!email){toast('Email is required');return;}
   const payload={
     subject,
     description:document.getElementById('nt-desc').value,
     priority:document.getElementById('nt-priority').value,
     category:document.getElementById('nt-cat').value,
+    contact_email:email,
+    contact_phone:document.getElementById('nt-phone').value.trim(),
     status:'open',
   };
+  function clearForm(){
+    document.getElementById('nt-subject').value='';
+    document.getElementById('nt-desc').value='';
+    document.getElementById('nt-email').value='';
+    document.getElementById('nt-phone').value='';
+  }
   if (demoMode) {
     const nt={id:'t'+Date.now(),ticket_number:100+myTickets.length+1,...payload,requester_id:'p5',assignee_id:null,updated_at:new Date().toISOString(),created_at:new Date().toISOString()};
     myTickets.unshift(nt); allDemoTickets.unshift(nt);
-    closeModal('modal-new-ticket');
-    document.getElementById('nt-subject').value=''; document.getElementById('nt-desc').value='';
+    closeModal('modal-new-ticket'); clearForm();
     renderTickets(); toast('Request submitted! We\'ll be in touch soon.'); return;
   }
   const {error}=await sbClient.from('tickets').insert({...payload,requester_id:currentUser.id});
   if (error){toast('Error: '+error.message);return;}
-  closeModal('modal-new-ticket');
-  document.getElementById('nt-subject').value=''; document.getElementById('nt-desc').value='';
+  closeModal('modal-new-ticket'); clearForm();
   loadClientTickets(); toast('Request submitted! We\'ll be in touch soon.');
 }
 
