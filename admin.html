@@ -523,7 +523,6 @@ function loadDemo() {
   document.getElementById('cfg-screen').classList.remove('active');
   document.getElementById('auth-screen').classList.remove('active');
   document.getElementById('app').style.display = 'flex';
-  document.getElementById('app-footer').style.display = 'flex';
   document.getElementById('topbar-user').textContent = 'Dev Kumar';
   loadTickets(); renderAgents(); renderReports();
 }
@@ -613,8 +612,6 @@ function updateStats() {
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
   const fc = document.getElementById('footer-ticket-count');
   if (fc) fc.textContent = tickets.length;
-  const footer = document.getElementById('app-footer');
-  if (footer) footer.style.display = 'flex';
 }
 function updateBadges() {
   document.getElementById('badge-all').textContent   = tickets.length;
@@ -839,7 +836,9 @@ document.addEventListener('DOMContentLoaded', initSupabase);
 </script>
 <style>
 .footer {
-  flex-shrink: 0;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 100;
   background: var(--surface);
   border-top: 1px solid var(--border);
   padding: 0 24px;
@@ -855,9 +854,11 @@ document.addEventListener('DOMContentLoaded', initSupabase);
 .footer a:hover { text-decoration: underline; }
 .footer-sep { color: var(--border2); }
 .footer-tickets { color: var(--text2); font-weight: 500; }
+/* Push scrollable content above the fixed footer */
+.content { padding-bottom: 56px !important; }
 </style>
 
-<div id="app-footer" class="footer" style="display:none">
+<div id="app-footer" class="footer">
   <span>Tel: <a href="tel:+35020050630">+350 200 50630</a></span>
   <span class="footer-sep">|</span>
   <span>Email: <a href="mailto:helpdesk@el-martillo.com">helpdesk@el-martillo.com</a></span>
