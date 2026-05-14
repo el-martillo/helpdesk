@@ -210,13 +210,15 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <input id="cfg-key" class="fc" type="text" placeholder="eyJhbGci..."/>
     </div>
     <button class="btn primary" style="width:100%;justify-content:center" onclick="connectSupabase()">Connect</button>
-    <button class="demo-link" onclick="loadDemo()">Or try the demo (no setup required)</button>
   </div>
 </div>
 
 <!-- Auth screen -->
 <div id="auth-screen" class="screen">
   <div class="screen-card">
+    <div style="text-align:center;margin-bottom:16px">
+      <img src="atom_logo.svg" alt="El Martillo I.T." style="width:120px;height:auto;display:inline-block;"/>
+    </div>
     <h2>Support portal</h2>
     <p class="desc">Sign in to view your tickets or create a new account to get started.</p>
     <div class="tab-bar">
@@ -230,7 +232,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <div class="fg"><label class="fl">Password</label><input id="si-password" class="fc" type="password" placeholder="••••••••"/></div>
       <button class="btn primary" style="width:100%;justify-content:center" onclick="signIn()">Sign in</button>
       <div class="err" id="si-err"></div>
-      <button class="demo-link" onclick="loadDemo()">Continue as demo</button>
     </div>
 
     <!-- Sign up -->
@@ -244,7 +245,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
       </div>
       <button class="btn primary" style="width:100%;justify-content:center" onclick="signUp()">Create account</button>
       <div class="err" id="su-err"></div>
-      <button class="demo-link" onclick="loadDemo()">Continue as demo</button>
     </div>
   </div>
 </div>
