@@ -271,7 +271,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       </svg>
     </div>
     <h2>Admin sign in</h2>
-    <p class="desc">Sign in with your admin or agent account.</p>
+    <p class="desc">Sign in with your admin account.</p>
     <div class="fg"><label class="fl">Email</label><input id="auth-email" class="fc" type="email" placeholder="admin@example.com"/></div>
     <div class="fg"><label class="fl">Password</label><input id="auth-password" class="fc" type="password" placeholder="••••••••"/></div>
     <button class="btn primary" style="width:100%;justify-content:center" onclick="signIn()">Sign in</button>
@@ -324,7 +324,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <div class="sidebar-label">Manage</div>
       <div class="nav-item" onclick="adminNav(this,'agents')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        Agents
+        Admins
       </div>
       <div class="nav-item" onclick="adminNav(this,'users');loadAllProfiles()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -352,7 +352,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         </div>
         <div class="stats-grid">
           <div class="stat-card"><div class="label">Open</div><div class="value" id="stat-open" style="color:var(--accent)">—</div><div class="sub"></div></div>
-          <div class="stat-card"><div class="label">In progress</div><div class="value" id="stat-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to agents</div></div>
+          <div class="stat-card"><div class="label">In progress</div><div class="value" id="stat-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to admins</div></div>
           <div class="stat-card"><div class="label">Resolved</div><div class="value" id="stat-resolved" style="color:var(--success)">—</div><div class="sub"></div></div>
           <div class="stat-card"><div class="label">Total</div><div class="value" id="stat-total">—</div><div class="sub">All time</div></div>
         </div>
@@ -396,10 +396,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <!-- Agents -->
       <div class="page" id="page-agents">
         <div class="page-header">
-          <div><h1>Agents</h1><p>Support team members</p></div>
+          <div><h1>Admins</h1><p>Admin team members</p></div>
           <button class="btn primary" onclick="openModal('modal-invite-agent')">
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-            Invite agent
+            Invite admin
           </button>
         </div>
         <div id="agents-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
@@ -423,7 +423,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
             <select class="filter-sel" id="users-role-filter" onchange="renderUsersTable()">
               <option value="">All roles</option>
               <option value="admin">Admin</option>
-              <option value="agent">Agent</option>
               <option value="client">Client</option>
             </select>
             <button class="btn sm" onclick="loadAllProfiles()">
@@ -572,7 +571,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <div class="fg"><label class="fl">Role</label>
         <select id="au-role" class="fc">
           <option value="client">Client</option>
-          <option value="agent">Agent</option>
           <option value="admin">Admin</option>
         </select>
       </div>
@@ -616,7 +614,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
     <div class="fg"><label class="fl">Role</label>
       <select id="eu-role" class="fc">
         <option value="client">Client</option>
-        <option value="agent">Agent</option>
         <option value="admin">Admin</option>
       </select>
     </div>
@@ -652,11 +649,11 @@ textarea.fc { resize: vertical; min-height: 80px; }
 <!-- Invite agent modal -->
 <div class="overlay" id="modal-invite-agent">
   <div class="modal">
-    <div class="modal-head"><div class="modal-title">Invite agent</div><button class="close-x" onclick="closeModal('modal-invite-agent')">✕</button></div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">The agent will receive an email invitation to set their password.</p>
+    <div class="modal-head"><div class="modal-title">Invite admin</div><button class="close-x" onclick="closeModal('modal-invite-agent')">✕</button></div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">The admin will receive an email invitation to set their password.</p>
     <div class="fg"><label class="fl">Full name</label><input id="ia-name" class="fc" type="text" placeholder="Jane Smith"/></div>
-    <div class="fg"><label class="fl">Email address</label><input id="ia-email" class="fc" type="email" placeholder="agent@support.com"/></div>
-    <div class="fg"><label class="fl">Role</label><select id="ia-role" class="fc"><option value="agent">Agent</option><option value="admin">Admin</option></select></div>
+    <div class="fg"><label class="fl">Email address</label><input id="ia-email" class="fc" type="email" placeholder="admin@el-martillo.com"/></div>
+    <div class="fg"><label class="fl">Role</label><select id="ia-role" class="fc"><option value="admin">Admin</option></select></div>
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-invite-agent')">Cancel</button>
       <button class="btn primary" onclick="inviteAgent()">Send invitation</button>
@@ -911,7 +908,7 @@ function renderComments(comments, showInternal=false) {
     const isAgent=author?.role==='agent'||author?.role==='admin';
     const cls=c.is_internal?'internal-bubble':(isAgent?'agent-bubble':'');
     return `<div class="comment-item"><div class="avatar ${avColor(author?.id)}" style="flex-shrink:0">${initials(author?.full_name||'?')}</div>
-      <div class="comment-bubble ${cls}"><div class="comment-meta">${author?.full_name||'Unknown'} ${isAgent?'(agent)':''} ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${c.body}</div></div>`;
+      <div class="comment-bubble ${cls}"><div class="comment-meta">${author?.full_name||'Unknown'} ${isAgent?'(admin)':''} ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${c.body}</div></div>`;
   }).join('');
 }
 async function addComment(ticketId) {
@@ -977,7 +974,7 @@ function renderAgents() {
     <div class="table-card" style="display:flex;align-items:center;gap:14px;padding:16px">
       <div class="avatar ${avColor(p.id)}" style="width:42px;height:42px;font-size:15px">${initials(p.full_name)}</div>
       <div style="flex:1"><div style="font-size:14px;font-weight:600">${p.full_name}</div>
-      <div style="font-size:12px;color:var(--text2)">${p.role==='admin'?'Admin':'Support Agent'} · ${openByAgent[p.id]||0} open</div></div>
+      <div style="font-size:12px;color:var(--text2)">Admin · ${openByAgent[p.id]||0} open</div></div>
       <span class="sb ${ss[p.status]||'s-closed'}">${p.status||'offline'}</span>
     </div>`).join('');
 }
@@ -1073,7 +1070,7 @@ function renderUsersTable() {
 
   const roleBadge = r => ({
     admin:  '<span class="sb s-in_progress">Admin</span>',
-    agent:  '<span class="sb s-open">Agent</span>',
+    agent:  '<span class="sb s-in_progress">Admin</span>',
     client: '<span class="sb s-closed">Client</span>',
   }[r] || r);
   const renderRow = p => {
@@ -1105,7 +1102,7 @@ function renderUsersTable() {
 
   let html = '';
   if (staff.length) {
-    html += sectionHeader('Staff — Admins & Agents', staff.length);
+    html += sectionHeader('Admins', staff.length);
     html += staff.map(renderRow).join('');
   }
   if (clients.length) {
