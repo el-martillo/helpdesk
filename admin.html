@@ -378,12 +378,16 @@ textarea.fc { resize: vertical; min-height: 80px; }
               <option value="medium">Medium</option>
               <option value="low">Low</option>
             </select>
+            <select class="filter-sel" id="filter-assignee" onchange="renderTable()">
+              <option value="">All assignees</option>
+              <option value="__unassigned__">Unassigned</option>
+            </select>
             <button class="btn sm" onclick="loadTickets()">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
               Refresh
             </button>
           </div>
-          <table><thead><tr><th>ID</th><th>Subject</th><th>Status</th><th>Priority</th><th>Requester</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
+          <table><thead><tr><th>ID</th><th>Subject</th><th>Status</th><th>Priority</th><th>Requester</th><th>Assignee</th><th>Comments</th><th>Updated</th><th></th></tr></thead>
           <tbody id="admin-tbody"></tbody></table>
         </div>
       </div>
@@ -733,7 +737,7 @@ function loadDemo() {
   document.getElementById('auth-screen').classList.remove('active');
   document.getElementById('app').style.display = 'flex';
   document.getElementById('topbar-user').textContent = 'Dev Kumar';
-  loadTickets(); renderAgents(); renderReports();
+  loadTickets(); renderAgents(); renderReports(); populateAssigneeFilter();
 }
 async function ensureProfile(user) {
   const {data:existing} = await sbClient.from('profiles').select('*').eq('id', user.id).single();
@@ -772,7 +776,7 @@ async function loadTickets() {
   if (demoMode) { renderTable(); updateStats(); updateBadges(); return; }
   document.getElementById('admin-tbody').innerHTML='<tr class="loading-row"><td colspan="8"><div class="loader"></div></td></tr>';
   const {data,error} = await sbClient.from('tickets')
-    .select('*, requester:profiles!requester_id(id,full_name), assignee:profiles!assignee_id(id,full_name)')
+    .select('*, requester:profiles!requester_id(id,full_name), assignee:profiles!assignee_id(id,full_name), comments(count)')
     .order('updated_at',{ascending:false});
   if (error) { toast('Error: '+error.message); return; }
   tickets = data||[]; renderTable(); updateStats(); updateBadges();
@@ -781,24 +785,52 @@ async function loadTickets() {
 async function loadProfiles() {
   if (demoMode) { renderAgents(); return; }
   const {data} = await sbClient.from('profiles').select('*').in('role',['agent','admin']);
-  if (data) profiles=data; renderAgents();
+  if (data) profiles=data; renderAgents(); populateAssigneeFilter();
 }
 
 /* ── Render table ── */
+function populateAssigneeFilter() {
+  const sel = document.getElementById('filter-assignee');
+  if (!sel) return;
+  const current = sel.value;
+  // Keep the first two fixed options, rebuild the rest
+  while (sel.options.length > 2) sel.remove(2);
+  profiles.filter(p=>p.role==='admin'||p.role==='agent').forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.full_name;
+    sel.appendChild(opt);
+  });
+  sel.value = current;
+}
+
 function renderTable(statusFilter) {
   const q  = (document.getElementById('search-input')?.value||'').toLowerCase();
   const sf = statusFilter||document.getElementById('filter-status')?.value||'';
   const pf = document.getElementById('filter-priority')?.value||'';
+  const af = document.getElementById('filter-assignee')?.value||'';
   let list = tickets;
-  if (sf) list=list.filter(t=>t.status===sf);
-  if (pf) list=list.filter(t=>t.priority===pf);
-  if (q)  list=list.filter(t=>t.subject.toLowerCase().includes(q)||(t.ticket_number+'').includes(q)||getReqName(t).toLowerCase().includes(q));
+  if (sf) list = list.filter(t=>t.status===sf);
+  if (pf) list = list.filter(t=>t.priority===pf);
+  if (af === '__unassigned__') list = list.filter(t=>!t.assignee_id);
+  else if (af) list = list.filter(t=>t.assignee_id===af);
+  if (q)  list = list.filter(t=>t.subject.toLowerCase().includes(q)||(t.ticket_number+'').includes(q)||getReqName(t).toLowerCase().includes(q));
   const tbody = document.getElementById('admin-tbody');
   if (!tbody) return;
-  if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="8">No tickets found</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="9">No tickets found</td></tr>'; return; }
   tbody.innerHTML = list.map(t => {
     const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
     const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
+    // Comment count: from supabase aggregate or demo lookup
+    const commentCount = demoMode
+      ? (DEMO_COMMENTS[t.id]?.length || 0)
+      : (t.comments?.[0]?.count ?? '—');
+    const countDisplay = commentCount > 0
+      ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--accent);font-weight:500">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          ${commentCount}
+        </span>`
+      : `<span style="font-size:12px;color:var(--text3)">—</span>`;
     return `<tr onclick="openTicketDetail('${t.id}')">
       <td><span class="tid">#${t.ticket_number}</span></td>
       <td style="max-width:240px"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</div><span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}" style="margin-top:3px">${t.category||'General'}</span></td>
@@ -806,6 +838,7 @@ function renderTable(statusFilter) {
       <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
       <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${req?.full_name||'—'}</span></div></td>
       <td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td>
+      <td>${countDisplay}</td>
       <td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td>
       <td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td>
     </tr>`;
