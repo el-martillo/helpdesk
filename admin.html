@@ -301,11 +301,11 @@ textarea.fc { resize: vertical; min-height: 80px; }
   <div class="body">
     <div class="sidebar">
       <div class="sidebar-label">Tickets</div>
-      <div class="nav-item active" onclick="adminNav(this,'all')">
+      <div class="nav-item" onclick="adminNav(this,'all')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8h18M3 12h18M3 16h18"/></svg>
         All tickets <span class="nav-badge" id="badge-all">—</span>
       </div>
-      <div class="nav-item" onclick="adminNav(this,'open')">
+      <div class="nav-item active" onclick="adminNav(this,'open')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
         Open <span class="nav-badge" id="badge-open">—</span>
       </div>
@@ -343,7 +343,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
     <div class="content">
       <!-- All tickets -->
-      <div class="page active" id="page-all">
+      <div class="page" id="page-all">
         <div class="page-header">
           <div><h1>All tickets</h1><p id="ticket-count-sub">Loading…</p></div>
           <button class="btn primary" onclick="openModal('modal-new-ticket')">
@@ -393,7 +393,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       </div>
 
       <!-- Filtered pages -->
-      <div class="page" id="page-open"></div>
+      <div class="page active" id="page-open"></div>
       <div class="page" id="page-in_progress"></div>
       <div class="page" id="page-waiting"></div>
       <div class="page" id="page-resolved"></div>
@@ -709,6 +709,13 @@ const DEMO_COMMENTS = {
 const initials = n => n ? n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '?';
 const avColor  = id => AV_COLORS[(id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0) % AV_COLORS.length];
 const timeAgo  = iso => { if(!iso) return '—'; const m=Math.floor((Date.now()-new Date(iso))/60000); if(m<1) return 'just now'; if(m<60) return m+'m ago'; const h=Math.floor(m/60); if(h<24) return h+'h ago'; return Math.floor(h/24)+'d ago'; };
+const formatUpdated = iso => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const date = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  const time = d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+  return `<div style="font-size:12px;line-height:1.4">${date}</div><div style="font-size:11px;color:var(--text3)">${time} · ${timeAgo(iso)}</div>`;
+};
 const sLabel   = s => ({open:'Open',in_progress:'In progress',waiting:'Waiting',resolved:'Resolved',closed:'Closed'}[s]||s);
 const profileById = id => profiles.find(p=>p.id===id);
 function toast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
@@ -738,6 +745,10 @@ function loadDemo() {
   document.getElementById('app').style.display = 'flex';
   document.getElementById('topbar-user').textContent = 'Dev Kumar';
   loadTickets(); renderAgents(); renderReports(); populateAssigneeFilter();
+  setTimeout(() => {
+    const openNav = document.querySelector('.nav-item.active');
+    if (openNav) adminNav(openNav, 'open');
+  }, 0);
 }
 async function ensureProfile(user) {
   const {data:existing} = await sbClient.from('profiles').select('*').eq('id', user.id).single();
@@ -779,8 +790,12 @@ async function loadTickets() {
     .select('*, requester:profiles!requester_id(id,full_name), assignee:profiles!assignee_id(id,full_name), comments(count)')
     .order('updated_at',{ascending:false});
   if (error) { toast('Error: '+error.message); return; }
-  tickets = data||[]; renderTable(); updateStats(); updateBadges();
+  tickets = data||[];
+  renderTable(); updateStats(); updateBadges();
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
+  // Render the default open page
+  const openNav = document.querySelector('.nav-item.active');
+  if (openNav) adminNav(openNav, 'open');
 }
 async function loadProfiles() {
   if (demoMode) { renderAgents(); return; }
@@ -839,7 +854,7 @@ function renderTable(statusFilter) {
       <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${req?.full_name||'—'}</span></div></td>
       <td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td>
       <td>${countDisplay}</td>
-      <td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td>
+      <td style="white-space:nowrap">${formatUpdated(t.updated_at)}</td>
       <td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td>
     </tr>`;
   }).join('');
@@ -892,7 +907,7 @@ function adminNav(el, page) {
     <tbody>${filtered.length ? filtered.map(t=>{
       const req=demoMode?profileById(t.requester_id):(t.requester||{});
       const asgn=demoMode?profileById(t.assignee_id):(t.assignee||{});
-      return `<tr onclick="openTicketDetail('${t.id}')"><td><span class="tid">#${t.ticket_number}</span></td><td style="font-weight:500;max-width:260px">${t.subject}</td><td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td><td style="font-size:12px">${req?.full_name||'—'}</td><td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td><td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td><td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td></tr>`;
+      return `<tr onclick="openTicketDetail('${t.id}')"><td><span class="tid">#${t.ticket_number}</span></td><td style="font-weight:500;max-width:260px">${t.subject}</td><td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td><td style="font-size:12px">${req?.full_name||'—'}</td><td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td><td style="white-space:nowrap">${formatUpdated(t.updated_at)}</td><td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td></tr>`;
     }).join('') : '<tr class="empty-row"><td colspan="7">No tickets in this status</td></tr>'}</tbody></table></div>`;
   }
   if (page==='reports') renderReports();
@@ -977,7 +992,7 @@ async function openTicketDetail(id) {
 
     <!-- Meta info row -->
     <div style="display:flex;gap:16px;flex-wrap:wrap;padding:10px 12px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:16px;font-size:12px;color:var(--text2)">
-      <span><strong>Requester:</strong>
+      <span><strong>Client Name:</strong>
         <span class="flex-c" style="display:inline-flex;gap:5px;vertical-align:middle">
           <span class="avatar ${avColor(req?.id)}" style="width:18px;height:18px;font-size:8px">${initials(req?.full_name||'?')}</span>
           ${req?.full_name||'—'}
@@ -1009,7 +1024,7 @@ async function openTicketDetail(id) {
           <label class="internal-toggle"><input type="checkbox" id="reply-internal"/> Internal note only</label>
           <button class="btn primary sm" onclick="addComment('${t.id}')">
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            Send reply
+            Add comment
           </button>
         </div>
       </div>
