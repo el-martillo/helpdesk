@@ -317,6 +317,38 @@ textarea.fc { resize: vertical; min-height: 80px; }
   </div>
 
   <div class="main">
+    <!-- Animated logo -->
+    <div style="text-align:center;margin-bottom:24px;margin-top:8px">
+      <svg width="100" height="76" viewBox="0 0 680 520" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;overflow:visible">
+        <style>
+          @keyframes orbitCA { from { offset-distance:0% } to { offset-distance:100% } }
+          @keyframes orbitCB { from { offset-distance:0% } to { offset-distance:100% } }
+          @keyframes orbitCC { from { offset-distance:0% } to { offset-distance:100% } }
+        </style>
+        <ellipse cx="340" cy="260" rx="200" ry="70" fill="none" stroke="#2196F3" stroke-width="5"/>
+        <g transform="rotate(60,340,260)">
+          <ellipse cx="340" cy="260" rx="200" ry="70" fill="none" stroke="#2196F3" stroke-width="5"/>
+        </g>
+        <g transform="rotate(120,340,260)">
+          <ellipse cx="340" cy="260" rx="200" ry="70" fill="none" stroke="#2196F3" stroke-width="5"/>
+        </g>
+        <circle cx="340" cy="260" r="38" fill="#1A3A7A"/>
+        <circle r="13" fill="none" stroke="#2196F3" stroke-width="4"
+          style="offset-path:path('M 140,260 A 200,70 0 1,1 539.9,260 A 200,70 0 1,1 140,260');
+                 offset-distance:0%;animation:orbitCA 3.5s linear infinite"/>
+        <g transform="rotate(60,340,260)">
+          <circle r="13" fill="none" stroke="#2196F3" stroke-width="4"
+            style="offset-path:path('M 140,260 A 200,70 0 1,1 539.9,260 A 200,70 0 1,1 140,260');
+                   offset-distance:33%;animation:orbitCB 4.5s linear infinite reverse"/>
+        </g>
+        <g transform="rotate(120,340,260)">
+          <circle r="13" fill="none" stroke="#2196F3" stroke-width="4"
+            style="offset-path:path('M 140,260 A 200,70 0 1,1 539.9,260 A 200,70 0 1,1 140,260');
+                   offset-distance:66%;animation:orbitCC 6s linear infinite"/>
+        </g>
+      </svg>
+    </div>
+
     <!-- New ticket CTA -->
     <div class="hero-cta" onclick="openModal('modal-new-ticket')">
       <div class="cta-icon">
@@ -369,7 +401,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Category</label>
-        <select id="nt-cat" class="fc"><option value="Billing">Billing</option><option value="Technical">Technical</option><option value="Account">Account</option><option value="General">General</option></select>
+        <select id="nt-cat" class="fc"><option value="Billing">Billing</option><option value="Technical" selected>Technical</option><option value="Account">Account</option><option value="General">General</option></select>
       </div>
       <div class="fg"><label class="fl">Priority</label>
         <select id="nt-priority" class="fc">
