@@ -300,6 +300,11 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
   <div class="body">
     <div class="sidebar">
+      <div class="nav-item" onclick="adminNav(this,'dashboard')">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Dashboard
+      </div>
+      <div class="sep"></div>
       <div class="sidebar-label">Tickets</div>
       <div class="nav-item" onclick="adminNav(this,'all')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8h18M3 12h18M3 16h18"/></svg>
@@ -342,6 +347,58 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
 
     <div class="content">
+      <!-- Dashboard -->
+      <div class="page" id="page-dashboard">
+        <div class="page-header">
+          <div><h1>Dashboard</h1><p id="dashboard-greeting"></p></div>
+          <button class="btn primary" onclick="openModal('modal-new-ticket')">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            New ticket
+          </button>
+        </div>
+
+        <!-- Summary stats -->
+        <div class="stats-grid" style="margin-bottom:20px">
+          <div class="stat-card" onclick="filterByStatCard('open');adminNav(document.querySelector('[onclick*=\'open\']'),'open')" style="cursor:pointer" onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'" onmouseout="this.style.boxShadow=''">
+            <div class="label">Open</div><div class="value" id="dash-open" style="color:var(--accent)">—</div><div class="sub">Click to view</div>
+          </div>
+          <div class="stat-card" onclick="filterByStatCard('in_progress');adminNav(document.querySelector('[onclick*=\'in_progress\']'),'in_progress')" style="cursor:pointer" onmouseover="this.style.boxShadow='0 0 0 2px var(--purple)'" onmouseout="this.style.boxShadow=''">
+            <div class="label">In progress</div><div class="value" id="dash-inprog" style="color:var(--purple)">—</div><div class="sub">Click to view</div>
+          </div>
+          <div class="stat-card" onclick="filterByStatCard('waiting');adminNav(document.querySelector('[onclick*=\'waiting\']'),'waiting')" style="cursor:pointer" onmouseover="this.style.boxShadow='0 0 0 2px var(--warn)'" onmouseout="this.style.boxShadow=''">
+            <div class="label">Waiting</div><div class="value" id="dash-waiting" style="color:var(--warn)">—</div><div class="sub">Click to view</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Total tickets</div><div class="value" id="dash-total">—</div><div class="sub">All time</div>
+          </div>
+        </div>
+
+        <!-- Two column: recent + priority breakdown -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+          <!-- Recent tickets -->
+          <div class="table-card" style="padding:18px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+              Recent tickets
+              <button class="btn sm" onclick="adminNav(document.querySelector('[onclick*=\'all\']'),'all')" style="font-size:11px">View all →</button>
+            </div>
+            <div id="dash-recent-tickets"></div>
+          </div>
+
+          <!-- Priority & category breakdown -->
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="table-card" style="padding:18px">
+              <div style="font-size:13px;font-weight:600;margin-bottom:14px">By priority</div>
+              <div id="dash-priority-bars"></div>
+            </div>
+            <div class="table-card" style="padding:18px">
+              <div style="font-size:13px;font-weight:600;margin-bottom:14px">By category</div>
+              <div id="dash-category-bars"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- All tickets -->
       <div class="page" id="page-all">
         <div class="page-header">
@@ -451,7 +508,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <!-- Reports -->
       <div class="page" id="page-reports">
         <div class="page-header"><div><h1>Reports</h1><p>Support performance overview</p></div></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
           <div class="table-card" style="padding:18px">
             <div style="font-size:13px;font-weight:600;margin-bottom:14px">Tickets by status</div>
             <div id="report-status-bars"></div>
@@ -460,6 +517,12 @@ textarea.fc { resize: vertical; min-height: 80px; }
             <div style="font-size:13px;font-weight:600;margin-bottom:14px">Tickets by priority</div>
             <div id="report-priority-bars"></div>
           </div>
+        </div>
+        <div class="table-card" style="padding:18px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px">Average time to resolve</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:16px">Based on resolved tickets with valid created and updated timestamps</div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px" id="report-avg-cards"></div>
+          <div id="report-resolution-list"></div>
         </div>
       </div>
 
@@ -861,6 +924,57 @@ function renderTable(statusFilter) {
 }
 const getReqName = t => { const p = demoMode ? profileById(t.requester_id) : t.requester; return p?.full_name||''; };
 
+/* ── Dashboard ── */
+function renderDashboard() {
+  const open    = tickets.filter(t=>t.status==='open').length;
+  const inprog  = tickets.filter(t=>t.status==='in_progress').length;
+  const waiting = tickets.filter(t=>t.status==='waiting').length;
+
+  // Update stat cards
+  const set = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
+  set('dash-open', open);
+  set('dash-inprog', inprog);
+  set('dash-waiting', waiting);
+  set('dash-total', tickets.length);
+
+  // Greeting
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const gEl = document.getElementById('dashboard-greeting');
+  if (gEl) gEl.textContent = `${greet}${currentProfile?.full_name ? ', '+currentProfile.full_name : ''} — ${tickets.length} ticket${tickets.length!==1?'s':''} in the system`;
+
+  // Recent tickets (last 6)
+  const recent = tickets.slice(0, 6);
+  const rEl = document.getElementById('dash-recent-tickets');
+  if (rEl) {
+    rEl.innerHTML = recent.length ? recent.map(t => {
+      const req = demoMode ? profileById(t.requester_id) : (t.requester||{});
+      return `<div onclick="openTicketDetail('${t.id}')" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
+        <span class="tid" style="flex-shrink:0">#${t.ticket_number}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</div>
+          <div style="font-size:11px;color:var(--text3)">${req?.full_name||'—'} · ${timeAgo(t.updated_at)}</div>
+        </div>
+        <span class="sb s-${t.status}" style="flex-shrink:0;font-size:10px">${sLabel(t.status)}</span>
+      </div>`;
+    }).join('') : '<div style="color:var(--text3);font-size:13px;padding:8px 0">No tickets yet</div>';
+  }
+
+  // Priority bars
+  const priorities = ['critical','high','medium','low'];
+  const pc = {critical:'#E24B4A',high:'#EF9F27',medium:'#378ADD',low:'#9e9a94'};
+  const pmax = Math.max(...priorities.map(p=>tickets.filter(t=>t.priority===p).length),1);
+  const pEl = document.getElementById('dash-priority-bars');
+  if (pEl) pEl.innerHTML = priorities.map(p=>{const c=tickets.filter(t=>t.priority===p).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:8px"><div style="width:70px;color:var(--text2)">${p}</div><div style="flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden"><div style="width:${Math.round(c/pmax*100)}%;height:100%;background:${pc[p]};border-radius:3px"></div></div><div style="width:18px;text-align:right;font-weight:600;font-size:11px">${c}</div></div>`;}).join('');
+
+  // Category bars
+  const cats = ['Technical','Billing','Account','General'];
+  const catColors = {'Technical':'var(--accent)','Billing':'var(--success)','Account':'var(--purple)','General':'var(--text3)'};
+  const cmax = Math.max(...cats.map(c=>tickets.filter(t=>t.category===c).length),1);
+  const cEl = document.getElementById('dash-category-bars');
+  if (cEl) cEl.innerHTML = cats.map(c=>{const n=tickets.filter(t=>t.category===c).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:8px"><div style="width:70px;color:var(--text2)">${c}</div><div style="flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden"><div style="width:${Math.round(n/cmax*100)}%;height:100%;background:${catColors[c]};border-radius:3px"></div></div><div style="width:18px;text-align:right;font-weight:600;font-size:11px">${n}</div></div>`;}).join('');
+}
+
 /* ── Filter by stat card ── */
 function filterByStatCard(status) {
   const sel = document.getElementById('filter-status');
@@ -885,6 +999,7 @@ function updateStats() {
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
   const fc = document.getElementById('footer-ticket-count');
   if (fc) fc.textContent = tickets.length;
+  renderDashboard();
 }
 function updateBadges() {
   document.getElementById('badge-all').textContent   = tickets.length;
@@ -911,6 +1026,7 @@ function adminNav(el, page) {
     }).join('') : '<tr class="empty-row"><td colspan="7">No tickets in this status</td></tr>'}</tbody></table></div>`;
   }
   if (page==='reports') renderReports();
+  if (page==='dashboard') renderDashboard();
 }
 
 /* ── Ticket detail ── */
@@ -1152,6 +1268,85 @@ function renderReports() {
   const pc={critical:'#E24B4A',high:'#EF9F27',medium:'#378ADD',low:'#9e9a94'};
   document.getElementById('report-status-bars').innerHTML=statuses.map(s=>{const c=tickets.filter(t=>t.status===s).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${sLabel(s)}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/max*100)}%;height:100%;background:${sc[s]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
   document.getElementById('report-priority-bars').innerHTML=priorities.map(p=>{const c=tickets.filter(t=>t.priority===p).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${p}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/pmax*100)}%;height:100%;background:${pc[p]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
+
+  // ── Average resolution time ──────────────────────────────
+  const resolved = tickets.filter(t =>
+    (t.status === 'resolved' || t.status === 'closed') && t.created_at && t.updated_at
+  );
+
+  const formatDuration = ms => {
+    if (ms < 0) return '—';
+    const mins = Math.floor(ms / 60000);
+    if (mins < 60) return mins + 'm';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ' + (mins % 60) + 'm';
+    const days = Math.floor(hrs / 24);
+    const remHrs = hrs % 24;
+    return days + 'd ' + remHrs + 'h';
+  };
+
+  const avgMs = arr => {
+    if (!arr.length) return null;
+    const durations = arr.map(t => new Date(t.updated_at) - new Date(t.created_at)).filter(d => d > 0);
+    if (!durations.length) return null;
+    return durations.reduce((a,b) => a+b, 0) / durations.length;
+  };
+
+  // Overall + per priority
+  const overallAvg  = avgMs(resolved);
+  const criticalAvg = avgMs(resolved.filter(t => t.priority === 'critical'));
+  const highAvg     = avgMs(resolved.filter(t => t.priority === 'high'));
+  const mediumAvg   = avgMs(resolved.filter(t => t.priority === 'medium'));
+  const lowAvg      = avgMs(resolved.filter(t => t.priority === 'low'));
+
+  const statCard = (label, val, color) => `
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center">
+      <div style="font-size:20px;font-weight:600;color:${color};margin-bottom:4px">${val !== null ? formatDuration(val) : '—'}</div>
+      <div style="font-size:11px;color:var(--text3)">${label}</div>
+    </div>`;
+
+  document.getElementById('report-avg-cards').innerHTML =
+    statCard('Overall', overallAvg, 'var(--accent)') +
+    statCard('Critical', criticalAvg, '#E24B4A') +
+    statCard('High', highAvg, '#EF9F27') +
+    statCard('Medium', mediumAvg, '#378ADD') +
+    statCard('Low', lowAvg, 'var(--text3)');
+
+  // Recent resolved ticket list
+  const recent = resolved.slice().sort((a,b) => new Date(b.updated_at)-new Date(a.updated_at)).slice(0,8);
+  if (recent.length) {
+    document.getElementById('report-resolution-list').innerHTML = `
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Recent resolved tickets</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Ticket</th>
+            <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Priority</th>
+            <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Opened</th>
+            <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Resolved</th>
+            <th style="text-align:right;padding:6px 10px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Time taken</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${recent.map(t => {
+            const dur = new Date(t.updated_at) - new Date(t.created_at);
+            return `<tr>
+              <td style="padding:7px 10px;border-bottom:1px solid var(--border)">
+                <span class="tid">#${t.ticket_number}</span>
+                <span style="margin-left:8px;color:var(--text1)">${t.subject.length > 40 ? t.subject.slice(0,40)+'…' : t.subject}</span>
+              </td>
+              <td style="padding:7px 10px;border-bottom:1px solid var(--border)"><span class="pdot ${t.priority}"></span>${t.priority}</td>
+              <td style="padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text2)">${new Date(t.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</td>
+              <td style="padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text2)">${new Date(t.updated_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</td>
+              <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;font-weight:600;color:var(--accent)">${formatDuration(dur)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+  } else {
+    document.getElementById('report-resolution-list').innerHTML =
+      '<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">No resolved tickets yet</div>';
+  }
 }
 
 /* ── Auto-restore session ── */
