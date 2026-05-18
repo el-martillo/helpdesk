@@ -1027,21 +1027,26 @@ function sortList(list) {
 
 /* ── Per-page sort state ── */
 let pageSortDir = {};
+const pageState = {};
+function getPageState(id) {
+  if (!pageState[id]) pageState[id] = { q:'', pf:'', sf:'updated_at', dir:'desc' };
+  return pageState[id];
+}
 
 function sortToolbar(pageId) {
   return `<div style="display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:var(--surface)">
     <div class="search-wrap" style="flex:1;min-width:180px;max-width:280px">
       <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="text" id="search-${pageId}" placeholder="Search…" oninput="rerenderPage('${pageId}')" style="border:none;background:transparent;outline:none;font-size:13px;color:var(--text1);width:100%;font-family:var(--font)"/>
+      <input type="text" id="search-${pageId}" placeholder="Search tickets…" oninput="rerenderPage('${pageId}', {q: this.value})" style="border:none;background:transparent;outline:none;font-size:13px;color:var(--text1);width:100%;font-family:var(--font)"/>
     </div>
-    <select class="filter-sel" id="prio-${pageId}" onchange="rerenderPage('${pageId}')">
+    <select class="filter-sel" id="prio-${pageId}" onchange="rerenderPage('${pageId}', {pf: this.value})">
       <option value="">All priorities</option>
       <option value="critical">Critical</option>
       <option value="high">High</option>
       <option value="medium">Medium</option>
       <option value="low">Low</option>
     </select>
-    <select class="filter-sel" id="sort-${pageId}" onchange="rerenderPage('${pageId}')">
+    <select class="filter-sel" id="sort-${pageId}" onchange="rerenderPage('${pageId}', {sf: this.value})">
       <option value="updated_at">Sort: Last updated</option>
       <option value="created_at">Sort: Date created</option>
       <option value="ticket_number">Sort: Ticket #</option>
@@ -1053,39 +1058,37 @@ function sortToolbar(pageId) {
 }
 
 function toggleSortDirPage(pageId) {
-  pageSortDir[pageId] = pageSortDir[pageId] === 'asc' ? 'desc' : 'asc';
-  const btn = document.getElementById('sort-dir-'+pageId);
-  if (btn) btn.textContent = pageSortDir[pageId] === 'asc' ? '↑' : '↓';
+  const s = getPageState(pageId);
+  s.dir = s.dir === 'asc' ? 'desc' : 'asc';
   rerenderPage(pageId);
 }
 
-function rerenderPage(pageId) {
+function rerenderPage(pageId, overrides) {
   const pg = document.getElementById('page-'+pageId);
   if (!pg) return;
-  const q    = (document.getElementById('search-'+pageId)?.value || '').toLowerCase();
-  const pf   = document.getElementById('prio-'+pageId)?.value || '';
-  const sf   = document.getElementById('sort-'+pageId)?.value || 'updated_at';
-  const dir  = pageSortDir[pageId] || 'desc';
+  const s = getPageState(pageId);
+  if (overrides) Object.assign(s, overrides);
+  const { q, pf, sf, dir } = s;
 
   const prevField = sortField, prevDir = sortDir;
   sortField = sf; sortDir = dir;
 
   let statuses;
-  if (pageId === 'active')   statuses = ['open','in_progress'];
+  if (pageId === 'active')        statuses = ['open','in_progress'];
   else if (pageId === 'waiting')  statuses = ['waiting'];
   else if (pageId === 'resolved') statuses = ['resolved'];
   else statuses = [pageId];
 
   let list = tickets.filter(t => statuses.includes(t.status));
   if (pf) list = list.filter(t => t.priority === pf);
-  if (q)  list = list.filter(t => matchTicket(t, q));
+  if (q)  list = list.filter(t => matchTicket(t, q.toLowerCase()));
   list = sortList(list);
 
   sortField = prevField; sortDir = prevDir;
 
   const rowHtml = items => items.length ? items.map(t => {
-    const req=demoMode?profileById(t.requester_id):(t.requester||{});
-    const asgn=demoMode?profileById(t.assignee_id):(t.assignee||{});
+    const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
+    const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
     return `<tr onclick="openTicketDetail('${t.id}')">
       <td><span class="tid">#${t.ticket_number}</span></td>
       <td style="font-weight:500;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</td>
@@ -1129,21 +1132,18 @@ function rerenderPage(pageId) {
       </div>`;
   }
 
-  // Restore search input value after innerHTML replacement
-  const inp = document.getElementById('search-'+pageId);
-  if (inp) inp.value = q;
-  const ps = document.getElementById('prio-'+pageId);
-  if (ps) ps.value = pf;
-  const ss = document.getElementById('sort-'+pageId);
-  if (ss) ss.value = sf;
-  const db = document.getElementById('sort-dir-'+pageId);
-  if (db) db.textContent = dir === 'asc' ? '↑' : '↓';
+  // Restore toolbar state after innerHTML wipe
+  const inp = document.getElementById('search-'+pageId);  if (inp) inp.value = q;
+  const ps  = document.getElementById('prio-'+pageId);    if (ps)  ps.value  = pf;
+  const ss  = document.getElementById('sort-'+pageId);    if (ss)  ss.value  = sf;
+  const db  = document.getElementById('sort-dir-'+pageId);if (db)  db.textContent = dir === 'asc' ? '↑' : '↓';
 }
 
 function renderActivePage() {
   const pg = document.getElementById('page-active');
   if (pg && pg.classList.contains('active')) rerenderPage('active');
 }
+
 
 /* ── Render table ── */
 function populateAssigneeFilter() {
