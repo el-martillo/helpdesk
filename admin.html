@@ -1394,6 +1394,16 @@ async function openTicketDetail(id) {
       </div>
     </div>
 
+    <div class="form-row" style="margin-bottom:12px">
+      <div class="fg">
+        <label class="fl">Company / Organisation</label>
+        <select id="td-company" class="fc">
+          <option value="">— Select organisation —</option>
+          ${getOrgs().map(o=>`<option value="${o}" ${(t.company||'')=== o?'selected':''}>${o}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+
     <div class="fg" style="margin-bottom:16px">
       <label class="fl">Description</label>
       <textarea id="td-description" class="fc" style="min-height:80px;resize:vertical">${t.description||''}</textarea>
@@ -1450,9 +1460,10 @@ async function saveTicketDetail(id) {
   const assignee_id  = document.getElementById('td-assignee').value || null;
   const contact_email= document.getElementById('td-email').value.trim() || null;
   const contact_phone= document.getElementById('td-phone').value.trim() || null;
+  const company      = document.getElementById('td-company').value || null;
   const description  = document.getElementById('td-description').value.trim() || null;
   if (!subject) { toast('Subject is required'); return; }
-  const updates = { subject, status, priority, category, assignee_id, contact_email, contact_phone, description };
+  const updates = { subject, status, priority, category, assignee_id, contact_email, contact_phone, company, description };
   if (demoMode) {
     const t = tickets.find(x=>x.id===id);
     if (t) Object.assign(t, updates, { updated_at: new Date().toISOString() });
