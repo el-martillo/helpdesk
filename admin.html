@@ -572,6 +572,17 @@ textarea.fc { resize: vertical; min-height: 80px; }
             </div>
           </div>
 
+          <!-- Organisations -->
+          <div class="table-card" style="padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Organisations</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">One organisation per line. These appear as a dropdown when adding or editing users and tickets.</div>
+            <textarea id="setting-orgs" class="fc" style="min-height:120px;resize:vertical;font-family:var(--mono);font-size:12px" placeholder="El Martillo I.T.&#10;Acme Ltd&#10;TechCorp Gibraltar&#10;..."></textarea>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button class="btn primary" onclick="saveOrgs()">Save organisations</button>
+              <span style="font-size:11px;color:var(--text3);align-self:center" id="orgs-saved-msg"></span>
+            </div>
+          </div>
+
           <!-- Backup section -->
           <div class="table-card" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Database backup</div>
@@ -655,7 +666,9 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Phone</label><input id="au-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
-      <div class="fg"><label class="fl">Company / Organisation</label><input id="au-company" class="fc" type="text" placeholder="Acme Ltd"/></div>
+      <div class="fg"><label class="fl">Company / Organisation</label>
+        <select id="au-company" class="fc"><option value="">— Select organisation —</option></select>
+      </div>
     </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Role</label>
@@ -694,7 +707,9 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Phone</label><input id="eu-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
-      <div class="fg"><label class="fl">Company / Organisation</label><input id="eu-company" class="fc" type="text" placeholder="Acme Ltd"/></div>
+      <div class="fg"><label class="fl">Company / Organisation</label>
+        <select id="eu-company" class="fc"><option value="">— Select organisation —</option></select>
+      </div>
     </div>
 
     <div style="height:1px;background:var(--border);margin:14px 0"></div>
@@ -805,7 +820,10 @@ const formatUpdated = iso => {
 const sLabel   = s => ({open:'Open',in_progress:'In progress',waiting:'Waiting',resolved:'Resolved',closed:'Closed'}[s]||s);
 const profileById = id => profiles.find(p=>p.id===id);
 function toast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
-function openModal(id){document.getElementById(id).classList.add('open');}
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  if (id === 'modal-add-user' || id === 'modal-edit-user') populateOrgDropdowns();
+}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
 
@@ -833,7 +851,7 @@ function loadDemo() {
   const fu = document.getElementById('footer-user-count');
   if (fu) fu.textContent = DEMO_PROFILES.length;
   loadTickets(); renderAgents(); renderReports(); populateAssigneeFilter();
-  loadVersion();
+  loadVersion(); loadOrgs();
   setTimeout(() => {
     const activeNav = document.querySelector('.nav-item.active');
     if (activeNav) adminNav(activeNav, 'dashboard');
@@ -1301,6 +1319,7 @@ function adminNav(el, page) {
   if (['active','waiting','resolved'].includes(page)) rerenderPage(page);
   if (page==='reports') renderReports();
   if (page==='dashboard') renderDashboard();
+  if (page==='settings') { loadVersion(); loadOrgs(); }
 }
 
 /* ── Ticket detail ── */
@@ -1653,7 +1672,7 @@ async function initSupabase() {
       if (tu) tu.textContent = prof?.full_name || currentUser.email;
       document.getElementById('app').style.display = 'flex';
       loadTickets(); loadProfiles();
-      loadVersion();
+      loadVersion(); loadOrgs();
     } else {
       document.getElementById('cfg-screen').classList.remove('active');
       document.getElementById('auth-screen').classList.add('active');
@@ -1663,6 +1682,45 @@ async function initSupabase() {
     document.getElementById('cfg-screen').classList.remove('active');
     document.getElementById('auth-screen').classList.add('active');
   }
+}
+
+/* ── Organisations ── */
+function getOrgs() {
+  const raw = localStorage.getItem('app_orgs') || '';
+  return raw.split('\n').map(s => s.trim()).filter(Boolean);
+}
+
+function populateOrgDropdowns() {
+  const orgs = getOrgs();
+  ['au-company','eu-company'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '<option value="">— Select organisation —</option>';
+    orgs.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o; opt.textContent = o;
+      sel.appendChild(opt);
+    });
+    // Keep previously selected value if it still exists
+    if (current && orgs.includes(current)) sel.value = current;
+  });
+}
+
+function saveOrgs() {
+  const val = document.getElementById('setting-orgs').value;
+  localStorage.setItem('app_orgs', val);
+  populateOrgDropdowns();
+  const msg = document.getElementById('orgs-saved-msg');
+  if (msg) { msg.textContent = '✓ Saved'; setTimeout(() => msg.textContent = '', 2000); }
+  toast('Organisations saved');
+}
+
+function loadOrgs() {
+  const raw = localStorage.getItem('app_orgs') || '';
+  const ta = document.getElementById('setting-orgs');
+  if (ta) ta.value = raw;
+  populateOrgDropdowns();
 }
 
 /* ── Settings ── */
@@ -1773,9 +1831,10 @@ function openEditUser(id) {
   document.getElementById('eu-name').value    = p.full_name  || '';
   document.getElementById('eu-email').value   = p.email      || '';
   document.getElementById('eu-phone').value   = p.phone      || '';
-  document.getElementById('eu-company').value = p.company    || '';
   document.getElementById('eu-role').value    = p.role       || 'client';
   document.getElementById('eu-notes').value   = p.notes      || '';
+  populateOrgDropdowns();
+  document.getElementById('eu-company').value = p.company || '';
   openModal('modal-edit-user');
 }
 
