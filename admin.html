@@ -353,6 +353,18 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </button>
         </div>
 
+        <!-- Global search bar -->
+        <div class="table-card" style="margin-bottom:20px">
+          <div class="table-toolbar" style="padding:10px 14px">
+            <div class="search-wrap" style="max-width:100%;flex:1">
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" id="dash-search-input" placeholder="Search all tickets — subject, description, category, email, phone, requester…" oninput="renderDashboardSearch(this.value)" style="font-size:13px"/>
+            </div>
+            <button class="btn sm ghost" id="dash-search-clear" onclick="clearDashboardSearch()" style="display:none">✕ Clear</button>
+          </div>
+          <div id="dash-search-results" style="display:none"></div>
+        </div>
+
         <!-- Summary stats -->
         <div class="stats-grid" style="margin-bottom:20px">
           <div class="stat-card" onclick="filterByStatCard('open');adminNav(document.querySelector('[onclick*=\'active\']'),'active')" style="cursor:pointer" onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'" onmouseout="this.style.boxShadow=''">
@@ -873,6 +885,92 @@ async function loadProfiles() {
   }
 }
 
+/* ── Full-field ticket search ── */
+function matchTicket(t, q) {
+  if (!q) return true;
+  const req = demoMode ? profileById(t.requester_id) : (t.requester || {});
+  const asgn = demoMode ? profileById(t.assignee_id) : (t.assignee || {});
+  const fields = [
+    t.subject, t.description, t.category,
+    t.priority, t.status,
+    t.contact_email, t.contact_phone,
+    String(t.ticket_number),
+    req?.full_name, req?.email,
+    asgn?.full_name,
+  ];
+  return fields.some(f => f && f.toLowerCase().includes(q));
+}
+
+function renderDashboardSearch(raw) {
+  const q = (raw || '').toLowerCase().trim();
+  const resultsEl = document.getElementById('dash-search-results');
+  const clearBtn  = document.getElementById('dash-search-clear');
+  const statsGrid = document.querySelector('#page-dashboard .stats-grid');
+  const twoCol    = document.querySelector('#page-dashboard > div:last-child');
+
+  if (!q) {
+    resultsEl.style.display = 'none';
+    if (clearBtn) clearBtn.style.display = 'none';
+    if (statsGrid) statsGrid.style.display = '';
+    if (twoCol) twoCol.style.display = '';
+    return;
+  }
+
+  if (clearBtn) clearBtn.style.display = 'inline-flex';
+  if (statsGrid) statsGrid.style.display = 'none';
+  if (twoCol) twoCol.style.display = 'none';
+  resultsEl.style.display = 'block';
+
+  const matches = tickets.filter(t => matchTicket(t, q));
+
+  if (!matches.length) {
+    resultsEl.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px">No tickets matched your search</div>';
+    return;
+  }
+
+  resultsEl.innerHTML = `
+    <div style="padding:8px 16px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">${matches.length} result${matches.length!==1?'s':''} for "<strong style="color:var(--text1)">${raw.replace(/</g,'&lt;')}</strong>"</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr>
+        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;background:var(--surface2)">ID</th>
+        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.06em;background:var(--surface2)">Subject</th>
+        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;background:var(--surface2)">Status</th>
+        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;background:var(--surface2)">Priority</th>
+        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.06em;background:var(--surface2)">Requester</th>
+        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;background:var(--surface2)">Updated</th>
+      </tr></thead>
+      <tbody>
+        ${matches.map(t => {
+          const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
+          return `<tr onclick="openTicketDetail('${t.id}')" style="cursor:pointer" onmouseover="this.querySelectorAll('td').forEach(c=>c.style.background='var(--bg)')" onmouseout="this.querySelectorAll('td').forEach(c=>c.style.background='')">
+            <td style="padding:11px 16px;border-bottom:1px solid var(--border)"><span class="tid">#${t.ticket_number}</span></td>
+            <td style="padding:11px 16px;border-bottom:1px solid var(--border);max-width:280px">
+              <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${highlight(t.subject, q)}</div>
+              ${t.description ? `<div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px">${highlight(t.description.slice(0,80), q)}</div>` : ''}
+            </td>
+            <td style="padding:11px 16px;border-bottom:1px solid var(--border)"><span class="sb s-${t.status}">${sLabel(t.status)}</span></td>
+            <td style="padding:11px 16px;border-bottom:1px solid var(--border)"><span class="pdot ${t.priority}"></span>${t.priority}</td>
+            <td style="padding:11px 16px;border-bottom:1px solid var(--border);font-size:12px">${highlight(req?.full_name||'—', q)}</td>
+            <td style="padding:11px 16px;border-bottom:1px solid var(--border);white-space:nowrap">${formatUpdated(t.updated_at)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+function highlight(text, q) {
+  if (!text || !q) return text || '';
+  const safe = String(text).replace(/</g,'&lt;');
+  const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
+  return safe.replace(re, '<mark style="background:#FFF176;color:inherit;border-radius:2px;padding:0 1px">$1</mark>');
+}
+
+function clearDashboardSearch() {
+  const inp = document.getElementById('dash-search-input');
+  if (inp) inp.value = '';
+  renderDashboardSearch('');
+}
+
 /* ── Render table ── */
 function populateAssigneeFilter() {
   const sel = document.getElementById('filter-assignee');
@@ -899,7 +997,7 @@ function renderTable(statusFilter) {
   if (pf) list = list.filter(t=>t.priority===pf);
   if (af === '__unassigned__') list = list.filter(t=>!t.assignee_id);
   else if (af) list = list.filter(t=>t.assignee_id===af);
-  if (q)  list = list.filter(t=>t.subject.toLowerCase().includes(q)||(t.ticket_number+'').includes(q)||getReqName(t).toLowerCase().includes(q));
+  if (q)  list = list.filter(t => matchTicket(t, q));
   const tbody = document.getElementById('admin-tbody');
   if (!tbody) return;
   if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="9">No tickets found</td></tr>'; return; }
@@ -1011,10 +1109,10 @@ function updateStats() {
 function updateBadges() {
   const open   = tickets.filter(t=>t.status==='open').length;
   const inprog = tickets.filter(t=>t.status==='in_progress').length;
-  document.getElementById('badge-all').textContent    = tickets.length;
-  document.getElementById('badge-open').textContent   = open;
-  document.getElementById('badge-inprog').textContent = inprog;
-  document.getElementById('badge-active').textContent = open + inprog;
+  const allBadge    = document.getElementById('badge-all');
+  const activeBadge = document.getElementById('badge-active');
+  if (allBadge)    allBadge.textContent    = tickets.length;
+  if (activeBadge) activeBadge.textContent = open + inprog;
 }
 
 /* ── Navigation ── */
