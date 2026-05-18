@@ -510,6 +510,8 @@ function loadDemo() {
   document.getElementById('cfg-screen').classList.remove('active');
   document.getElementById('auth-screen').classList.remove('active');
   document.getElementById('app').style.display='flex';
+  const fu = document.getElementById('footer-user-count');
+  if (fu) fu.textContent = DEMO_PROFILES.length;
   updateUserHeader();
   renderTickets();
 }
@@ -535,6 +537,13 @@ async function signIn() {
   if (error){document.getElementById('si-err').textContent=error.message;return;}
   currentUser=data.user;
   currentProfile = await ensureProfile(currentUser);
+  // Fetch total user count for footer
+  if (!demoMode) {
+    sbClient.from('profiles').select('*', { count:'exact', head:true }).then(({count}) => {
+      const fu = document.getElementById('footer-user-count');
+      if (fu && count !== null) fu.textContent = count;
+    });
+  }
   showApp();
 }
 async function signUp() {
@@ -803,6 +812,8 @@ document.addEventListener('DOMContentLoaded', initSupabase);
   <span>Email: <a href="mailto:helpdesk@el-martillo.com">helpdesk@el-martillo.com</a></span>
   <span class="footer-sep">|</span>
   <span>Tickets: <span class="footer-tickets" id="footer-ticket-count">—</span></span>
+  <span class="footer-sep">|</span>
+  <span>Users: <span class="footer-tickets" id="footer-user-count">—</span></span>
 </div>
 
 </body>
