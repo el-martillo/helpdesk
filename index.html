@@ -591,18 +591,27 @@ async function signUp() {
   showApp();
 }
 
-function populateSignupCompany() {
-  const sel = document.getElementById('su-company');
-  if (!sel) return;
-  const raw  = localStorage.getItem('app_orgs') || '';
-  const orgs = raw.split('\n').map(s => s.trim()).filter(Boolean);
-  sel.innerHTML = '<option value="">— Select organisation —</option>';
-  orgs.forEach(o => {
-    const opt = document.createElement('option');
-    opt.value = o; opt.textContent = o;
-    sel.appendChild(opt);
-  });
+async function loadOrgsFromSupabase() {
+  try {
+    if (!sbClient) return;
+    const { data } = await sbClient.from('settings').select('value').eq('key','organisations').single();
+    if (data?.value !== undefined) localStorage.setItem('app_orgs', data.value);
+  } catch { /* table may not exist yet - use localStorage */ }
 }
+
+function getOrgs() {
+  return (localStorage.getItem('app_orgs') || '').split('\n').map(s => s.trim()).filter(Boolean);
+}
+
+function fillOrgSelect(sel) {
+  if (!sel) return;
+  const orgs = getOrgs();
+  sel.innerHTML = '<option value="">— Select organisation —</option>';
+  orgs.forEach(o => { const opt = document.createElement('option'); opt.value = o; opt.textContent = o; sel.appendChild(opt); });
+}
+
+function populateSignupCompany() { fillOrgSelect(document.getElementById('su-company')); }
+
 async function signOut() { if(sbClient) await sbClient.auth.signOut(); location.reload(); }
 
 function showApp() {
@@ -758,18 +767,7 @@ async function reopenTicket(ticketId) {
 }
 
 /* ── Submit ticket ── */
-function populateCompanyDropdown() {
-  const sel = document.getElementById('nt-company');
-  if (!sel) return;
-  const raw = localStorage.getItem('app_orgs') || '';
-  const orgs = raw.split('\n').map(s => s.trim()).filter(Boolean);
-  sel.innerHTML = '<option value="">— Select organisation —</option>';
-  orgs.forEach(o => {
-    const opt = document.createElement('option');
-    opt.value = o; opt.textContent = o;
-    sel.appendChild(opt);
-  });
-}
+function populateCompanyDropdown() { fillOrgSelect(document.getElementById('nt-company')); }
 
 async function submitTicket() {
   const subject=document.getElementById('nt-subject').value.trim();
@@ -819,6 +817,8 @@ async function initSupabase() {
   if (cfgUrl) cfgUrl.value = url;
   if (cfgKey) cfgKey.value = key;
   sbClient = window.supabase.createClient(url, key);
+  // Load organisations — wrapped so a missing table never blocks the page
+  try { await loadOrgsFromSupabase(); } catch(e) { console.warn('Could not load orgs:', e.message); }
   try {
     const { data: { session } } = await sbClient.auth.getSession();
     if (session) {

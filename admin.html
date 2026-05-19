@@ -1840,21 +1840,33 @@ function populateOrgDropdowns() {
       opt.value = o; opt.textContent = o;
       sel.appendChild(opt);
     });
-    // Keep previously selected value if it still exists
     if (current && orgs.includes(current)) sel.value = current;
   });
 }
 
-function saveOrgs() {
-  const val = document.getElementById('setting-orgs').value;
+async function saveOrgs() {
+  const val = (document.getElementById('setting-orgs').value || '').trim();
   localStorage.setItem('app_orgs', val);
   populateOrgDropdowns();
+  // Also persist to Supabase so client portal can read it
+  if (!demoMode && sbClient) {
+    await sbClient.from('settings').upsert({ key: 'organisations', value: val }, { onConflict: 'key' });
+  }
   const msg = document.getElementById('orgs-saved-msg');
   if (msg) { msg.textContent = '✓ Saved'; setTimeout(() => msg.textContent = '', 2000); }
   toast('Organisations saved');
 }
 
-function loadOrgs() {
+async function loadOrgs() {
+  // Try Supabase first, fall back to localStorage
+  if (!demoMode && sbClient) {
+    try {
+      const { data } = await sbClient.from('settings').select('value').eq('key','organisations').single();
+      if (data?.value !== undefined) {
+        localStorage.setItem('app_orgs', data.value);
+      }
+    } catch { /* use localStorage fallback */ }
+  }
   const raw = localStorage.getItem('app_orgs') || '';
   const ta = document.getElementById('setting-orgs');
   if (ta) ta.value = raw;
