@@ -286,10 +286,15 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
     <!-- Sign up -->
     <div class="tab-page" id="auth-signup">
-      <div class="fg"><label class="fl">Full name</label><input id="su-name" class="fc" type="text" placeholder="Jane Doe"/></div>
-      <div class="fg"><label class="fl">Email</label><input id="su-email" class="fc" type="email" placeholder="you@example.com"/></div>
+      <div class="fg"><label class="fl">Full name *</label><input id="su-name" class="fc" type="text" placeholder="Jane Doe"/></div>
+      <div class="fg"><label class="fl">Email *</label><input id="su-email" class="fc" type="email" placeholder="you@example.com"/></div>
+      <div class="fg"><label class="fl">Telephone</label><input id="su-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
       <div class="fg">
-        <label class="fl">Password</label>
+        <label class="fl">Company / Organisation</label>
+        <select id="su-company" class="fc"><option value="">— Select organisation —</option></select>
+      </div>
+      <div class="fg">
+        <label class="fl">Password *</label>
         <input id="su-password" class="fc" type="password" placeholder="••••••••"/>
         <div class="pw-rules">Minimum 8 characters</div>
       </div>
@@ -498,6 +503,7 @@ function authTab(el, page) {
   document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('auth-'+page).classList.add('active');
+  if (page === 'signup') populateSignupCompany();
 }
 
 /* ── Connect ── */
@@ -561,18 +567,41 @@ async function signIn() {
 }
 async function signUp() {
   if (!sbClient){loadDemo();return;}
-  const name=document.getElementById('su-name').value.trim();
-  const email=document.getElementById('su-email').value.trim();
-  const pass=document.getElementById('su-password').value;
-  if (!name||!email||!pass){document.getElementById('su-err').textContent='All fields are required.';return;}
+  const name    = document.getElementById('su-name').value.trim();
+  const email   = document.getElementById('su-email').value.trim();
+  const phone   = document.getElementById('su-phone').value.trim();
+  const company = document.getElementById('su-company').value;
+  const pass    = document.getElementById('su-password').value;
+  if (!name||!email||!pass){document.getElementById('su-err').textContent='Name, email and password are required.';return;}
   if (pass.length<8){document.getElementById('su-err').textContent='Password must be at least 8 characters.';return;}
   const {data,error}=await sbClient.auth.signUp({email,password:pass,options:{data:{full_name:name,role:'client'}}});
   if (error){document.getElementById('su-err').textContent=error.message;return;}
   currentUser=data.user;
   await new Promise(r=>setTimeout(r,800));
   currentProfile = await ensureProfile(currentUser, name);
+  // Save extra fields to profile
+  if (currentProfile && (phone || company)) {
+    const updates = {};
+    if (phone)   updates.phone   = phone;
+    if (company) updates.company = company;
+    await sbClient.from('profiles').update(updates).eq('id', currentUser.id);
+    Object.assign(currentProfile, updates);
+  }
   toast('Account created! Welcome, '+name);
   showApp();
+}
+
+function populateSignupCompany() {
+  const sel = document.getElementById('su-company');
+  if (!sel) return;
+  const raw  = localStorage.getItem('app_orgs') || '';
+  const orgs = raw.split('\n').map(s => s.trim()).filter(Boolean);
+  sel.innerHTML = '<option value="">— Select organisation —</option>';
+  orgs.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o; opt.textContent = o;
+    sel.appendChild(opt);
+  });
 }
 async function signOut() { if(sbClient) await sbClient.auth.signOut(); location.reload(); }
 
