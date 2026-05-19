@@ -1835,22 +1835,23 @@ function loadOrgs() {
 let techNewsCache = null;
 let techNewsLastFetch = 0;
 
-// Microsoft RSS feeds via rss2json.com (free, handles CORS)
+// Microsoft news via rss2json — using stable feed URLs
 const MS_FEEDS = [
-  { url: 'https://blogs.windows.com/feed/',                        tag: 'Windows'       },
-  { url: 'https://blogs.microsoft.com/feed/',                      tag: 'Microsoft'     },
-  { url: 'https://www.microsoft.com/en-us/microsoft-365/blog/feed/', tag: 'Microsoft 365' },
+  { url: 'https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=Windows11Blog',           tag: 'Windows'       },
+  { url: 'https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=Microsoft365Blog',        tag: 'Microsoft 365' },
+  { url: 'https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=CoreInfrastructureandSecurityBlog', tag: 'Security' },
 ];
 
 const RSS2JSON_URL = url =>
-  `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&count=4`;
+  `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&count=3`;
 
 async function fetchFeed(feedUrl, tag) {
   try {
     const res  = await fetch(RSS2JSON_URL(feedUrl));
+    if (!res.ok) return [];
     const json = await res.json();
     if (json.status !== 'ok' || !json.items?.length) return [];
-    return json.items.slice(0, 4).map(item => {
+    return json.items.slice(0, 3).map(item => {
       const tmp = document.createElement('div');
       tmp.innerHTML = item.description || '';
       const summary = (tmp.textContent || '').replace(/\s+/g,' ').trim().slice(0, 160) + '…';
@@ -1875,21 +1876,21 @@ async function loadTechNews(force) {
   try {
     const results = await Promise.all(MS_FEEDS.map(f => fetchFeed(f.url, f.tag)));
     let articles = results.flat();
+    console.log('[TechNews] fetched', articles.length, 'articles from', MS_FEEDS.length, 'feeds');
 
-    // Sort by date descending, take top 6
     articles = articles
       .filter(a => a.title)
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .slice(0, 6);
 
-    if (!articles.length) throw new Error('No articles found');
+    if (!articles.length) throw new Error('No articles returned — feeds may be temporarily unavailable');
 
     techNewsCache = articles;
     techNewsLastFetch = Date.now();
     renderTechNews(articles);
   } catch(e) {
     el.innerHTML = `<div style="text-align:center;padding:48px;color:var(--danger);font-size:13px">
-      Failed to load news: ${e.message}<br><br>
+      ${e.message}<br><br>
       <button class="btn sm" onclick="loadTechNews(true)">Try again</button>
     </div>`;
   }
