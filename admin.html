@@ -2164,25 +2164,36 @@ async function changePassword(userId) {
   msg.style.color='var(--text3)'; msg.textContent='Updating…';
 
   try {
-    const res = await fetch(`${SB_URL}/functions/v1/reset-user-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SB_KEY}`,
-      },
-      body: JSON.stringify({ userId, password: pw }),
+    // Use sbClient.functions.invoke — handles auth and CORS automatically
+    const { data, error } = await sbClient.functions.invoke('reset-user-password', {
+      body: { userId, password: pw },
     });
-    const data = await res.json();
-    if (!res.ok || data.error) {
-      msg.style.color='var(--danger)'; msg.textContent='Error: ' + (data.error || 'Unknown error');
+
+    if (error) {
+      // Function not deployed yet
+      if (error.message?.includes('Failed to send') || error.message?.includes('fetch') || error.status === 404) {
+        msg.style.color='var(--danger)';
+        msg.textContent='Edge function not deployed. Run: supabase functions deploy reset-user-password';
+        return;
+      }
+      msg.style.color='var(--danger)'; msg.textContent='Error: ' + error.message;
       return;
     }
+
+    if (data?.error) {
+      msg.style.color='var(--danger)'; msg.textContent='Error: ' + data.error;
+      return;
+    }
+
     msg.style.color='var(--success)'; msg.textContent='✓ Password updated successfully.';
     document.getElementById('eu-password').value='';
     document.getElementById('eu-password-confirm').value='';
     toast('Password updated');
   } catch(e) {
-    msg.style.color='var(--danger)'; msg.textContent='Error: ' + e.message;
+    msg.style.color='var(--danger)';
+    msg.textContent = e.message?.includes('fetch')
+      ? 'Cannot reach edge function. Is it deployed? Run: supabase functions deploy reset-user-password'
+      : 'Error: ' + e.message;
   }
 }
 
