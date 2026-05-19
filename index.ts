@@ -33,7 +33,7 @@ Deno.serve(async (req: Request) => {
     // ── Fetch requester profile to get their email ──────────
     const supabase = createClient(
       Deno.env.get('SB_URL')!,
-	Deno.env.get('SB_SERVICE_ROLE_KEY')!
+      Deno.env.get('SB_SERVICE_ROLE_KEY')!
     )
 
     let requesterEmail: string | null = ticket.contact_email || null

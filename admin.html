@@ -2161,20 +2161,29 @@ async function changePassword(userId) {
     return;
   }
 
-  // Requires service role — only works if the admin panel uses the service role key
-  // For anon key, use the Supabase dashboard to change passwords
-  const { error } = await sbClient.auth.admin.updateUserById(userId, { password: pw });
-  if (error) {
-    msg.style.color='var(--danger)';
-    msg.textContent = error.message.includes('not allowed')
-      ? 'Password change requires service role key. Use Supabase dashboard instead.'
-      : 'Error: ' + error.message;
-    return;
+  msg.style.color='var(--text3)'; msg.textContent='Updating…';
+
+  try {
+    const res = await fetch(`${SB_URL}/functions/v1/reset-user-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SB_KEY}`,
+      },
+      body: JSON.stringify({ userId, password: pw }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      msg.style.color='var(--danger)'; msg.textContent='Error: ' + (data.error || 'Unknown error');
+      return;
+    }
+    msg.style.color='var(--success)'; msg.textContent='✓ Password updated successfully.';
+    document.getElementById('eu-password').value='';
+    document.getElementById('eu-password-confirm').value='';
+    toast('Password updated');
+  } catch(e) {
+    msg.style.color='var(--danger)'; msg.textContent='Error: ' + e.message;
   }
-  msg.style.color='var(--success)'; msg.textContent='✓ Password updated successfully.';
-  document.getElementById('eu-password').value='';
-  document.getElementById('eu-password-confirm').value='';
-  toast('Password updated');
 }
 
 async function saveUser() {
