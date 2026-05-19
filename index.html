@@ -572,14 +572,33 @@ async function signUp() {
   const phone   = document.getElementById('su-phone').value.trim();
   const company = document.getElementById('su-company').value;
   const pass    = document.getElementById('su-password').value;
-  if (!name||!email||!pass){document.getElementById('su-err').textContent='Name, email and password are required.';return;}
-  if (pass.length<8){document.getElementById('su-err').textContent='Password must be at least 8 characters.';return;}
+  const errEl   = document.getElementById('su-err');
+
+  if (!name||!email||!pass){errEl.textContent='Name, email and password are required.';return;}
+  if (pass.length<8){errEl.textContent='Password must be at least 8 characters.';return;}
+
+  errEl.textContent='Creating account…';
+  errEl.style.color='var(--text3)';
+
   const {data,error}=await sbClient.auth.signUp({email,password:pass,options:{data:{full_name:name,role:'client'}}});
-  if (error){document.getElementById('su-err').textContent=error.message;return;}
+
+  if (error){
+    errEl.style.color='var(--danger)';
+    errEl.textContent=error.message;
+    return;
+  }
+
+  // Email confirmation required — session will be null
+  if (!data.session) {
+    errEl.style.color='var(--success)';
+    errEl.textContent='✓ Account created! Check your email to confirm your address, then sign in.';
+    return;
+  }
+
+  // Confirmed immediately (email confirmation disabled in Supabase)
   currentUser=data.user;
   await new Promise(r=>setTimeout(r,800));
   currentProfile = await ensureProfile(currentUser, name);
-  // Save extra fields to profile
   if (currentProfile && (phone || company)) {
     const updates = {};
     if (phone)   updates.phone   = phone;
@@ -587,6 +606,7 @@ async function signUp() {
     await sbClient.from('profiles').update(updates).eq('id', currentUser.id);
     Object.assign(currentProfile, updates);
   }
+  errEl.textContent='';
   toast('Account created! Welcome, '+name);
   showApp();
 }
