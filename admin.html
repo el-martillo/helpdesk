@@ -1765,8 +1765,43 @@ function loadOrgs() {
 let techNewsCache = null;
 let techNewsLastFetch = 0;
 
+// Microsoft RSS feeds (via allorigins CORS proxy)
+const MS_FEEDS = [
+  { url: 'https://blogs.windows.com/feed/', tag: 'Windows' },
+  { url: 'https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=Windows11Blog', tag: 'Windows' },
+  { url: 'https://www.microsoft.com/en-us/microsoft-365/blog/feed/', tag: 'Microsoft 365' },
+];
+
+const PROXY = url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+
+async function fetchFeed(feedUrl, tag) {
+  try {
+    const res = await fetch(PROXY(feedUrl));
+    const json = await res.json();
+    const text = json.contents;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, 'text/xml');
+    const items = [...doc.querySelectorAll('item')].slice(0, 4);
+    return items.map(item => {
+      const title   = item.querySelector('title')?.textContent?.trim() || '';
+      const link    = item.querySelector('link')?.textContent?.trim() || '';
+      const pubDate = item.querySelector('pubDate')?.textContent?.trim() || '';
+      const desc    = item.querySelector('description')?.textContent?.trim() || '';
+      // Strip HTML from description
+      const tmp = document.createElement('div');
+      tmp.innerHTML = desc;
+      const summary = (tmp.textContent || '').replace(/\s+/g,' ').trim().slice(0, 160) + '…';
+      // Format date
+      const d = pubDate ? new Date(pubDate) : null;
+      const date = d && !isNaN(d)
+        ? d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
+        : '';
+      return { title, url: link, summary, date, tag, source: 'Microsoft' };
+    });
+  } catch { return []; }
+}
+
 async function loadTechNews(force) {
-  // Only re-fetch if forced or cache is older than 30 mins
   if (!force && techNewsCache && (Date.now() - techNewsLastFetch < 30 * 60 * 1000)) {
     renderTechNews(techNewsCache); return;
   }
@@ -1776,29 +1811,17 @@ async function loadTechNews(force) {
     <div class="loader" style="margin:0 auto 12px"></div>Loading latest news…</div>`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        messages: [{
-          role: 'user',
-          content: `Search for the 6 most recent and important Microsoft news articles about Windows and Office updates from the last 30 days. For each article return ONLY a JSON array (no markdown, no backticks) with objects having these exact keys: title, summary (2 sentences max), date (formatted as "DD Mon YYYY"), source, url, tag (one of: "Windows", "Office", "Security", "Azure", "Microsoft 365"). Return only the raw JSON array, nothing else.`
-        }]
-      })
-    });
+    const results = await Promise.all(MS_FEEDS.map(f => fetchFeed(f.url, f.tag)));
+    let articles = results.flat();
 
-    const data = await res.json();
-    // Extract text from response blocks
-    const textBlock = data.content?.find(b => b.type === 'text');
-    if (!textBlock) throw new Error('No text in response');
+    // Sort by date descending, take top 6
+    articles = articles
+      .filter(a => a.title)
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 6);
 
-    let raw = textBlock.text.trim();
-    // Strip any accidental markdown fences
-    raw = raw.replace(/^```[a-z]*\n?/i, '').replace(/```$/,'').trim();
-    const articles = JSON.parse(raw);
+    if (!articles.length) throw new Error('No articles found');
+
     techNewsCache = articles;
     techNewsLastFetch = Date.now();
     renderTechNews(articles);
