@@ -1835,11 +1835,11 @@ function loadOrgs() {
 let techNewsCache = null;
 let techNewsLastFetch = 0;
 
-// Microsoft news via rss2json — using stable feed URLs
+// Reliable RSS feeds that work with rss2json
 const MS_FEEDS = [
-  { url: 'https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=Windows11Blog',           tag: 'Windows'       },
-  { url: 'https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=Microsoft365Blog',        tag: 'Microsoft 365' },
-  { url: 'https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=CoreInfrastructureandSecurityBlog', tag: 'Security' },
+  { url: 'https://msrc.microsoft.com/blog/feed/',                         tag: 'Security'      },
+  { url: 'https://devblogs.microsoft.com/commandline/feed/',              tag: 'Windows'       },
+  { url: 'https://devblogs.microsoft.com/microsoft365dev/feed/',          tag: 'Microsoft 365' },
 ];
 
 const RSS2JSON_URL = url =>
