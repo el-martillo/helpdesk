@@ -2247,27 +2247,29 @@ async function deleteUser(id) {
     closeModal('modal-edit-user'); renderUsersTable(); toast('User deleted'); return;
   }
 
+  // Get the user's email before deleting so the edge function can find them by email too
+  const profile = allProfiles.find(p => p.id === id);
+  const email   = profile?.email || null;
+
   try {
-    // Try edge function first (deletes auth user + profile)
     const { data, error } = await sbClient.functions.invoke('delete-user', {
-      body: { userId: id },
+      body: { userId: id, email },
     });
-
-    if (error || data?.error) {
-      // Fall back to profile-only delete (for users without auth accounts)
-      const { error: dbErr } = await sbClient.from('profiles').delete().eq('id', id);
-      if (dbErr) { toast('Error: ' + dbErr.message); return; }
-    }
-
-    closeModal('modal-edit-user');
-    loadAllProfiles(); loadProfiles(); toast('User deleted');
+    if (error) throw new Error(error.message);
+    if (data?.error) throw new Error(data.error);
   } catch(e) {
-    // Final fallback — delete profile only
+    // Edge function not deployed — fall back to profile-only delete
+    console.warn('delete-user edge function failed, falling back:', e.message);
     const { error: dbErr } = await sbClient.from('profiles').delete().eq('id', id);
     if (dbErr) { toast('Error: ' + dbErr.message); return; }
+    toast('Profile deleted (auth user may remain — deploy delete-user function for full deletion)');
     closeModal('modal-edit-user');
-    loadAllProfiles(); loadProfiles(); toast('User deleted');
+    loadAllProfiles(); loadProfiles();
+    return;
   }
+
+  closeModal('modal-edit-user');
+  loadAllProfiles(); loadProfiles(); toast('User fully deleted');
 }
 
 async function addUser() {
