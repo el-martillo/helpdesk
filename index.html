@@ -399,6 +399,9 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <div class="fg"><label class="fl">Your email *</label><input id="nt-email" class="fc" type="email" placeholder="you@example.com"/></div>
       <div class="fg"><label class="fl">Telephone</label><input id="nt-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
     </div>
+    <div class="fg"><label class="fl">Company / Organisation</label>
+      <select id="nt-company" class="fc"><option value="">— Select organisation —</option></select>
+    </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Category</label>
         <select id="nt-cat" class="fc"><option value="Billing">Billing</option><option value="Technical" selected>Technical</option><option value="Account">Account</option><option value="General">General</option></select>
@@ -475,7 +478,17 @@ const timeAgo  = iso => { if(!iso) return '—'; const m=Math.floor((Date.now()-
 const sLabel   = s => ({open:'Open',in_progress:'In progress',waiting:'Waiting',resolved:'Resolved',closed:'Closed'}[s]||s);
 const profileById = id => DEMO_PROFILES.find(p=>p.id===id);
 function toast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
-function openModal(id){document.getElementById(id).classList.add('open');}
+function openModal(id){
+  document.getElementById(id).classList.add('open');
+  if (id === 'modal-new-ticket') {
+    populateCompanyDropdown();
+    // Prefill email from logged-in account
+    const emailEl = document.getElementById('nt-email');
+    if (emailEl && !emailEl.value) {
+      emailEl.value = currentProfile?.email || currentUser?.email || '';
+    }
+  }
+}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
 
@@ -716,11 +729,25 @@ async function reopenTicket(ticketId) {
 }
 
 /* ── Submit ticket ── */
+function populateCompanyDropdown() {
+  const sel = document.getElementById('nt-company');
+  if (!sel) return;
+  const raw = localStorage.getItem('app_orgs') || '';
+  const orgs = raw.split('\n').map(s => s.trim()).filter(Boolean);
+  sel.innerHTML = '<option value="">— Select organisation —</option>';
+  orgs.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o; opt.textContent = o;
+    sel.appendChild(opt);
+  });
+}
+
 async function submitTicket() {
   const subject=document.getElementById('nt-subject').value.trim();
   const email=document.getElementById('nt-email').value.trim();
   if (!subject){toast('Subject is required');return;}
   if (!email){toast('Email is required');return;}
+  const company=document.getElementById('nt-company').value||null;
   const payload={
     subject,
     description:document.getElementById('nt-desc').value,
@@ -730,11 +757,13 @@ async function submitTicket() {
     contact_phone:document.getElementById('nt-phone').value.trim(),
     status:'open',
   };
+  if (company) payload.company = company;
   function clearForm(){
     document.getElementById('nt-subject').value='';
     document.getElementById('nt-desc').value='';
     document.getElementById('nt-email').value='';
     document.getElementById('nt-phone').value='';
+    document.getElementById('nt-company').value='';
   }
   if (demoMode) {
     const nt={id:'t'+Date.now(),ticket_number:100+myTickets.length+1,...payload,requester_id:'p5',assignee_id:null,updated_at:new Date().toISOString(),created_at:new Date().toISOString()};
