@@ -1870,7 +1870,25 @@ async function fetchFeed(feedUrl, tag) {
         const d    = new Date(get('pubDate') || get('published') || get('updated'));
         const date = isNaN(d) ? '' : d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
         const src  = feedUrl.replace(/https?:\/\/(www\.)?/,'').split('/')[0];
-        return { title: get('title'), url: link, summary, date, tag, source: src };
+
+        // Extract image: try multiple RSS image fields
+        let image = '';
+        // 1. media:content or media:thumbnail
+        image = image || item.querySelector('content')?.getAttribute('url') || '';
+        image = image || item.querySelector('thumbnail')?.getAttribute('url') || '';
+        // 2. enclosure
+        const enc = item.querySelector('enclosure');
+        if (!image && enc && (enc.getAttribute('type')||'').startsWith('image'))
+          image = enc.getAttribute('url') || '';
+        // 3. first <img> inside description HTML
+        if (!image) {
+          const firstImg = tmp.querySelector('img');
+          image = firstImg?.getAttribute('src') || firstImg?.getAttribute('data-src') || '';
+        }
+        // 4. itunes:image
+        if (!image) image = item.querySelector('image')?.getAttribute('href') || '';
+
+        return { title: get('title'), url: link, summary, date, tag, source: src, image };
       }).filter(a => a.title);
     } catch { continue; }
   }
@@ -1909,6 +1927,26 @@ async function loadTechNews(force) {
   }
 }
 
+function newsPlaceholder(tag) {
+  const bg = {
+    'Windows':'#E6F1FB','Microsoft':'#E6F1FB','Security':'#FCEBEB',
+    'Microsoft 365':'#FAEEDA','Windows':'#E6F1FB'
+  }[tag] || '#f1efea';
+  const ic = {
+    'Windows':    `<path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>`,
+    'Microsoft':  `<rect x="3" y="3" width="8" height="8"/><rect x="13" y="3" width="8" height="8"/><rect x="13" y="13" width="8" height="8"/><rect x="3" y="13" width="8" height="8"/>`,
+    'Security':   `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`,
+    'Microsoft 365': `<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>`,
+  }[tag] || `<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>`;
+  const color = {
+    'Windows':'#185FA5','Microsoft':'#185FA5','Security':'#A32D2D',
+    'Microsoft 365':'#854F0B'
+  }[tag] || '#6b6963';
+  return `<div style="width:100%;height:160px;background:${bg};display:flex;align-items:center;justify-content:center;border-radius:var(--radius) var(--radius) 0 0">
+    <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="${color}" stroke-width="1.5">${ic}</svg>
+  </div>`;
+}
+
 function renderTechNews(articles) {
   const el = document.getElementById('technews-body');
   if (!el || !articles?.length) return;
@@ -1921,7 +1959,6 @@ function renderTechNews(articles) {
     'Azure':        { bg:'var(--purple-l)',   color:'var(--purple)'  },
     'Microsoft 365':{ bg:'var(--warn-l)',     color:'var(--warn)'    },
   };
-
   const tagStyle = t => {
     const c = tagColor[t] || { bg:'var(--bg)', color:'var(--text2)' };
     return `background:${c.bg};color:${c.color}`;
@@ -1929,24 +1966,35 @@ function renderTechNews(articles) {
 
   el.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
-      ${articles.map(a => `
-        <a href="${a.url||'#'}" target="_blank" rel="noopener"
-           style="text-decoration:none;color:inherit;display:flex;flex-direction:column">
-          <div class="table-card" style="padding:18px;flex:1;display:flex;flex-direction:column;gap:10px;transition:box-shadow .15s"
-            onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'"
-            onmouseout="this.style.boxShadow=''">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-              <span style="display:inline-block;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:600;${tagStyle(a.tag)}">${a.tag||'Microsoft'}</span>
-              <span style="font-size:11px;color:var(--text3);white-space:nowrap">${a.date||''}</span>
+      ${articles.map(a => {
+        const img = a.image
+          ? `<div style="width:100%;height:160px;overflow:hidden;border-radius:var(--radius) var(--radius) 0 0;background:var(--surface2)">
+               <img src="${a.image}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"
+                 onerror="this.parentElement.outerHTML='${newsPlaceholder(a.tag).replace(/'/g,"\\'")}'"/>
+             </div>`
+          : newsPlaceholder(a.tag);
+        return `
+          <a href="${a.url||'#'}" target="_blank" rel="noopener"
+             style="text-decoration:none;color:inherit;display:flex;flex-direction:column">
+            <div class="table-card" style="padding:0;flex:1;display:flex;flex-direction:column;overflow:hidden;transition:box-shadow .15s"
+              onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'"
+              onmouseout="this.style.boxShadow=''">
+              ${img}
+              <div style="padding:14px;display:flex;flex-direction:column;gap:8px;flex:1">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                  <span style="display:inline-block;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:600;${tagStyle(a.tag)}">${a.tag||'Microsoft'}</span>
+                  <span style="font-size:11px;color:var(--text3);white-space:nowrap">${a.date||''}</span>
+                </div>
+                <div style="font-size:13px;font-weight:600;line-height:1.4;color:var(--text1)">${a.title}</div>
+                <div style="font-size:12px;color:var(--text2);line-height:1.6;flex:1">${a.summary}</div>
+                <div style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px;margin-top:auto;padding-top:8px;border-top:1px solid var(--border)">
+                  <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                  ${a.source||'Microsoft'} &nbsp;→ Read article
+                </div>
+              </div>
             </div>
-            <div style="font-size:14px;font-weight:600;line-height:1.4;color:var(--text1)">${a.title}</div>
-            <div style="font-size:12px;color:var(--text2);line-height:1.65;flex:1">${a.summary}</div>
-            <div style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px;margin-top:auto;padding-top:8px;border-top:1px solid var(--border)">
-              <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              ${a.source||'Microsoft'} &nbsp;→ Read article
-            </div>
-          </div>
-        </a>`).join('')}
+          </a>`;
+      }).join('')}
     </div>
     <div style="font-size:11px;color:var(--text3);margin-top:12px;text-align:right">
       Last updated: ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
