@@ -2172,6 +2172,8 @@ async function changePassword(userId) {
   document.getElementById('eu-password-confirm').value='';
   toast('Password updated');
 }
+
+async function saveUser() {
   const id      = document.getElementById('eu-id').value;
   const name    = document.getElementById('eu-name').value.trim();
   const email   = document.getElementById('eu-email').value.trim();
