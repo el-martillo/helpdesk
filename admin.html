@@ -539,6 +539,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
               <tr>
                 <th>User</th>
                 <th>Role</th>
+                <th>Telephone</th>
+                <th>Company</th>
                 <th>Open tickets</th>
               </tr>
             </thead>
@@ -2077,7 +2079,7 @@ function renderUsersTable() {
   if (q)  list = list.filter(p => (p.full_name||'').toLowerCase().includes(q) || (p.email||'').toLowerCase().includes(q));
   const tbody = document.getElementById('users-tbody');
   if (!tbody) return;
-  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="3">No users found</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No users found</td></tr>'; return; }
 
   const roleBadge = r => ({
     admin:  '<span class="sb s-in_progress">Admin</span>',
@@ -2097,13 +2099,15 @@ function renderUsersTable() {
         </div>
       </td>
       <td>${roleBadge(p.role)}</td>
+      <td style="font-size:12px;color:var(--text2)">${p.phone ? `<a href="tel:${p.phone}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${p.phone}</a>` : '<span style="color:var(--text3)">—</span>'}</td>
+      <td style="font-size:12px;color:var(--text2)">${p.company||'<span style="color:var(--text3)">—</span>'}</td>
       <td style="font-size:13px;color:var(--text2)">${openCount || '—'}</td>
     </tr>`;
   };
 
   const sectionHeader = (label, count) =>
     `<tr style="background:var(--surface2)">
-      <td colspan="3" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">
+      <td colspan="5" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">
         ${label} <span style="font-weight:500;color:var(--text3);margin-left:4px">(${count})</span>
       </td>
     </tr>`;
