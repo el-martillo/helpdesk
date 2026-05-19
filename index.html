@@ -577,8 +577,8 @@ async function signUp() {
   if (!name||!email||!pass){errEl.textContent='Name, email and password are required.';return;}
   if (pass.length<8){errEl.textContent='Password must be at least 8 characters.';return;}
 
-  errEl.textContent='Creating account…';
   errEl.style.color='var(--text3)';
+  errEl.textContent='Creating account…';
 
   const {data,error}=await sbClient.auth.signUp({email,password:pass,options:{data:{full_name:name,role:'client'}}});
 
@@ -595,17 +595,29 @@ async function signUp() {
     return;
   }
 
-  // Confirmed immediately (email confirmation disabled in Supabase)
-  currentUser=data.user;
+  currentUser = data.user;
+
+  // Wait briefly for the DB trigger to create the profile row
   await new Promise(r=>setTimeout(r,800));
-  currentProfile = await ensureProfile(currentUser, name);
-  if (currentProfile && (phone || company)) {
-    const updates = {};
-    if (phone)   updates.phone   = phone;
-    if (company) updates.company = company;
-    await sbClient.from('profiles').update(updates).eq('id', currentUser.id);
-    Object.assign(currentProfile, updates);
-  }
+
+  // Upsert profile with ALL fields in one operation
+  const profileData = {
+    id:        currentUser.id,
+    full_name: name,
+    email:     email,
+    role:      'client',
+  };
+  if (phone)   profileData.phone   = phone;
+  if (company) profileData.company = company;
+
+  const { data: upserted } = await sbClient
+    .from('profiles')
+    .upsert(profileData, { onConflict: 'id' })
+    .select('*')
+    .single();
+
+  currentProfile = upserted || profileData;
+
   errEl.textContent='';
   toast('Account created! Welcome, '+name);
   showApp();
