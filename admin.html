@@ -2223,15 +2223,33 @@ async function saveUser() {
 }
 
 async function deleteUser(id) {
-  if (!confirm('Delete this profile? This cannot be undone.')) return;
+  if (!confirm('Delete this user? This removes their profile and login access and cannot be undone.')) return;
   if (demoMode) {
     allProfiles = allProfiles.filter(x => x.id !== id);
     closeModal('modal-edit-user'); renderUsersTable(); toast('User deleted'); return;
   }
-  const { error } = await sbClient.from('profiles').delete().eq('id', id);
-  if (error) { toast('Error: ' + error.message); return; }
-  closeModal('modal-edit-user');
-  loadAllProfiles(); loadProfiles(); toast('User deleted');
+
+  try {
+    // Try edge function first (deletes auth user + profile)
+    const { data, error } = await sbClient.functions.invoke('delete-user', {
+      body: { userId: id },
+    });
+
+    if (error || data?.error) {
+      // Fall back to profile-only delete (for users without auth accounts)
+      const { error: dbErr } = await sbClient.from('profiles').delete().eq('id', id);
+      if (dbErr) { toast('Error: ' + dbErr.message); return; }
+    }
+
+    closeModal('modal-edit-user');
+    loadAllProfiles(); loadProfiles(); toast('User deleted');
+  } catch(e) {
+    // Final fallback — delete profile only
+    const { error: dbErr } = await sbClient.from('profiles').delete().eq('id', id);
+    if (dbErr) { toast('Error: ' + dbErr.message); return; }
+    closeModal('modal-edit-user');
+    loadAllProfiles(); loadProfiles(); toast('User deleted');
+  }
 }
 
 async function addUser() {
