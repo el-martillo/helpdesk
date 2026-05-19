@@ -390,8 +390,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </div>
         </div>
 
-        <!-- Three column: recent tickets | priority+category | tech news -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+        <!-- Two columns: recent tickets | priority+category -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
 
           <!-- Recent tickets -->
           <div class="table-card" style="padding:18px">
@@ -414,20 +414,21 @@ textarea.fc { resize: vertical; min-height: 80px; }
             </div>
           </div>
 
-          <!-- Tech News -->
-          <div class="table-card" style="padding:18px;display:flex;flex-direction:column">
-            <div style="font-size:13px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
-              Tech News
-              <button class="btn sm" onclick="loadDashNews(true)" style="font-size:11px">↻</button>
-            </div>
-            <div id="dash-news" style="flex:1">
-              <div style="text-align:center;padding:24px 0;color:var(--text3);font-size:12px">
-                <div class="loader" style="margin:0 auto 10px"></div>Loading…
-              </div>
+        </div>
+
+        <!-- Tech News — full width -->
+        <div class="table-card" style="padding:18px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+            Tech News
+            <button class="btn sm" onclick="loadDashNews(true)" style="font-size:11px">↻ Refresh</button>
+          </div>
+          <div id="dash-news">
+            <div style="text-align:center;padding:24px 0;color:var(--text3);font-size:12px">
+              <div class="loader" style="margin:0 auto 10px"></div>Loading…
             </div>
           </div>
-
         </div>
+
       </div>
 
       <!-- All tickets -->
@@ -1296,22 +1297,26 @@ function renderDashNews(articles) {
   const el = document.getElementById('dash-news');
   if (!el || !articles?.length) return;
   const tagColor = {
-    'Windows':'var(--accent)','Office':'var(--success)',
+    'Windows':'var(--accent)','Microsoft':'var(--accent)','Office':'var(--success)',
     'Security':'var(--danger)','Azure':'var(--purple)','Microsoft 365':'var(--warn)'
   };
-  el.innerHTML = articles.map(a => `
-    <a href="${a.url||'#'}" target="_blank" rel="noopener"
-       style="display:block;padding:10px 0;border-bottom:1px solid var(--border);text-decoration:none;color:inherit"
-       onmouseover="this.querySelector('.nh').style.color='var(--accent)'"
-       onmouseout="this.querySelector('.nh').style.color='var(--text1)'">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-        <span style="font-size:10px;font-weight:600;color:${tagColor[a.tag]||'var(--text3)'}">${a.tag}</span>
-        <span style="font-size:10px;color:var(--text3)">${a.date}</span>
-      </div>
-      <div class="nh" style="font-size:12px;font-weight:500;line-height:1.4;color:var(--text1);transition:color .12s">${a.title}</div>
-    </a>`).join('') +
-    `<div style="font-size:10px;color:var(--text3);margin-top:10px;text-align:right">
-      <button class="btn sm" onclick="adminNav(document.querySelector('[onclick*=\\'technews\\']'),\\'technews\\')" style="font-size:10px;padding:2px 7px">Full view →</button>
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      ${articles.map(a => `
+        <a href="${a.url||'#'}" target="_blank" rel="noopener"
+           style="display:block;padding:14px;border-radius:var(--radius);border:1px solid var(--border);text-decoration:none;color:inherit;transition:box-shadow .15s;background:var(--bg)"
+           onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'"
+           onmouseout="this.style.boxShadow=''">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px">
+            <span style="font-size:10px;font-weight:600;color:${tagColor[a.tag]||'var(--text3)'}">${a.tag}</span>
+            <span style="font-size:10px;color:var(--text3)">${a.date}</span>
+          </div>
+          <div style="font-size:13px;font-weight:500;line-height:1.4;color:var(--text1);margin-bottom:6px">${a.title}</div>
+          <div style="font-size:11px;color:var(--text3)">${a.source}</div>
+        </a>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:12px;text-align:right">
+      <button class="btn sm" onclick="adminNav(document.querySelector('[onclick*=\\'technews\\']'),\\'technews\\')" style="font-size:11px;padding:2px 8px">Full view →</button>
     </div>`;
 }
 
@@ -1835,33 +1840,40 @@ function loadOrgs() {
 let techNewsCache = null;
 let techNewsLastFetch = 0;
 
-// Reliable RSS feeds that work with rss2json
+// Microsoft & tech news feeds — fetched via corsproxy.io (no API key needed)
 const MS_FEEDS = [
-  { url: 'https://msrc.microsoft.com/blog/feed/',                         tag: 'Security'      },
-  { url: 'https://devblogs.microsoft.com/commandline/feed/',              tag: 'Windows'       },
-  { url: 'https://devblogs.microsoft.com/microsoft365dev/feed/',          tag: 'Microsoft 365' },
+  { url: 'https://www.bleepingcomputer.com/feed/',           tag: 'Security'  },
+  { url: 'https://www.theverge.com/microsoft/rss/index.xml', tag: 'Microsoft' },
+  { url: 'https://arstechnica.com/gadgets/feed/',            tag: 'Windows'   },
 ];
 
-const RSS2JSON_URL = url =>
-  `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&count=3`;
-
 async function fetchFeed(feedUrl, tag) {
-  try {
-    const res  = await fetch(RSS2JSON_URL(feedUrl));
-    if (!res.ok) return [];
-    const json = await res.json();
-    if (json.status !== 'ok' || !json.items?.length) return [];
-    return json.items.slice(0, 3).map(item => {
-      const tmp = document.createElement('div');
-      tmp.innerHTML = item.description || '';
-      const summary = (tmp.textContent || '').replace(/\s+/g,' ').trim().slice(0, 160) + '…';
-      const d = item.pubDate ? new Date(item.pubDate) : null;
-      const date = d && !isNaN(d)
-        ? d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
-        : '';
-      return { title: (item.title || '').trim(), url: item.link || '', summary, date, tag, source: 'Microsoft' };
-    });
-  } catch { return []; }
+  const proxies = [
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+  ];
+  for (const makeUrl of proxies) {
+    try {
+      const res = await fetch(makeUrl(feedUrl), { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) continue;
+      const text = await res.text();
+      const doc  = new DOMParser().parseFromString(text, 'text/xml');
+      const items = [...doc.querySelectorAll('item, entry')].slice(0, 3);
+      if (!items.length) continue;
+      return items.map(item => {
+        const get  = sel => item.querySelector(sel)?.textContent?.trim() || '';
+        const link = get('link') || item.querySelector('link')?.getAttribute('href') || '';
+        const raw  = get('description') || get('summary') || get('content');
+        const tmp  = document.createElement('div'); tmp.innerHTML = raw;
+        const summary = (tmp.textContent || '').replace(/\s+/g,' ').trim().slice(0,160) + '…';
+        const d    = new Date(get('pubDate') || get('published') || get('updated'));
+        const date = isNaN(d) ? '' : d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+        const src  = feedUrl.replace(/https?:\/\/(www\.)?/,'').split('/')[0];
+        return { title: get('title'), url: link, summary, date, tag, source: src };
+      }).filter(a => a.title);
+    } catch { continue; }
+  }
+  return [];
 }
 
 async function loadTechNews(force) {
