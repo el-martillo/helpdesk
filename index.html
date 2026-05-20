@@ -580,7 +580,10 @@ async function signUp() {
   errEl.style.color='var(--text3)';
   errEl.textContent='Creating account…';
 
-  const {data,error}=await sbClient.auth.signUp({email,password:pass,options:{data:{full_name:name,role:'client'}}});
+  const {data,error}=await sbClient.auth.signUp({
+    email, password: pass,
+    options: { data: { full_name: name, role: 'client', phone: phone||'', company: company||'' } }
+  });
 
   if (error){
     errEl.style.color='var(--danger)';
@@ -597,26 +600,32 @@ async function signUp() {
 
   currentUser = data.user;
 
-  // Wait briefly for the DB trigger to create the profile row
-  await new Promise(r=>setTimeout(r,800));
+  // Wait for DB trigger to create the profile row (retry up to 3 times)
+  let profileData = null;
+  for (let i = 0; i < 3; i++) {
+    await new Promise(r => setTimeout(r, 800));
+    const { data: existing } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).single();
+    if (existing) { profileData = existing; break; }
+  }
 
-  // Upsert profile with ALL fields in one operation
-  const profileData = {
+  // Upsert with all fields — overwrites whatever the trigger created
+  const upsertData = {
     id:        currentUser.id,
     full_name: name,
     email:     email,
     role:      'client',
+    phone:     phone   || profileData?.phone   || null,
+    company:   company || profileData?.company || null,
   };
-  if (phone)   profileData.phone   = phone;
-  if (company) profileData.company = company;
 
-  const { data: upserted } = await sbClient
+  const { data: upserted, error: upsertErr } = await sbClient
     .from('profiles')
-    .upsert(profileData, { onConflict: 'id' })
+    .upsert(upsertData, { onConflict: 'id' })
     .select('*')
     .single();
 
-  currentProfile = upserted || profileData;
+  if (upsertErr) console.warn('Profile upsert error:', upsertErr.message);
+  currentProfile = upserted || upsertData;
 
   errEl.textContent='';
   toast('Account created! Welcome, '+name);
