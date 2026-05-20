@@ -2242,34 +2242,50 @@ async function saveUser() {
 
 async function deleteUser(id) {
   if (!confirm('Delete this user? This removes their profile and login access and cannot be undone.')) return;
+
   if (demoMode) {
     allProfiles = allProfiles.filter(x => x.id !== id);
     closeModal('modal-edit-user'); renderUsersTable(); toast('User deleted'); return;
   }
 
-  // Get the user's email before deleting so the edge function can find them by email too
   const profile = allProfiles.find(p => p.id === id);
   const email   = profile?.email || null;
+
+  // Step 1 — unassign tickets and delete profile (always works with anon key)
+  await sbClient.from('tickets').update({ assignee_id: null }).eq('assignee_id', id);
+  await sbClient.from('tickets').update({ requester_id: null }).eq('requester_id', id);
+  await sbClient.from('comments').delete().eq('author_id', id);
+  await sbClient.from('profiles').delete().eq('id', id);
+
+  // Step 2 — delete auth user via edge function (needs deploy) or show instructions
+  let authDeleted = false;
 
   try {
     const { data, error } = await sbClient.functions.invoke('delete-user', {
       body: { userId: id, email },
     });
-    if (error) throw new Error(error.message);
-    if (data?.error) throw new Error(data.error);
-  } catch(e) {
-    // Edge function not deployed — fall back to profile-only delete
-    console.warn('delete-user edge function failed, falling back:', e.message);
-    const { error: dbErr } = await sbClient.from('profiles').delete().eq('id', id);
-    if (dbErr) { toast('Error: ' + dbErr.message); return; }
-    toast('Profile deleted (auth user may remain — deploy delete-user function for full deletion)');
-    closeModal('modal-edit-user');
-    loadAllProfiles(); loadProfiles();
-    return;
-  }
+    if (!error && !data?.error) authDeleted = true;
+  } catch(e) { /* edge function not deployed */ }
 
   closeModal('modal-edit-user');
-  loadAllProfiles(); loadProfiles(); toast('User fully deleted');
+  loadAllProfiles(); loadProfiles();
+
+  if (authDeleted) {
+    toast('User fully deleted');
+  } else {
+    // Profile is gone — now manually remove auth user via Supabase dashboard link
+    toast('Profile deleted. To remove login access, delete the auth user manually.');
+    setTimeout(() => {
+      if (confirm(
+        `Profile deleted.\n\nTo fully remove login access for ${email||id}, you need to also delete the auth user.\n\nOpen Supabase Auth dashboard now?`
+      )) {
+        window.open(
+          `https://supabase.com/dashboard/project/gtcrmqbmlvtlyiwnshma/auth/users`,
+          '_blank'
+        );
+      }
+    }, 500);
+  }
 }
 
 async function addUser() {
