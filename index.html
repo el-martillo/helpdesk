@@ -927,6 +927,24 @@ async function initSupabase() {
   sbClient = window.supabase.createClient(url, key);
   // Load organisations — wrapped so a missing table never blocks the page
   try { await loadOrgsFromSupabase(); } catch(e) { console.warn('Could not load orgs:', e.message); }
+
+  // Handle email confirmation token in URL hash (#access_token=...)
+  const hash = window.location.hash;
+  if (hash && hash.includes('access_token') && hash.includes('type=signup')) {
+    try {
+      const { data, error } = await sbClient.auth.getSession();
+      if (data?.session) {
+        currentUser    = data.session.user;
+        currentProfile = await ensureProfile(currentUser);
+        // Clear the hash from the URL
+        history.replaceState(null, '', window.location.pathname);
+        toast('Email confirmed! Welcome, ' + (currentProfile?.full_name || currentUser.email));
+        showApp();
+        return;
+      }
+    } catch(e) { console.warn('Token handling error:', e.message); }
+  }
+
   try {
     const { data: { session } } = await sbClient.auth.getSession();
     if (session) {
