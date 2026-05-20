@@ -344,7 +344,11 @@ textarea.fc { resize: vertical; min-height: 80px; }
       </div>
       <div class="nav-item" onclick="adminNav(this,'auditlog')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-        Activity log
+        Activity log (admin)
+      </div>
+      <div class="nav-item" onclick="adminNav(this,'useractivity')">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        User activity
       </div>
       <div class="nav-item" onclick="adminNav(this,'settings');loadBackupStats()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -658,6 +662,62 @@ textarea.fc { resize: vertical; min-height: 80px; }
             </div>
           </div>
 
+          <!-- Export Logs -->
+          <div class="table-card" style="padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Export logs</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+              Download activity logs as a plain text file. Includes both admin actions and user activity with full timestamps.
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn primary" onclick="exportLogs('both')">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export all logs
+              </button>
+              <button class="btn" onclick="exportLogs('admin')">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Admin log only
+              </button>
+              <button class="btn" onclick="exportLogs('user')">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                User activity only
+              </button>
+              <span style="font-size:11px;color:var(--text3);align-self:center" id="export-log-msg"></span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <div class="page" id="page-useractivity">
+        <div class="page-header">
+          <div><h1>User Activity</h1><p>Client logins, signups, ticket submissions and actions</p></div>
+          <div style="display:flex;gap:8px">
+            <select class="filter-sel" id="ua-filter-action" onchange="renderUserActivity()">
+              <option value="">All actions</option>
+              <option value="signup_attempt">Signup attempts</option>
+              <option value="signup_failed">Failed signups</option>
+              <option value="login">Logins</option>
+              <option value="logout">Logouts</option>
+              <option value="ticket_created">Tickets created</option>
+              <option value="comment_added">Comments</option>
+            </select>
+            <select class="filter-sel" id="ua-filter-status" onchange="renderUserActivity()">
+              <option value="">All statuses</option>
+              <option value="success">Success</option>
+              <option value="failed">Failed</option>
+              <option value="blocked">Blocked</option>
+            </select>
+            <button class="btn" onclick="loadUserActivity(true)">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+        <div class="table-card">
+          <div id="useractivity-body">
+            <div style="text-align:center;padding:48px;color:var(--text3);font-size:13px">
+              <div class="loader" style="margin:0 auto 12px"></div>Loading…
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1484,7 +1544,8 @@ function adminNav(el, page) {
   if (page==='dashboard') renderDashboard();
   if (page==='settings') { loadVersion(); loadOrgs(); }
   if (page==='technews') loadTechNews(false);
-  if (page==='auditlog') loadAuditLog(true);
+  if (page==='auditlog')     loadAuditLog(true);
+  if (page==='useractivity') loadUserActivity(true);
 }
 
 /* ── Ticket detail ── */
@@ -1859,6 +1920,177 @@ async function initSupabase() {
     document.getElementById('cfg-screen').classList.remove('active');
     document.getElementById('auth-screen').classList.add('active');
   }
+}
+
+/* ── Export Logs ── */
+async function exportLogs(type) {
+  const msg = document.getElementById('export-log-msg');
+  if (msg) { msg.textContent = 'Fetching logs…'; }
+
+  const lines = [];
+  const sep   = '─'.repeat(80);
+  const now   = new Date().toLocaleString('en-GB', { dateStyle:'full', timeStyle:'medium' });
+
+  lines.push('EL MARTILLO I.T. — SYSTEM LOG EXPORT');
+  lines.push(`Generated: ${now}`);
+  lines.push(`Export type: ${type === 'both' ? 'All logs' : type === 'admin' ? 'Admin activity' : 'User activity'}`);
+  lines.push(sep);
+  lines.push('');
+
+  const fmt = iso => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) + ' ' +
+           d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  };
+
+  // ── Admin audit log ─────────────────────────────
+  if (type === 'both' || type === 'admin') {
+    lines.push('ADMIN ACTIVITY LOG');
+    lines.push(sep);
+    let adminData = [];
+    if (demoMode) {
+      adminData = auditLogCache;
+    } else {
+      try {
+        const { data } = await sbClient.from('audit_log').select('*').order('created_at', { ascending: false }).limit(1000);
+        adminData = data || [];
+      } catch(e) { lines.push(`[ERROR] Could not fetch admin log: ${e.message}`); }
+    }
+    if (adminData.length) {
+      adminData.forEach(l => {
+        lines.push(`[${fmt(l.created_at)}]  ${(l.actor_name||'System').padEnd(20)} ${(l.action||'').padEnd(25)} ${l.entity_label||''} ${l.details ? '| '+l.details : ''}`);
+      });
+    } else {
+      lines.push('No admin activity recorded.');
+    }
+    lines.push('');
+    lines.push(`Total admin entries: ${adminData.length}`);
+    lines.push('');
+  }
+
+  // ── User activity log ────────────────────────────
+  if (type === 'both' || type === 'user') {
+    lines.push('USER ACTIVITY LOG');
+    lines.push(sep);
+    let userData = [];
+    if (demoMode) {
+      userData = userActivityCache;
+    } else {
+      try {
+        const { data } = await sbClient.from('user_activity').select('*').order('created_at', { ascending: false }).limit(1000);
+        userData = data || [];
+      } catch(e) { lines.push(`[ERROR] Could not fetch user log: ${e.message}`); }
+    }
+    if (userData.length) {
+      userData.forEach(l => {
+        const status = (l.status||'').toUpperCase().padEnd(8);
+        const action = (l.action||'').replace(/_/g,' ').padEnd(20);
+        const name   = (l.user_name||l.user_email||'unknown').padEnd(25);
+        lines.push(`[${fmt(l.created_at)}]  ${status} ${action} ${name} ${l.details ? '| '+l.details : ''}`);
+      });
+    } else {
+      lines.push('No user activity recorded.');
+    }
+    lines.push('');
+    lines.push(`Total user entries: ${userData.length}`);
+    lines.push('');
+  }
+
+  lines.push(sep);
+  lines.push('END OF LOG');
+
+  // Download as .txt
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const ts   = new Date().toISOString().slice(0,10);
+  a.href     = url;
+  a.download = `el-martillo-logs-${type}-${ts}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  if (msg) { msg.textContent = '✓ Downloaded'; setTimeout(() => msg.textContent = '', 3000); }
+  auditLog('Exported logs', 'setting', 'logs', `Log export (${type})`, '');
+}
+
+/* ── User Activity Log ── */
+let userActivityCache = [];
+
+async function loadUserActivity(force) {
+  const el = document.getElementById('useractivity-body');
+  if (!el) return;
+  if (!force && userActivityCache.length) { renderUserActivity(); return; }
+  el.innerHTML = `<div style="text-align:center;padding:48px;color:var(--text3);font-size:13px">
+    <div class="loader" style="margin:0 auto 12px"></div>Loading…</div>`;
+  try {
+    const { data, error } = await sbClient
+      .from('user_activity')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(300);
+    if (error) throw error;
+    userActivityCache = data || [];
+    renderUserActivity();
+  } catch(e) {
+    el.innerHTML = `<div style="padding:24px;color:var(--danger);font-size:13px">
+      Failed to load: ${e.message}<br><small>Run add_user_activity_table.sql in Supabase SQL editor first.</small></div>`;
+  }
+}
+
+function renderUserActivity() {
+  const el = document.getElementById('useractivity-body');
+  if (!el) return;
+  const fa = document.getElementById('ua-filter-action')?.value || '';
+  const fs = document.getElementById('ua-filter-status')?.value || '';
+  let list = userActivityCache;
+  if (fa) list = list.filter(l => l.action === fa);
+  if (fs) list = list.filter(l => l.status === fs);
+
+  if (!list.length) {
+    el.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px">No user activity recorded yet</div>';
+    return;
+  }
+
+  const actionIcon  = { signup_attempt:'👤', signup_failed:'❌', login:'🔓', logout:'🔒', ticket_created:'🎫', ticket_viewed:'👁️', comment_added:'💬' };
+  const statusBadge = s => ({
+    success: `<span class="sb s-resolved" style="font-size:10px">Success</span>`,
+    failed:  `<span class="sb s-closed"   style="font-size:10px">Failed</span>`,
+    blocked: `<span class="sb" style="font-size:10px;background:var(--warn-l);color:var(--warn)">Blocked</span>`,
+  }[s] || `<span style="font-size:11px;color:var(--text3)">${s||'—'}</span>`);
+
+  el.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="background:var(--surface2)">
+        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">When</th>
+        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">User</th>
+        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">Action</th>
+        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">Status</th>
+        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">Details</th>
+      </tr></thead>
+      <tbody>
+        ${list.map(l => `
+          <tr onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
+            <td style="padding:10px 16px;border-bottom:1px solid var(--border);white-space:nowrap">
+              <div style="font-size:12px;color:var(--text1)">${new Date(l.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>
+              <div style="font-size:11px;color:var(--text3)">${new Date(l.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>
+            </td>
+            <td style="padding:10px 16px;border-bottom:1px solid var(--border)">
+              <div style="font-size:12px;font-weight:500">${l.user_name||'—'}</div>
+              <div style="font-size:11px;color:var(--text3)">${l.user_email||''}</div>
+            </td>
+            <td style="padding:10px 16px;border-bottom:1px solid var(--border);white-space:nowrap">
+              <span>${actionIcon[l.action]||'📋'}</span>
+              <span style="margin-left:6px;font-size:12px;font-weight:500">${(l.action||'').replace(/_/g,' ')}</span>
+            </td>
+            <td style="padding:10px 16px;border-bottom:1px solid var(--border)">${statusBadge(l.status)}</td>
+            <td style="padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2)">${l.details||'—'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    <div style="padding:10px 16px;font-size:11px;color:var(--text3);text-align:right">
+      Showing ${list.length} of ${userActivityCache.length} entries
+    </div>`;
 }
 
 /* ── Audit Log ── */

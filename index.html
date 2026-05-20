@@ -553,16 +553,21 @@ async function signIn() {
   if (!sbClient){loadDemo();return;}
   const email=document.getElementById('si-email').value, pass=document.getElementById('si-password').value;
   const {data,error}=await sbClient.auth.signInWithPassword({email,password:pass});
-  if (error){document.getElementById('si-err').textContent=error.message;return;}
+  if (error){
+    document.getElementById('si-err').textContent=error.message;
+    // Track failed login attempt
+    try { await sbClient.from('user_activity').insert({ user_email: email, action:'login', status:'failed', details: error.message }); } catch{}
+    return;
+  }
   currentUser=data.user;
   currentProfile = await ensureProfile(currentUser);
-  // Fetch total user count for footer
   if (!demoMode) {
     sbClient.from('profiles').select('*', { count:'exact', head:true }).then(({count}) => {
       const fu = document.getElementById('footer-user-count');
       if (fu && count !== null) fu.textContent = count;
     });
   }
+  trackUserActivity('login', 'success', `Signed in`);
   showApp();
 }
 async function signUp() {
@@ -590,6 +595,8 @@ async function signUp() {
   if (existing) {
     errEl.style.color='var(--danger)';
     errEl.textContent='An account with this email already exists. Please sign in instead.';
+    // Track blocked signup
+    try { await sbClient.from('user_activity').insert({ user_email: email, user_name: name, action:'signup_attempt', status:'blocked', details:'Email already registered' }); } catch{}
     return;
   }
 
@@ -601,11 +608,13 @@ async function signUp() {
   if (error){
     errEl.style.color='var(--danger)';
     errEl.textContent=error.message;
+    try { await sbClient.from('user_activity').insert({ user_email: email, user_name: name, action:'signup_failed', status:'failed', details: error.message }); } catch{}
     return;
   }
 
-  // Email confirmation required — session will be null
+  // Email confirmation required
   if (!data.session) {
+    try { await sbClient.from('user_activity').insert({ user_email: email, user_name: name, action:'signup_attempt', status:'success', details:'Awaiting email confirmation' }); } catch{}
     errEl.style.color='var(--success)';
     errEl.textContent='✓ Account created! Check your email to confirm your address, then sign in.';
     return;
@@ -641,6 +650,7 @@ async function signUp() {
   currentProfile = upserted || upsertData;
 
   errEl.textContent='';
+  trackUserActivity('signup_attempt', 'success', `Account created: ${name}`);
   toast('Account created! Welcome, '+name);
   showApp();
 }
@@ -690,7 +700,13 @@ async function fillOrgSelect(sel) {
 
 async function populateSignupCompany() { await fillOrgSelect(document.getElementById('su-company')); }
 
-async function signOut() { if(sbClient) await sbClient.auth.signOut(); location.reload(); }
+async function signOut() {
+  if (sbClient) {
+    await trackUserActivity('logout', 'success', '');
+    await sbClient.auth.signOut();
+  }
+  location.reload();
+}
 
 function showApp() {
   document.getElementById('auth-screen').classList.remove('active');
@@ -844,6 +860,19 @@ async function reopenTicket(ticketId) {
   loadClientTickets(); closeModal('modal-ticket-detail'); toast('Ticket reopened');
 }
 
+/* ── User Activity Tracking ── */
+async function trackUserActivity(action, status, details) {
+  if (!sbClient) return;
+  try {
+    await sbClient.from('user_activity').insert({
+      user_id:    currentUser?.id    || null,
+      user_email: currentUser?.email || (currentProfile?.email) || null,
+      user_name:  currentProfile?.full_name || null,
+      action, status, details: details || null,
+    });
+  } catch(e) { /* never block the UI */ }
+}
+
 /* ── Submit ticket ── */
 async function populateCompanyDropdown() { await fillOrgSelect(document.getElementById('nt-company')); }
 
@@ -878,6 +907,7 @@ async function submitTicket() {
   }
   const {error}=await sbClient.from('tickets').insert({...payload,requester_id:currentUser.id});
   if (error){toast('Error: '+error.message);return;}
+  trackUserActivity('ticket_created', 'success', `Subject: ${subject}`);
   closeModal('modal-new-ticket'); clearForm();
   loadClientTickets(); toast('Request submitted! We\'ll be in touch soon.');
 }
