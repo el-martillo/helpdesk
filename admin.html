@@ -2630,32 +2630,43 @@ async function deleteUser(id) {
   const profile = allProfiles.find(p => p.id === id);
   const email   = profile?.email || null;
 
-  // Step 1 — unassign tickets and delete profile (always works with anon key)
+  // Method 1 — SQL RPC function (runs as security definer, can delete auth.users)
+  try {
+    const { error } = await sbClient.rpc('delete_user_completely', { target_user_id: id });
+    if (!error) {
+      closeModal('modal-edit-user');
+      loadAllProfiles(); loadProfiles();
+      auditLog('Deleted user', 'user', id, profile?.full_name || email || id, `Email: ${email||'unknown'}`);
+      toast('User fully deleted');
+      return;
+    }
+    console.warn('RPC delete failed:', error.message);
+  } catch(e) { console.warn('RPC error:', e.message); }
+
+  // Method 2 — Edge function
+  try {
+    const { data, error } = await sbClient.functions.invoke('delete-user', {
+      body: { userId: id, email },
+    });
+    if (!error && !data?.error) {
+      closeModal('modal-edit-user');
+      loadAllProfiles(); loadProfiles();
+      auditLog('Deleted user', 'user', id, profile?.full_name || email || id, `Email: ${email||'unknown'}`);
+      toast('User fully deleted');
+      return;
+    }
+  } catch(e) { console.warn('Edge function error:', e.message); }
+
+  // Method 3 — Profile + related data only (fallback)
   await sbClient.from('tickets').update({ assignee_id: null }).eq('assignee_id', id);
   await sbClient.from('tickets').update({ requester_id: null }).eq('requester_id', id);
   await sbClient.from('comments').delete().eq('author_id', id);
   await sbClient.from('profiles').delete().eq('id', id);
 
-  auditLog('Deleted user', 'user', id, profile?.full_name || email || id, `Email: ${email||'unknown'}`);
-
-  // Step 2 — delete auth user via edge function (needs deploy) or show instructions
-  let authDeleted = false;
-
-  try {
-    const { data, error } = await sbClient.functions.invoke('delete-user', {
-      body: { userId: id, email },
-    });
-    if (!error && !data?.error) authDeleted = true;
-  } catch(e) { /* edge function not deployed */ }
-
   closeModal('modal-edit-user');
   loadAllProfiles(); loadProfiles();
-
-  if (authDeleted) {
-    toast('User fully deleted');
-  } else {
-    toast('User deleted');
-  }
+  auditLog('Deleted user', 'user', id, profile?.full_name || email || id, `Email: ${email||'unknown'}`);
+  toast('User deleted');
 }
 
 async function addUser() {
