@@ -580,6 +580,19 @@ async function signUp() {
   errEl.style.color='var(--text3)';
   errEl.textContent='Creating account…';
 
+  // Check if email already exists in profiles before attempting signup
+  const { data: existing } = await sbClient
+    .from('profiles')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle();
+
+  if (existing) {
+    errEl.style.color='var(--danger)';
+    errEl.textContent='An account with this email already exists. Please sign in instead.';
+    return;
+  }
+
   const {data,error}=await sbClient.auth.signUp({
     email, password: pass,
     options: { data: { full_name: name, role: 'client', phone: phone||'', company: company||'' } }
