@@ -312,7 +312,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       El Martillo I.T. Ticketing System <span class="logo-sub">Helpdesk</span>
     </div>
     <div class="topbar-right">
-      <div class="user-pill">
+      <div class="user-pill" onclick="openModal('modal-my-profile')" style="cursor:pointer" title="Edit your profile">
         <div class="avatar av-blue" id="user-avatar">JD</div>
         <span style="font-size:13px;font-weight:500" id="user-name">Jane Doe</span>
       </div>
@@ -385,6 +385,46 @@ textarea.fc { resize: vertical; min-height: 80px; }
     <div class="ticket-list" id="ticket-list">
       <div style="text-align:center;padding:32px;color:var(--text3)"><div class="loader"></div></div>
     </div>
+  </div>
+</div>
+
+<!-- My Profile modal -->
+<div class="overlay" id="modal-my-profile">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">My profile</div>
+        <div class="modal-sub" id="mp-sub">Edit your account details</div>
+      </div>
+      <button class="close-x" onclick="closeModal('modal-my-profile')">✕</button>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">Identity</div>
+    <div class="form-row">
+      <div class="fg"><label class="fl">Full name</label><input id="mp-name" class="fc" type="text"/></div>
+      <div class="fg"><label class="fl">Email</label><input id="mp-email" class="fc" type="email" readonly style="opacity:.6;cursor:not-allowed" title="Email cannot be changed here"/></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label class="fl">Telephone</label><input id="mp-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
+      <div class="fg"><label class="fl">Company / Organisation</label>
+        <select id="mp-company" class="fc"><option value="">— Select organisation —</option></select>
+      </div>
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:14px 0"></div>
+
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">Change password</div>
+    <div class="form-row">
+      <div class="fg"><label class="fl">New password</label><input id="mp-pw" class="fc" type="password" placeholder="Leave blank to keep current" autocomplete="new-password"/></div>
+      <div class="fg"><label class="fl">Confirm password</label><input id="mp-pw2" class="fc" type="password" placeholder="Repeat new password" autocomplete="new-password"/></div>
+    </div>
+    <div id="mp-pw-msg" style="font-size:12px;min-height:18px;margin-bottom:8px"></div>
+
+    <div class="form-footer">
+      <button class="btn" onclick="closeModal('modal-my-profile')">Cancel</button>
+      <button class="btn primary" onclick="saveMyProfile()">Save changes</button>
+    </div>
+    <div id="mp-msg" style="font-size:12px;text-align:center;margin-top:8px;min-height:18px"></div>
   </div>
 </div>
 
@@ -487,12 +527,10 @@ function openModal(id){
   document.getElementById(id).classList.add('open');
   if (id === 'modal-new-ticket') {
     populateCompanyDropdown();
-    // Prefill email from logged-in account
     const emailEl = document.getElementById('nt-email');
-    if (emailEl && !emailEl.value) {
-      emailEl.value = currentProfile?.email || currentUser?.email || '';
-    }
+    if (emailEl && !emailEl.value) emailEl.value = currentProfile?.email || currentUser?.email || '';
   }
+  if (id === 'modal-my-profile') { openMyProfile(); }
 }
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
@@ -858,6 +896,71 @@ async function reopenTicket(ticketId) {
   if (demoMode){const t=myTickets.find(x=>x.id===ticketId);if(t){t.status='open';t.updated_at=new Date().toISOString();}renderTickets();closeModal('modal-ticket-detail');toast('Ticket reopened');return;}
   await sbClient.from('tickets').update({status:'open'}).eq('id',ticketId);
   loadClientTickets(); closeModal('modal-ticket-detail'); toast('Ticket reopened');
+}
+
+/* ── My Profile ── */
+function openMyProfile() {
+  if (!currentProfile) return;
+  document.getElementById('mp-sub').textContent   = currentUser?.email || 'Edit your account details';
+  document.getElementById('mp-name').value        = currentProfile.full_name || '';
+  document.getElementById('mp-email').value       = currentProfile.email || currentUser?.email || '';
+  document.getElementById('mp-phone').value       = currentProfile.phone   || '';
+  document.getElementById('mp-pw').value          = '';
+  document.getElementById('mp-pw2').value         = '';
+  document.getElementById('mp-pw-msg').textContent = '';
+  document.getElementById('mp-msg').textContent   = '';
+  // Populate company dropdown
+  fillOrgSelect(document.getElementById('mp-company'));
+  document.getElementById('mp-company').value = currentProfile.company || '';
+}
+
+async function saveMyProfile() {
+  const name    = document.getElementById('mp-name').value.trim();
+  const phone   = document.getElementById('mp-phone').value.trim();
+  const company = document.getElementById('mp-company').value;
+  const pw      = document.getElementById('mp-pw').value;
+  const pw2     = document.getElementById('mp-pw2').value;
+  const msg     = document.getElementById('mp-msg');
+  const pwMsg   = document.getElementById('mp-pw-msg');
+
+  if (!name) { msg.style.color='var(--danger)'; msg.textContent='Name is required.'; return; }
+
+  // Validate password if provided
+  if (pw) {
+    if (pw.length < 6) { pwMsg.style.color='var(--danger)'; pwMsg.textContent='Password must be at least 6 characters.'; return; }
+    if (pw !== pw2)    { pwMsg.style.color='var(--danger)'; pwMsg.textContent='Passwords do not match.'; return; }
+  }
+  pwMsg.textContent = '';
+  msg.style.color='var(--text3)'; msg.textContent='Saving…';
+
+  if (demoMode) {
+    if (currentProfile) { currentProfile.full_name = name; currentProfile.phone = phone; currentProfile.company = company; }
+    updateUserHeader();
+    msg.style.color='var(--success)'; msg.textContent='✓ Profile updated.';
+    return;
+  }
+
+  // Update profile
+  const updates = { full_name: name };
+  if (phone)   updates.phone   = phone;
+  if (company) updates.company = company;
+
+  const { error: profileErr } = await sbClient.from('profiles').update(updates).eq('id', currentUser.id);
+  if (profileErr) { msg.style.color='var(--danger)'; msg.textContent='Error: ' + profileErr.message; return; }
+  Object.assign(currentProfile, updates);
+
+  // Update password if provided
+  if (pw) {
+    const { error: pwErr } = await sbClient.auth.updateUser({ password: pw });
+    if (pwErr) { msg.style.color='var(--danger)'; msg.textContent='Profile saved but password error: ' + pwErr.message; return; }
+    document.getElementById('mp-pw').value  = '';
+    document.getElementById('mp-pw2').value = '';
+    pwMsg.style.color='var(--success)'; pwMsg.textContent='✓ Password updated.';
+  }
+
+  updateUserHeader();
+  msg.style.color='var(--success)'; msg.textContent='✓ Profile updated successfully.';
+  toast('Profile saved');
 }
 
 /* ── User Activity Tracking ── */
