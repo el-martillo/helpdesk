@@ -523,14 +523,14 @@ const timeAgo  = iso => { if(!iso) return '—'; const m=Math.floor((Date.now()-
 const sLabel   = s => ({open:'Open',in_progress:'In progress',waiting:'Waiting',resolved:'Resolved',closed:'Closed'}[s]||s);
 const profileById = id => DEMO_PROFILES.find(p=>p.id===id);
 function toast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
-function openModal(id){
+async function openModal(id){
   document.getElementById(id).classList.add('open');
   if (id === 'modal-new-ticket') {
     populateCompanyDropdown();
     const emailEl = document.getElementById('nt-email');
     if (emailEl && !emailEl.value) emailEl.value = currentProfile?.email || currentUser?.email || '';
   }
-  if (id === 'modal-my-profile') { openMyProfile(); }
+  if (id === 'modal-my-profile') { await openMyProfile(); }
 }
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
@@ -724,16 +724,16 @@ function getOrgs() {
 
 async function fillOrgSelect(sel) {
   if (!sel) return;
-  // Always try to load fresh from Supabase first
-  await loadOrgsFromSupabase();
   const orgs = getOrgs();
+  const current = sel.value;
   sel.innerHTML = '<option value="">— Select organisation —</option>';
-  if (orgs.length) {
-    orgs.forEach(o => { const opt = document.createElement('option'); opt.value = o; opt.textContent = o; sel.appendChild(opt); });
-  } else {
-    // Last resort: show a text input instead
-    sel.innerHTML = '<option value="">No organisations configured</option>';
-  }
+  orgs.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o; opt.textContent = o;
+    sel.appendChild(opt);
+  });
+  // Restore previously selected value if still in list
+  if (current && orgs.includes(current)) sel.value = current;
 }
 
 async function populateSignupCompany() { await fillOrgSelect(document.getElementById('su-company')); }
@@ -899,19 +899,29 @@ async function reopenTicket(ticketId) {
 }
 
 /* ── My Profile ── */
-function openMyProfile() {
+async function openMyProfile() {
   if (!currentProfile) return;
-  document.getElementById('mp-sub').textContent   = currentUser?.email || 'Edit your account details';
-  document.getElementById('mp-name').value        = currentProfile.full_name || '';
-  document.getElementById('mp-email').value       = currentProfile.email || currentUser?.email || '';
-  document.getElementById('mp-phone').value       = currentProfile.phone   || '';
-  document.getElementById('mp-pw').value          = '';
-  document.getElementById('mp-pw2').value         = '';
+  document.getElementById('mp-sub').textContent    = currentUser?.email || 'Edit your account details';
+  document.getElementById('mp-name').value         = currentProfile.full_name || '';
+  document.getElementById('mp-email').value        = currentProfile.email || currentUser?.email || '';
+  document.getElementById('mp-phone').value        = currentProfile.phone   || '';
+  document.getElementById('mp-pw').value           = '';
+  document.getElementById('mp-pw2').value          = '';
   document.getElementById('mp-pw-msg').textContent = '';
-  document.getElementById('mp-msg').textContent   = '';
-  // Populate company dropdown
-  fillOrgSelect(document.getElementById('mp-company'));
-  document.getElementById('mp-company').value = currentProfile.company || '';
+  document.getElementById('mp-msg').textContent    = '';
+  // Load orgs from Supabase then populate and pre-select
+  await loadOrgsFromSupabase();
+  await fillOrgSelect(document.getElementById('mp-company'));
+  // Set value after dropdown is fully populated
+  const companyVal = currentProfile.company || '';
+  const mpCompany  = document.getElementById('mp-company');
+  // Check if the option exists, add it if not
+  if (companyVal && !Array.from(mpCompany.options).some(o => o.value === companyVal)) {
+    const opt = document.createElement('option');
+    opt.value = companyVal; opt.textContent = companyVal;
+    mpCompany.appendChild(opt);
+  }
+  mpCompany.value = companyVal;
 }
 
 async function saveMyProfile() {
