@@ -928,19 +928,39 @@ async function initSupabase() {
   // Load organisations — wrapped so a missing table never blocks the page
   try { await loadOrgsFromSupabase(); } catch(e) { console.warn('Could not load orgs:', e.message); }
 
-  // Handle email confirmation token in URL hash (#access_token=...)
+  // Handle email confirmation / magic link token in URL hash
   const hash = window.location.hash;
-  if (hash && hash.includes('access_token') && hash.includes('type=signup')) {
+  if (hash && hash.includes('access_token')) {
     try {
-      const { data, error } = await sbClient.auth.getSession();
-      if (data?.session) {
-        currentUser    = data.session.user;
-        currentProfile = await ensureProfile(currentUser);
-        // Clear the hash from the URL
-        history.replaceState(null, '', window.location.pathname);
-        toast('Email confirmed! Welcome, ' + (currentProfile?.full_name || currentUser.email));
-        showApp();
-        return;
+      // Parse the hash params
+      const params = new URLSearchParams(hash.replace(/^#/, ''));
+      const accessToken  = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const type         = params.get('type');
+
+      if (accessToken && refreshToken) {
+        // Set the session directly from the tokens in the URL
+        const { data, error } = await sbClient.auth.setSession({
+          access_token:  accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (error) {
+          console.warn('Session set error:', error.message);
+        } else if (data?.session) {
+          currentUser    = data.session.user;
+          currentProfile = await ensureProfile(currentUser);
+          // Clear the token from the URL
+          history.replaceState(null, '', window.location.pathname);
+          if (type === 'signup') {
+            toast('Email confirmed! Welcome, ' + (currentProfile?.full_name || currentUser.email));
+            trackUserActivity('login', 'success', 'Email confirmed and logged in');
+          } else {
+            toast('Signed in successfully');
+          }
+          showApp();
+          return;
+        }
       }
     } catch(e) { console.warn('Token handling error:', e.message); }
   }
