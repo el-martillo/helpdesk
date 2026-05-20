@@ -2273,18 +2273,7 @@ async function deleteUser(id) {
   if (authDeleted) {
     toast('User fully deleted');
   } else {
-    // Profile is gone — now manually remove auth user via Supabase dashboard link
-    toast('Profile deleted. To remove login access, delete the auth user manually.');
-    setTimeout(() => {
-      if (confirm(
-        `Profile deleted.\n\nTo fully remove login access for ${email||id}, you need to also delete the auth user.\n\nOpen Supabase Auth dashboard now?`
-      )) {
-        window.open(
-          `https://supabase.com/dashboard/project/gtcrmqbmlvtlyiwnshma/auth/users`,
-          '_blank'
-        );
-      }
-    }, 500);
+    toast('User deleted');
   }
 }
 
