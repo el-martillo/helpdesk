@@ -638,7 +638,13 @@ textarea.fc { resize: vertical; min-height: 80px; }
           <div class="table-card" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Database backup</div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Export all tickets, profiles, and comments as a JSON file. The backup is generated directly from your Supabase database and downloaded to your browser.
+              Export all tickets, profiles, comments, settings, audit log, and user activity as a JSON file. The backup is generated directly from your Supabase database and downloaded to your browser. Note: Supabase Auth users are not included (manage those via the Supabase dashboard).
+              <div style="margin-top:10px;padding:10px 14px;background:var(--warn-l);border-radius:var(--radius);border:1px solid rgba(133,79,11,.15);font-size:12px;color:var(--warn);line-height:1.7">
+                <strong>⚠ Not included in backup:</strong> <code style="background:rgba(133,79,11,.1);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px">auth.users</code> — Supabase Auth data (passwords, tokens) cannot be exported from the browser.
+                To back these up use the Supabase CLI: <code style="background:rgba(133,79,11,.1);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px">supabase db dump</code>
+                or use the
+                <a href="https://supabase.com/dashboard/project/gtcrmqbmlvtlyiwnshma/database/backups/scheduled" target="_blank" style="color:var(--warn);font-weight:600;text-decoration:underline">Supabase dashboard backups →</a>
+              </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px" id="backup-stats">
@@ -2819,10 +2825,10 @@ async function loadBackupStats() {
 }
 
 async function runBackup() {
-  const btn = document.getElementById('btn-backup');
+  const btn      = document.getElementById('btn-backup');
   const progress = document.getElementById('backup-progress');
-  const msg = document.getElementById('backup-progress-msg');
-  btn.disabled = true;
+  const msg      = document.getElementById('backup-progress-msg');
+  btn.disabled   = true;
   progress.style.display = 'block';
 
   const setMsg = m => { msg.textContent = m; };
@@ -2834,7 +2840,7 @@ async function runBackup() {
       const backup = {
         exported_at: new Date().toISOString(),
         project: 'demo',
-        tables: { tickets, profiles, comments: [] }
+        tables: { tickets, profiles, comments: [], settings: [], audit_log: [], user_activity: [] }
       };
       downloadJSON(backup);
       toast('Demo backup downloaded');
@@ -2842,39 +2848,57 @@ async function runBackup() {
     }
 
     setMsg('Fetching tickets…');
-    const { data: ticketData, error: te } = await sbClient.from('tickets').select('*').order('created_at');
-    if (te) throw te;
+    const { data: ticketData,       error: e1 } = await sbClient.from('tickets').select('*').order('created_at');
+    if (e1) throw e1;
 
     setMsg('Fetching comments…');
-    const { data: commentData, error: ce } = await sbClient.from('comments').select('*').order('created_at');
-    if (ce) throw ce;
+    const { data: commentData,      error: e2 } = await sbClient.from('comments').select('*').order('created_at');
+    if (e2) throw e2;
 
     setMsg('Fetching profiles…');
-    const { data: profileData, error: pe } = await sbClient.from('profiles').select('*');
-    if (pe) throw pe;
+    const { data: profileData,      error: e3 } = await sbClient.from('profiles').select('*');
+    if (e3) throw e3;
+
+    setMsg('Fetching settings…');
+    const { data: settingsData,     error: e4 } = await sbClient.from('settings').select('*');
+
+    setMsg('Fetching audit log…');
+    const { data: auditData,        error: e5 } = await sbClient.from('audit_log').select('*').order('created_at');
+
+    setMsg('Fetching user activity…');
+    const { data: activityData,     error: e6 } = await sbClient.from('user_activity').select('*').order('created_at');
 
     setMsg('Building backup file…');
     await new Promise(r => setTimeout(r, 300));
 
     const backup = {
-      exported_at: new Date().toISOString(),
-      project_url: SB_URL,
+      exported_at:   new Date().toISOString(),
+      exported_by:   currentProfile?.full_name || 'Admin',
+      project_url:   SB_URL,
+      version:       localStorage.getItem('app_version') || '',
       summary: {
-        tickets:  ticketData.length,
-        comments: commentData.length,
-        profiles: profileData.length,
+        tickets:       ticketData?.length       || 0,
+        comments:      commentData?.length      || 0,
+        profiles:      profileData?.length      || 0,
+        settings:      settingsData?.length     || 0,
+        audit_log:     auditData?.length        || 0,
+        user_activity: activityData?.length     || 0,
       },
       tables: {
-        tickets:  ticketData,
-        comments: commentData,
-        profiles: profileData,
+        tickets:       ticketData       || [],
+        comments:      commentData      || [],
+        profiles:      profileData      || [],
+        settings:      settingsData     || [],
+        audit_log:     auditData        || [],
+        user_activity: activityData     || [],
       }
     };
 
     downloadJSON(backup);
     const now = new Date().toLocaleTimeString();
     document.getElementById('backup-last').textContent = 'Last backup: ' + now;
-    toast('Backup downloaded successfully');
+    auditLog('Database backup', 'setting', 'backup', 'Full database backup', `${backup.summary.tickets} tickets, ${backup.summary.profiles} profiles`);
+    toast('Full backup downloaded successfully');
     loadBackupStats();
 
   } catch(e) {
