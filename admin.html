@@ -920,6 +920,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <select id="au-role" class="fc">
           <option value="client">Client</option>
           <option value="admin">Admin</option>
+          <option value="agent">Agent</option>
+          <option value="super_admin">Super Admin</option>
         </select>
       </div>
     </div>
@@ -1038,7 +1040,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
     <p style="font-size:13px;color:var(--text2);margin-bottom:16px">The admin will receive an email invitation to set their password.</p>
     <div class="fg"><label class="fl">Full name</label><input id="ia-name" class="fc" type="text" placeholder="Jane Smith"/></div>
     <div class="fg"><label class="fl">Email address</label><input id="ia-email" class="fc" type="email" placeholder="admin@el-martillo.com"/></div>
-    <div class="fg"><label class="fl">Role</label><select id="ia-role" class="fc"><option value="admin">Admin</option></select></div>
+    <div class="fg"><label class="fl">Role</label><select id="ia-role" class="fc"><option value="admin">Admin</option><option value="agent">Agent</option><option value="super_admin">Super Admin</option></select></div>
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-invite-agent')">Cancel</button>
       <button class="btn primary" onclick="inviteAgent()">Send invitation</button>
@@ -1187,7 +1189,7 @@ async function signIn() {
   const prof = await ensureProfile(currentUser);
   currentProfile = prof;
   // Block non-admin access
-  if (!prof || (prof.role !== 'admin' && prof.role !== 'agent')) {
+  if (!prof || (prof.role !== 'admin' && prof.role !== 'agent' && prof.role !== 'super_admin')) {
     await sbClient.auth.signOut();
     errEl.style.color = 'var(--danger)';
     errEl.textContent = '⛔ Access denied. This panel is for admins only. Please use the client portal.';
@@ -1230,7 +1232,7 @@ async function loadTickets() {
 }
 async function loadProfiles() {
   if (demoMode) { renderAgents(); return; }
-  const {data} = await sbClient.from('profiles').select('*').in('role',['agent','admin']);
+  const {data} = await sbClient.from('profiles').select('*').in('role',['agent','admin','super_admin']);
   if (data) { profiles=data; renderAgents(); populateAssigneeFilter();
     const fu = document.getElementById('footer-user-count');
     if (fu && !allProfiles.length) fu.textContent = data.length;
@@ -1494,7 +1496,7 @@ function populateAssigneeFilter() {
   const current = sel.value;
   // Keep the first two fixed options, rebuild the rest
   while (sel.options.length > 2) sel.remove(2);
-  profiles.filter(p=>p.role==='admin'||p.role==='agent').forEach(p => {
+  profiles.filter(p=>p.role==='admin'||p.role==='agent'||p.role==='super_admin').forEach(p => {
     const opt = document.createElement('option');
     opt.value = p.id;
     opt.textContent = p.full_name;
@@ -1716,7 +1718,7 @@ async function openTicketDetail(id) {
   let comments=[];
   if (demoMode) { comments=DEMO_COMMENTS[id]||[]; }
   else { const {data}=await sbClient.from('comments').select('*,author:profiles(id,full_name,role)').eq('ticket_id',id).order('created_at'); comments=data||[]; }
-  const agentOpts = profiles.filter(p=>p.role==='agent'||p.role==='admin')
+  const agentOpts = profiles.filter(p=>p.role==='agent'||p.role==='admin'||p.role==='super_admin')
     .map(p=>`<option value="${p.id}" ${p.id===t.assignee_id?'selected':''}>${p.full_name}</option>`).join('');
 
   document.getElementById('detail-body').innerHTML=`
@@ -1867,7 +1869,7 @@ function renderComments(comments, showInternal=false) {
   if (!comments.length) return '<div style="color:var(--text3);font-size:13px;padding:8px 0">No comments yet.</div>';
   return comments.filter(c=>showInternal||!c.is_internal).map(c=>{
     const author=demoMode?profileById(c.author_id):(c.author||{});
-    const isAgent=author?.role==='agent'||author?.role==='admin';
+    const isAgent=author?.role==='agent'||author?.role==='admin'||author?.role==='super_admin';
     const cls=c.is_internal?'internal-bubble':(isAgent?'agent-bubble':'');
     return `<div class="comment-item"><div class="avatar ${avColor(author?.id)}" style="flex-shrink:0">${initials(author?.full_name||'?')}</div>
       <div class="comment-bubble ${cls}"><div class="comment-meta">${author?.full_name||'Unknown'} ${isAgent?'(admin)':''} ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${c.body}</div></div>`;
@@ -1974,7 +1976,7 @@ async function createTicket() {
 
 /* ── Agents ── */
 function renderAgents() {
-  const agents=profiles.filter(p=>p.role==='agent'||p.role==='admin');
+  const agents=profiles.filter(p=>p.role==='agent'||p.role==='admin'||p.role==='super_admin');
   const openByAgent={};
   tickets.forEach(t=>{if(t.assignee_id&&t.status!=='resolved'&&t.status!=='closed') openByAgent[t.assignee_id]=(openByAgent[t.assignee_id]||0)+1;});
   const ss={online:'s-open',away:'s-waiting',offline:'s-closed'};
@@ -2112,7 +2114,7 @@ async function initSupabase() {
       const { data: prof } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).single();
       currentProfile = prof;
       // Block non-admin access even with existing session
-      if (!prof || (prof.role !== 'admin' && prof.role !== 'agent')) {
+      if (!prof || (prof.role !== 'admin' && prof.role !== 'agent' && prof.role !== 'super_admin')) {
         await sbClient.auth.signOut();
         document.getElementById('cfg-screen').classList.remove('active');
         document.getElementById('auth-screen').classList.add('active');
@@ -2900,9 +2902,10 @@ function renderUsersTable() {
   if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No users found</td></tr>'; return; }
 
   const roleBadge = r => ({
-    admin:  '<span class="sb s-in_progress">Admin</span>',
-    agent:  '<span class="sb s-in_progress">Admin</span>',
-    client: '<span class="sb s-closed">Client</span>',
+    admin:       '<span class="sb s-in_progress">Admin</span>',
+    agent:       '<span class="sb s-in_progress">Agent</span>',
+    super_admin: '<span class="sb" style="background:#FEF3DA;color:#854F0B">Super Admin</span>',
+    client:      '<span class="sb s-closed">Client</span>',
   }[r] || r);
   const renderRow = p => {
     const openCount = tickets.filter(t => t.requester_id === p.id && !['resolved','closed'].includes(t.status)).length;
