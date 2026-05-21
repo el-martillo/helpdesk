@@ -612,6 +612,17 @@ textarea.fc { resize: vertical; min-height: 80px; }
             </div>
           </div>
 
+          <!-- Categories -->
+          <div class="table-card" style="padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Ticket categories</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">One category per line. These appear as a dropdown when creating or editing tickets.</div>
+            <textarea id="setting-categories" class="fc" style="min-height:100px;resize:vertical;font-family:var(--mono);font-size:12px" placeholder="Technical&#10;Billing&#10;Account&#10;General&#10;..."></textarea>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button class="btn primary" onclick="saveCategories()">Save categories</button>
+              <span style="font-size:11px;color:var(--text3);align-self:center" id="categories-saved-msg"></span>
+            </div>
+          </div>
+
           <!-- Organisations -->
           <div class="table-card" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Organisations</div>
@@ -784,7 +795,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <select id="nt-priority" class="fc"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="critical">Critical</option></select>
       </div>
       <div class="fg"><label class="fl">Category</label>
-        <select id="nt-category" class="fc"><option value="Billing">Billing</option><option value="Technical" selected>Technical</option><option value="Account">Account</option><option value="General">General</option></select>
+        <select id="nt-category" class="fc"></select>
       </div>
     </div>
     <div class="form-footer">
@@ -999,6 +1010,7 @@ function toast(msg,dur=2500){const t=document.getElementById('toast');t.textCont
 function openModal(id) {
   document.getElementById(id).classList.add('open');
   if (id === 'modal-add-user' || id === 'modal-edit-user') populateOrgDropdowns();
+  if (id === 'modal-new-ticket') populateCategoryDropdowns();
 }
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
@@ -1027,7 +1039,7 @@ function loadDemo() {
   const fu = document.getElementById('footer-user-count');
   if (fu) fu.textContent = DEMO_PROFILES.length;
   loadTickets(); renderAgents(); renderReports(); populateAssigneeFilter();
-  loadVersion(); loadOrgs();
+  loadVersion(); loadOrgs(); loadCategories();
   setTimeout(() => {
     const activeNav = document.querySelector('.nav-item.active');
     if (activeNav) adminNav(activeNav, 'dashboard');
@@ -1553,7 +1565,7 @@ function adminNav(el, page) {
   if (['active','waiting','resolved'].includes(page)) rerenderPage(page);
   if (page==='reports') renderReports();
   if (page==='dashboard') renderDashboard();
-  if (page==='settings') { loadVersion(); loadOrgs(); }
+  if (page==='settings') { loadVersion(); loadOrgs(); loadCategories(); }
   if (page==='technews') loadTechNews(false);
   if (page==='auditlog')     loadAuditLog(true);
   if (page==='useractivity') loadUserActivity(true);
@@ -1606,10 +1618,7 @@ async function openTicketDetail(id) {
       <div class="fg">
         <label class="fl">Category</label>
         <select id="td-category" class="fc">
-          <option value="Billing"   ${t.category==='Billing'?'selected':''}>Billing</option>
-          <option value="Technical" ${t.category==='Technical'?'selected':''}>Technical</option>
-          <option value="Account"   ${t.category==='Account'?'selected':''}>Account</option>
-          <option value="General"   ${t.category==='General'?'selected':''}>General</option>
+          ${getCategories().map(c=>`<option value="${c}" ${(t.category||'')=== c?'selected':''}>${c}</option>`).join('')}
         </select>
       </div>
       <div class="fg">
@@ -1926,7 +1935,7 @@ async function initSupabase() {
       if (tu) tu.textContent = prof?.full_name || currentUser.email;
       document.getElementById('app').style.display = 'flex';
       loadTickets(); loadProfiles();
-      loadVersion(); loadOrgs();
+      loadVersion(); loadOrgs(); loadCategories();
     } else {
       document.getElementById('cfg-screen').classList.remove('active');
       document.getElementById('auth-screen').classList.add('active');
@@ -2217,6 +2226,54 @@ function renderAuditLog() {
     <div style="padding:10px 16px;font-size:11px;color:var(--text3);text-align:right">
       Showing ${list.length} of ${auditLogCache.length} entries
     </div>`;
+}
+
+/* ── Categories ── */
+const DEFAULT_CATEGORIES = ['Technical','Billing','Account','General'];
+
+function getCategories() {
+  const raw = localStorage.getItem('app_categories') || '';
+  const list = raw.split('\n').map(s => s.trim()).filter(Boolean);
+  return list.length ? list : DEFAULT_CATEGORIES;
+}
+
+function populateCategoryDropdowns(currentVal) {
+  const cats = getCategories();
+  ['nt-category','td-category'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const val = currentVal !== undefined ? currentVal : (sel.value || cats[0]);
+    sel.innerHTML = cats.map(c =>
+      `<option value="${c}" ${c === val ? 'selected' : ''}>${c}</option>`
+    ).join('');
+  });
+}
+
+async function saveCategories() {
+  const val = (document.getElementById('setting-categories').value || '').trim();
+  localStorage.setItem('app_categories', val);
+  populateCategoryDropdowns();
+  // Persist to Supabase settings table
+  if (!demoMode && sbClient) {
+    await sbClient.from('settings').upsert({ key: 'categories', value: val }, { onConflict: 'key' });
+  }
+  const msg = document.getElementById('categories-saved-msg');
+  if (msg) { msg.textContent = '✓ Saved'; setTimeout(() => msg.textContent = '', 2000); }
+  auditLog('Saved categories', 'setting', 'categories', 'Ticket categories', '');
+  toast('Categories saved');
+}
+
+async function loadCategories() {
+  if (!demoMode && sbClient) {
+    try {
+      const { data } = await sbClient.from('settings').select('value').eq('key','categories').single();
+      if (data?.value) localStorage.setItem('app_categories', data.value);
+    } catch { /* use defaults */ }
+  }
+  const raw = localStorage.getItem('app_categories') || DEFAULT_CATEGORIES.join('\n');
+  const ta = document.getElementById('setting-categories');
+  if (ta) ta.value = raw;
+  populateCategoryDropdowns();
 }
 
 /* ── Organisations ── */

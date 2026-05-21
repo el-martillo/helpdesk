@@ -449,7 +449,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Category</label>
-        <select id="nt-cat" class="fc"><option value="Billing">Billing</option><option value="Technical" selected>Technical</option><option value="Account">Account</option><option value="General">General</option></select>
+        <select id="nt-cat" class="fc"></select>
       </div>
       <div class="fg"><label class="fl">Priority</label>
         <select id="nt-priority" class="fc">
@@ -527,6 +527,7 @@ async function openModal(id){
   document.getElementById(id).classList.add('open');
   if (id === 'modal-new-ticket') {
     populateCompanyDropdown();
+    populateCategoryDropdown();
     const emailEl = document.getElementById('nt-email');
     if (emailEl && !emailEl.value) emailEl.value = currentProfile?.email || currentUser?.email || '';
   }
@@ -898,6 +899,30 @@ async function reopenTicket(ticketId) {
   loadClientTickets(); closeModal('modal-ticket-detail'); toast('Ticket reopened');
 }
 
+async function loadCategoriesFromSupabase() {
+  try {
+    if (!sbClient) return;
+    const { data } = await sbClient.from('settings').select('value').eq('key','categories').single();
+    if (data?.value) localStorage.setItem('app_categories', data.value);
+  } catch { /* use defaults */ }
+}
+
+function getCategories() {
+  const raw = localStorage.getItem('app_categories') || '';
+  const list = raw.split('\n').map(s => s.trim()).filter(Boolean);
+  return list.length ? list : ['Technical','Billing','Account','General'];
+}
+
+function populateCategoryDropdown() {
+  const sel = document.getElementById('nt-cat');
+  if (!sel) return;
+  const cats = getCategories();
+  const current = sel.value || cats[0];
+  sel.innerHTML = cats.map(c =>
+    `<option value="${c}" ${c === current ? 'selected' : ''}>${c}</option>`
+  ).join('');
+}
+
 /* ── My Profile ── */
 async function openMyProfile() {
   if (!currentProfile) return;
@@ -1038,8 +1063,8 @@ async function initSupabase() {
   if (cfgUrl) cfgUrl.value = url;
   if (cfgKey) cfgKey.value = key;
   sbClient = window.supabase.createClient(url, key);
-  // Load organisations — wrapped so a missing table never blocks the page
   try { await loadOrgsFromSupabase(); } catch(e) { console.warn('Could not load orgs:', e.message); }
+  try { await loadCategoriesFromSupabase(); } catch(e) { console.warn('Could not load categories:', e.message); }
 
   // Handle email confirmation / magic link token in URL hash
   const hash = window.location.hash;
