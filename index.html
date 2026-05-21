@@ -441,7 +441,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
     <div class="fg"><label class="fl">Subject *</label><input id="nt-subject" class="fc" type="text" placeholder="What do you need help with?"/></div>
     <div class="fg"><label class="fl">Description</label><textarea id="nt-desc" class="fc" placeholder="Please describe the issue in detail, including any steps to reproduce it…"></textarea></div>
     <div class="form-row">
-      <div class="fg"><label class="fl">Your email *</label><input id="nt-email" class="fc" type="email" placeholder="you@example.com"/></div>
+      <div class="fg"><label class="fl">Your email *</label><input id="nt-email" class="fc" type="email" placeholder="you@example.com" oninput="autofillTicketFromEmail(this.value)"/></div>
       <div class="fg"><label class="fl">Telephone</label><input id="nt-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
     </div>
     <div class="fg"><label class="fl">Company / Organisation</label>
@@ -529,7 +529,11 @@ async function openModal(id){
     populateCompanyDropdown();
     populateCategoryDropdown();
     const emailEl = document.getElementById('nt-email');
-    if (emailEl && !emailEl.value) emailEl.value = currentProfile?.email || currentUser?.email || '';
+    if (emailEl && !emailEl.value) {
+      emailEl.value = currentProfile?.email || currentUser?.email || '';
+    }
+    // Auto-fill phone and company from profile after dropdown is populated
+    if (emailEl?.value) setTimeout(() => autofillTicketFromEmail(emailEl.value), 100);
   }
   if (id === 'modal-my-profile') { await openMyProfile(); }
 }
@@ -1009,6 +1013,28 @@ async function trackUserActivity(action, status, details) {
       action, status, details: details || null,
     });
   } catch(e) { /* never block the UI */ }
+}
+
+/* ── Auto-fill ticket from profile ── */
+let autofillTimer = null;
+function autofillTicketFromEmail(email) {
+  clearTimeout(autofillTimer);
+  if (!email || !email.includes('@')) return;
+  autofillTimer = setTimeout(() => {
+    // Use logged-in profile if email matches
+    const profile = (email.toLowerCase() === (currentProfile?.email||'').toLowerCase())
+      ? currentProfile
+      : null;
+    if (!profile) return;
+    const phoneEl   = document.getElementById('nt-phone');
+    const companyEl = document.getElementById('nt-company');
+    if (phoneEl   && !phoneEl.value   && profile.phone)   phoneEl.value   = profile.phone;
+    if (companyEl && !companyEl.value && profile.company) {
+      // Set the select value if the option exists
+      const opt = Array.from(companyEl.options).find(o => o.value === profile.company);
+      if (opt) companyEl.value = profile.company;
+    }
+  }, 300);
 }
 
 /* ── Submit ticket ── */

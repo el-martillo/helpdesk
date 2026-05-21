@@ -802,7 +802,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
     <div class="fg"><label class="fl">Subject *</label><input id="nt-subject" class="fc" type="text" placeholder="Brief description"/></div>
     <div class="fg"><label class="fl">Description</label><textarea id="nt-description" class="fc" placeholder="Provide full details…"></textarea></div>
     <div class="form-row">
-      <div class="fg"><label class="fl">Contact email *</label><input id="nt-email" class="fc" type="email" placeholder="client@example.com"/></div>
+      <div class="fg"><label class="fl">Contact email *</label><input id="nt-email" class="fc" type="email" placeholder="client@example.com" oninput="autofillTicketFromEmail(this.value)"/></div>
       <div class="fg"><label class="fl">Telephone</label><input id="nt-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
     </div>
     <div class="form-row">
@@ -1786,6 +1786,32 @@ async function updateStatus(id, status) {
 async function updateAssignee(id, assigneeId) {
   if (demoMode) { const t=tickets.find(x=>x.id===id); if(t) t.assignee_id=assigneeId||null; renderTable();toast('Assignee updated');return; }
   await sbClient.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id); loadTickets(); toast('Assignee updated');
+}
+
+/* ── Auto-fill ticket from email ── */
+let autofillTimer = null;
+async function autofillTicketFromEmail(email) {
+  clearTimeout(autofillTimer);
+  if (!email || !email.includes('@')) return;
+  autofillTimer = setTimeout(async () => {
+    // Search allProfiles first (already loaded)
+    let profile = allProfiles.find(p => p.email?.toLowerCase() === email.toLowerCase());
+    // If not found locally, query Supabase
+    if (!profile && !demoMode && sbClient) {
+      const { data } = await sbClient
+        .from('profiles')
+        .select('full_name, phone, company, email')
+        .ilike('email', email)
+        .single();
+      profile = data;
+    }
+    if (!profile) return;
+    // Only fill if fields are currently empty
+    const phoneEl   = document.getElementById('nt-phone');
+    const companyEl = document.getElementById('nt-company');
+    if (phoneEl   && !phoneEl.value   && profile.phone)   phoneEl.value   = profile.phone;
+    if (companyEl && !companyEl.value && profile.company) companyEl.value = profile.company;
+  }, 400); // debounce 400ms
 }
 
 /* ── Create ticket ── */
