@@ -1180,12 +1180,21 @@ async function signIn() {
   if (!sbClient) { loadDemo(); return; }
   const email = document.getElementById('auth-email').value;
   const pass  = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('auth-err');
   const {data,error} = await sbClient.auth.signInWithPassword({email,password:pass});
-  if (error) { document.getElementById('auth-err').textContent = error.message; return; }
+  if (error) { errEl.textContent = error.message; return; }
   currentUser = data.user;
   const prof = await ensureProfile(currentUser);
   currentProfile = prof;
-  if (prof?.role==='client') { document.getElementById('auth-err').textContent='Access denied. Client accounts must use the client portal.'; return; }
+  // Block non-admin access
+  if (!prof || (prof.role !== 'admin' && prof.role !== 'agent')) {
+    await sbClient.auth.signOut();
+    errEl.style.color = 'var(--danger)';
+    errEl.textContent = '⛔ Access denied. This panel is for admins only. Please use the client portal.';
+    errEl.innerHTML += `<br><a href="index.html" style="color:var(--accent);font-size:12px">→ Go to client portal</a>`;
+    currentUser = null; currentProfile = null;
+    return;
+  }
   document.getElementById('auth-screen').classList.remove('active');
   document.getElementById('app').style.display = 'flex';
   document.getElementById('db-dot').className = 'dot connected';
@@ -1193,6 +1202,13 @@ async function signIn() {
   document.getElementById('topbar-user').textContent = prof?.full_name||email;
   document.getElementById('settings-url').value = localStorage.getItem('sb_url')||'';
   loadTickets(); loadProfiles();
+  loadVersion(); loadOrgs(); loadCategories();
+  const fu = document.getElementById('footer-user-count');
+  if (fu) fu.textContent = '…';
+  setTimeout(() => {
+    const activeNav = document.querySelector('.nav-item.active');
+    if (activeNav) adminNav(activeNav, 'dashboard');
+  }, 0);
 }
 async function signOut() { if(sbClient) await sbClient.auth.signOut(); location.reload(); }
 function clearCreds() { localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key'); location.reload(); }
@@ -2095,6 +2111,18 @@ async function initSupabase() {
       currentUser = session.user;
       const { data: prof } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).single();
       currentProfile = prof;
+      // Block non-admin access even with existing session
+      if (!prof || (prof.role !== 'admin' && prof.role !== 'agent')) {
+        await sbClient.auth.signOut();
+        document.getElementById('cfg-screen').classList.remove('active');
+        document.getElementById('auth-screen').classList.add('active');
+        const errEl = document.getElementById('auth-err');
+        if (errEl) {
+          errEl.style.color = 'var(--danger)';
+          errEl.innerHTML = '⛔ Access denied. This panel is for admins only.<br><a href="index.html" style="color:var(--accent);font-size:12px">→ Go to client portal</a>';
+        }
+        return;
+      }
       document.getElementById('cfg-screen').classList.remove('active');
       const tu = document.getElementById('topbar-user');
       if (tu) tu.textContent = prof?.full_name || currentUser.email;

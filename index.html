@@ -324,7 +324,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <div class="avatar av-blue" id="user-avatar">JD</div>
         <span style="font-size:13px;font-weight:500" id="user-name">Jane Doe</span>
       </div>
-      <a href="admin.html" class="admin-link">Admin ↗</a>
+      <a href="admin.html" class="admin-link" id="admin-nav-link" style="display:none">Admin ↗</a>
       <button class="btn sm ghost" onclick="signOut()">Sign out</button>
     </div>
   </div>
@@ -766,10 +766,16 @@ function showApp() {
   loadClientTickets();
 }
 function updateUserHeader() {
-  const name=currentProfile?.full_name||'User';
-  document.getElementById('user-name').textContent=name;
-  document.getElementById('user-avatar').textContent=initials(name);
-  document.getElementById('user-avatar').className='avatar '+avColor(currentProfile?.id||'');
+  const name = currentProfile?.full_name || 'User';
+  document.getElementById('user-name').textContent = name;
+  document.getElementById('user-avatar').textContent = initials(name);
+  document.getElementById('user-avatar').className = 'avatar ' + avColor(currentProfile?.id||'');
+  // Only show Admin link for admin/agent roles
+  const adminLink = document.getElementById('admin-nav-link');
+  if (adminLink) {
+    const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'agent';
+    adminLink.style.display = isAdmin ? 'inline' : 'none';
+  }
 }
 
 /* ── Tickets ── */
