@@ -799,6 +799,15 @@ textarea.fc { resize: vertical; min-height: 80px; }
 <div class="overlay" id="modal-new-ticket">
   <div class="modal">
     <div class="modal-head"><div class="modal-title">Create ticket</div><button class="close-x" onclick="closeModal('modal-new-ticket')">✕</button></div>
+
+    <!-- Client selector — picks a user and auto-fills all their details -->
+    <div class="fg" style="margin-bottom:14px">
+      <label class="fl">Select client <span style="color:var(--text3);font-weight:400">(auto-fills details)</span></label>
+      <select id="nt-requester" class="fc" onchange="autofillFromRequester(this.value)">
+        <option value="">— Choose existing client or fill manually —</option>
+      </select>
+    </div>
+
     <div class="fg"><label class="fl">Subject *</label><input id="nt-subject" class="fc" type="text" placeholder="Brief description"/></div>
     <div class="fg"><label class="fl">Description</label><textarea id="nt-description" class="fc" placeholder="Provide full details…"></textarea></div>
     <div class="form-row">
@@ -1037,6 +1046,24 @@ function openModal(id) {
       orgSel.innerHTML = '<option value="">— Select organisation —</option>';
       orgs.forEach(o => { const opt = document.createElement('option'); opt.value = o; opt.textContent = o; orgSel.appendChild(opt); });
     }
+    // Populate requester dropdown with all clients
+    const reqSel = document.getElementById('nt-requester');
+    if (reqSel) {
+      const clients = allProfiles.filter(p => p.role === 'client' || p.role === 'user');
+      reqSel.innerHTML = '<option value="">— Choose existing client or fill manually —</option>';
+      clients.sort((a,b) => (a.full_name||'').localeCompare(b.full_name||'')).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${p.full_name||'?'} ${p.email ? '('+p.email+')' : ''}`;
+        reqSel.appendChild(opt);
+      });
+      reqSel.value = '';
+    }
+    // Clear all fields on open
+    ['nt-subject','nt-description','nt-email','nt-phone'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    if (orgSel) orgSel.value = '';
   }
 }
 function closeModal(id){document.getElementById(id).classList.remove('open');}
@@ -1788,7 +1815,22 @@ async function updateAssignee(id, assigneeId) {
   await sbClient.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id); loadTickets(); toast('Assignee updated');
 }
 
-/* ── Auto-fill ticket from email ── */
+/* ── Auto-fill ticket from profile ── */
+function autofillFromRequester(userId) {
+  if (!userId) return;
+  const profile = allProfiles.find(p => p.id === userId);
+  if (!profile) return;
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+  set('nt-email', profile.email);
+  set('nt-phone', profile.phone);
+  // Set company select
+  const companyEl = document.getElementById('nt-company');
+  if (companyEl && profile.company) {
+    const opt = Array.from(companyEl.options).find(o => o.value === profile.company);
+    if (opt) companyEl.value = profile.company;
+  }
+}
+
 let autofillTimer = null;
 async function autofillTicketFromEmail(email) {
   clearTimeout(autofillTimer);
@@ -1820,6 +1862,7 @@ async function createTicket() {
   const email=document.getElementById('nt-email').value.trim();
   if (!subject){toast('Subject is required');return;}
   if (!email){toast('Contact email is required');return;}
+  const selectedRequester = document.getElementById('nt-requester')?.value || null;
   const payload={
     subject,
     description:document.getElementById('nt-description').value,
@@ -1828,6 +1871,7 @@ async function createTicket() {
     contact_email:email,
     contact_phone:document.getElementById('nt-phone').value.trim(),
     company:document.getElementById('nt-company')?.value || null,
+    requester_id: selectedRequester || currentUser?.id || null,
     status:'open'
   };
   function clearForm(){
@@ -1836,6 +1880,7 @@ async function createTicket() {
     document.getElementById('nt-email').value='';
     document.getElementById('nt-phone').value='';
     const co = document.getElementById('nt-company'); if (co) co.value='';
+    const rq = document.getElementById('nt-requester'); if (rq) rq.value='';
   }
   if (demoMode) {
     tickets.unshift({id:'t'+Date.now(),ticket_number:tickets.length+1,...payload,requester_id:'p4',assignee_id:null,updated_at:new Date().toISOString(),created_at:new Date().toISOString()});
@@ -2973,6 +3018,14 @@ function downloadJSON(data) {
 }
 
 document.addEventListener('DOMContentLoaded', initSupabase);
+
+/* ── Auto-refresh every 5 minutes ── */
+setInterval(() => {
+  if (!demoMode && sbClient) {
+    loadTickets();
+    loadAllProfiles();
+  }
+}, 5 * 60 * 1000);
 </script>
 <style>
 .footer {
