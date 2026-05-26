@@ -299,8 +299,13 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
   <div class="body">
     <div class="sidebar">
+      <div class="nav-item active" onclick="adminNav(this,'dashboard');renderDashboard()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </div>
+      <div class="sep"></div>
       <div class="sidebar-label">Tickets</div>
-      <div class="nav-item active" onclick="adminNav(this,'all')">
+      <div class="nav-item" onclick="adminNav(this,'all')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8h18M3 12h18M3 16h18"/></svg>
         All tickets <span class="nav-badge" id="badge-all">—</span>
       </div>
@@ -341,8 +346,40 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
 
     <div class="content">
+      <!-- Dashboard -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <div><h1>Dashboard</h1><p id="dash-sub">Overview of support activity</p></div>
+          <button class="btn primary" onclick="openModal('modal-new-ticket')">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            New ticket
+          </button>
+        </div>
+        <div class="stats-grid" style="margin-bottom:20px">
+          <div class="stat-card"><div class="label">Open</div><div class="value" id="dash-open" style="color:var(--accent)">—</div><div class="sub">Awaiting action</div></div>
+          <div class="stat-card"><div class="label">In progress</div><div class="value" id="dash-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to agents</div></div>
+          <div class="stat-card"><div class="label">Resolved</div><div class="value" id="dash-resolved" style="color:var(--success)">—</div><div class="sub">All time</div></div>
+          <div class="stat-card"><div class="label">Total</div><div class="value" id="dash-total">—</div><div class="sub">All tickets</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+          <div class="table-card" style="padding:18px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:14px">By status</div>
+            <div id="dash-status-bars"></div>
+          </div>
+          <div class="table-card" style="padding:18px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:14px">By priority</div>
+            <div id="dash-priority-bars"></div>
+          </div>
+        </div>
+        <div class="table-card">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">Recent activity</div>
+          <table><thead><tr><th>ID</th><th>Subject</th><th>Status</th><th>Priority</th><th>Requester</th><th>Updated</th><th></th></tr></thead>
+          <tbody id="dash-recent-tbody"></tbody></table>
+        </div>
+      </div>
+
       <!-- All tickets -->
-      <div class="page active" id="page-all">
+      <div class="page" id="page-all">
         <div class="page-header">
           <div><h1>All tickets</h1><p id="ticket-count-sub">Loading…</p></div>
           <button class="btn primary" onclick="openModal('modal-new-ticket')">
@@ -755,7 +792,7 @@ function loadDemo() {
   document.getElementById('auth-screen').classList.remove('active');
   document.getElementById('app').style.display = 'flex';
   document.getElementById('topbar-user').textContent = 'Dev Kumar';
-  loadTickets(); renderAgents(); renderReports();
+  loadTickets(); renderAgents(); renderReports(); renderDashboard();
 }
 async function ensureProfile(user) {
   const {data:existing} = await sbClient.from('profiles').select('*').eq('id', user.id).single();
@@ -1322,6 +1359,39 @@ function downloadJSON(data) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/* ── Dashboard ── */
+function renderDashboard() {
+  document.getElementById('dash-open').textContent    = tickets.filter(t=>t.status==='open').length;
+  document.getElementById('dash-inprog').textContent  = tickets.filter(t=>t.status==='in_progress').length;
+  document.getElementById('dash-resolved').textContent= tickets.filter(t=>t.status==='resolved').length;
+  document.getElementById('dash-total').textContent   = tickets.length;
+
+  const statuses=['open','in_progress','waiting','resolved','closed'];
+  const priorities=['critical','high','medium','low'];
+  const max=Math.max(...statuses.map(s=>tickets.filter(t=>t.status===s).length),1);
+  const pmax=Math.max(...priorities.map(p=>tickets.filter(t=>t.priority===p).length),1);
+  const sc={open:'var(--accent)',in_progress:'var(--purple)',waiting:'var(--warn)',resolved:'var(--success)',closed:'var(--text3)'};
+  const pc={critical:'#E24B4A',high:'#EF9F27',medium:'#378ADD',low:'#9e9a94'};
+  document.getElementById('dash-status-bars').innerHTML=statuses.map(s=>{const c=tickets.filter(t=>t.status===s).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${sLabel(s)}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/max*100)}%;height:100%;background:${sc[s]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
+  document.getElementById('dash-priority-bars').innerHTML=priorities.map(p=>{const c=tickets.filter(t=>t.priority===p).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${p}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/pmax*100)}%;height:100%;background:${pc[p]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
+
+  const recent = [...tickets].sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at)).slice(0,8);
+  const tbody = document.getElementById('dash-recent-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = recent.map(t => {
+    const req = demoMode ? profileById(t.requester_id) : (t.requester||{});
+    return `<tr onclick="openTicketDetail('${t.id}')">
+      <td><span class="tid">#${t.ticket_number}</span></td>
+      <td style="max-width:220px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</td>
+      <td><span class="sb s-${t.status}">${sLabel(t.status)}</span></td>
+      <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
+      <td style="font-size:12px">${req?.full_name||'—'}</td>
+      <td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td>
+      <td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td>
+    </tr>`;
+  }).join('');
 }
 
 /* ── Version ── */

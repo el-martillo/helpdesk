@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>About — El Martillo I.T. Ticketing System</title>
 <link rel="icon" type="image/png" href="logo.png"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
 <style>
@@ -224,10 +225,28 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
   <span class="footer-sep">|</span>
   <span>Email: <a href="mailto:helpdesk@el-martillo.com">helpdesk@el-martillo.com</a></span>
   <span class="footer-sep">|</span>
-  <a href="about.html">About</a>
+  <span id="footer-version">v1.0.0</span>
 </div>
 
 
 
+<script>
+const SB_URL = 'https://gtcrmqbmlvtlyiwnshma.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
+async function loadVersion() {
+  try {
+    const sb = window.supabase.createClient(SB_URL, SB_KEY);
+    const { data, error } = await sb
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'app_version')
+      .single();
+    const v = (error || !data) ? '1.0.0' : data.value;
+    const el = document.getElementById('footer-version');
+    if (el) el.textContent = 'v' + v;
+  } catch(e) {}
+}
+document.addEventListener('DOMContentLoaded', loadVersion);
+</script>
 </body>
 </html>

@@ -1226,7 +1226,7 @@ async function submitTicket() {
   if (error){toast('Error: '+error.message);return;}
   trackUserActivity('ticket_created', 'success', `Subject: ${subject}`);
   closeModal('modal-new-ticket'); clearForm();
-  loadClientTickets(); toast('Request submitted! We\'ll be in touch soon.');
+  loadVersion(); loadClientTickets(); toast('Request submitted! We\'ll be in touch soon.');
 }
 
 /* ── Auto-restore ── */
@@ -1289,6 +1289,7 @@ async function initSupabase() {
       const { data: prof } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).single();
       currentProfile = prof;
       document.getElementById('cfg-screen').classList.remove('active');
+      loadVersion();
       showApp();
     } else {
       document.getElementById('cfg-screen').classList.remove('active');
@@ -1316,6 +1317,21 @@ function closeMobileMenu() {
   document.getElementById('mobile-menu').classList.remove('open');
   document.getElementById('mobile-menu-backdrop').classList.remove('open');
   document.getElementById('hamburger-btn').innerHTML = '<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>';
+}
+
+/* ── Version ── */
+async function loadVersion() {
+  if (!sbClient) return;
+  try {
+    const { data, error } = await sbClient
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'app_version')
+      .single();
+    const v = (error || !data) ? '1.0.0' : data.value;
+    const el = document.getElementById('footer-version');
+    if (el) el.textContent = 'v' + v;
+  } catch(e) {}
 }
 
 document.addEventListener('DOMContentLoaded', initSupabase);
@@ -1347,6 +1363,8 @@ document.addEventListener('DOMContentLoaded', initSupabase);
   <span>Tel: <a href="tel:+35020050630">+350 200 50630</a></span>
   <span class="footer-sep">|</span>
   <span>Email: <a href="mailto:helpdesk@el-martillo.com">helpdesk@el-martillo.com</a></span>
+  <span class="footer-sep">|</span>
+  <span id="footer-version">v1.0.0</span>
 </div>
 
 </body>
