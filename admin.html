@@ -4,7 +4,6 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>El Martillo I.T. Ticketing System — Admin</title>
-<link rel="icon" type="image/png" href="logo.png"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
@@ -88,16 +87,7 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
 .nav-badge { margin-left: auto; background: var(--accent); color: #fff; font-size: 10px; font-weight: 600; border-radius: 10px; padding: 1px 6px; }
 .nav-badge.warn { background: var(--warn); }
 .sep { height: 1px; background: var(--border); margin: 4px 8px; }
-.content {
-  flex: 1; overflow-y: auto; padding: 24px; background: var(--bg);
-  background-image:
-    radial-gradient(ellipse 60% 40% at 80% 10%, rgba(24,95,165,.06) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 50% at 10% 90%, rgba(83,74,183,.05) 0%, transparent 60%),
-    linear-gradient(rgba(24,95,165,.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(24,95,165,.025) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
-  background-attachment: local;
-}
+.content { flex: 1; overflow-y: auto; padding: 24px; background: var(--bg); }
 .page { display: none; }
 .page.active { display: block; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; gap: 12px; }
@@ -216,33 +206,17 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .cat-account   { background:#EEEDFE; color:#534AB7; }
 .cat-general   { background:#F1EFE8; color:#5F5E5A; }
 </style>
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-EHHF524M5T"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-EHHF524M5T');
-</script>
 </head>
 <body>
 
 <!-- Config screen -->
 <div id="cfg-screen" class="screen active">
-  <div class="screen-card">
-    <h2>🎫 El Martillo I.T. Ticketing System Admin</h2>
-    <p class="desc">Connect your Supabase project to get started. Your credentials are saved locally after the first connection.</p>
-    <div class="fg">
-      <label class="fl">Supabase Project URL</label>
-      <input id="cfg-url" class="fc" type="url" placeholder="https://xxxxxxxxxxxx.supabase.co"/>
-      <div class="hint">Project Settings → API</div>
-    </div>
-    <div class="fg">
-      <label class="fl">Anon / Public Key</label>
-      <input id="cfg-key" class="fc" type="text" placeholder="eyJhbGci..."/>
-    </div>
-    <button class="btn primary" style="width:100%;justify-content:center" onclick="connectSupabase()">Connect</button>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:16px">
+    <div class="loader" style="width:28px;height:28px;border-width:3px"></div>
+    <span style="font-size:13px;color:var(--text3)">Connecting…</span>
   </div>
+  <input id="cfg-url" type="hidden"/>
+  <input id="cfg-key" type="hidden"/>
 </div>
 
 <!-- Auth screen -->
@@ -289,17 +263,11 @@ textarea.fc { resize: vertical; min-height: 80px; }
       </svg>
     </div>
     <h2>Admin sign in</h2>
-    <p class="desc">Sign in with your admin account.</p>
+    <p class="desc">Sign in with your admin or agent account.</p>
     <div class="fg"><label class="fl">Email</label><input id="auth-email" class="fc" type="email" placeholder="admin@example.com"/></div>
     <div class="fg"><label class="fl">Password</label><input id="auth-password" class="fc" type="password" placeholder="••••••••"/></div>
     <button class="btn primary" style="width:100%;justify-content:center" onclick="signIn()">Sign in</button>
     <div id="auth-err" style="text-align:center;margin-top:10px;font-size:12px;color:var(--danger)"></div>
-    <div style="text-align:center;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
-      <a href="index.html" style="font-size:12px;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:5px">
-        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-        Go to client portal
-      </a>
-    </div>
   </div>
 </div>
 
@@ -323,19 +291,18 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
   <div class="body">
     <div class="sidebar">
-      <div class="nav-item active" onclick="adminNav(this,'dashboard')">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        Dashboard
-      </div>
-      <div class="sep"></div>
       <div class="sidebar-label">Tickets</div>
-      <div class="nav-item" onclick="adminNav(this,'all')">
+      <div class="nav-item active" onclick="adminNav(this,'all')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8h18M3 12h18M3 16h18"/></svg>
-        All tickets
+        All tickets <span class="nav-badge" id="badge-all">—</span>
       </div>
-      <div class="nav-item" onclick="adminNav(this,'active')">
+      <div class="nav-item" onclick="adminNav(this,'open')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
-        Active <span class="nav-badge" id="badge-active">—</span>
+        Open <span class="nav-badge" id="badge-open">—</span>
+      </div>
+      <div class="nav-item" onclick="adminNav(this,'in_progress')">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83"/></svg>
+        In progress <span class="nav-badge warn" id="badge-inprog">—</span>
       </div>
       <div class="nav-item" onclick="adminNav(this,'waiting')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
@@ -349,7 +316,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <div class="sidebar-label">Manage</div>
       <div class="nav-item" onclick="adminNav(this,'agents')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        Admins
+        Agents
       </div>
       <div class="nav-item" onclick="adminNav(this,'users');loadAllProfiles()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -359,115 +326,15 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="4" height="11"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="3" width="4" height="18"/></svg>
         Reports
       </div>
-      <div class="nav-item" onclick="adminNav(this,'analytics')">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
-        Analytics
-      </div>
-      <div class="nav-item" onclick="adminNav(this,'auditlog')">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-        Activity log (admin)
-      </div>
-      <div class="nav-item" onclick="adminNav(this,'useractivity')">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        User activity
-      </div>
       <div class="nav-item" onclick="adminNav(this,'settings');loadBackupStats()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </div>
-      <div class="sep"></div>
-      <a href="about.html" class="nav-item" style="text-decoration:none">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        About
-      </a>
-      <div class="nav-item" onclick="adminNav(this,'technews')">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v2"/><path d="M2 10h6M2 14h6M2 18h6"/><rect x="2" y="6" width="6" height="16" rx="1"/></svg>
-        Tech News
-      </div>
     </div>
 
     <div class="content">
-      <!-- Dashboard -->
-      <div class="page active" id="page-dashboard">
-        <div class="page-header">
-          <div><h1>Dashboard</h1><p id="dashboard-greeting"></p></div>
-          <button class="btn primary" onclick="openModal('modal-new-ticket')">
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-            New ticket
-          </button>
-        </div>
-
-        <!-- Global search bar -->
-        <div class="table-card" style="margin-bottom:20px">
-          <div class="table-toolbar" style="padding:10px 14px">
-            <div class="search-wrap" style="max-width:100%;flex:1">
-              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input type="text" id="dash-search-input" placeholder="Search all tickets — subject, description, category, email, phone, requester…" oninput="renderDashboardSearch(this.value)" style="font-size:13px"/>
-            </div>
-            <button class="btn sm ghost" id="dash-search-clear" onclick="clearDashboardSearch()" style="display:none">✕ Clear</button>
-          </div>
-          <div id="dash-search-results" style="display:none"></div>
-        </div>
-
-        <!-- Summary stats -->
-        <div class="stats-grid" style="margin-bottom:20px">
-          <div class="stat-card" onclick="filterByStatCard('open');adminNav(document.querySelector('[onclick*=\'active\']'),'active')" style="cursor:pointer" onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'" onmouseout="this.style.boxShadow=''">
-            <div class="label">Open</div><div class="value" id="dash-open" style="color:var(--accent)">—</div><div class="sub">Click to view</div>
-          </div>
-          <div class="stat-card" onclick="filterByStatCard('in_progress');adminNav(document.querySelector('[onclick*=\'active\']'),'active')" style="cursor:pointer" onmouseover="this.style.boxShadow='0 0 0 2px var(--purple)'" onmouseout="this.style.boxShadow=''">
-            <div class="label">In progress</div><div class="value" id="dash-inprog" style="color:var(--purple)">—</div><div class="sub">Click to view</div>
-          </div>
-          <div class="stat-card" onclick="filterByStatCard('waiting');adminNav(document.querySelector('[onclick*=\'waiting\']'),'waiting')" style="cursor:pointer" onmouseover="this.style.boxShadow='0 0 0 2px var(--warn)'" onmouseout="this.style.boxShadow=''">
-            <div class="label">Waiting</div><div class="value" id="dash-waiting" style="color:var(--warn)">—</div><div class="sub">Click to view</div>
-          </div>
-          <div class="stat-card">
-            <div class="label">Total tickets</div><div class="value" id="dash-total">—</div><div class="sub">All time</div>
-          </div>
-        </div>
-
-        <!-- Two columns: recent tickets | priority+category -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-
-          <!-- Recent tickets -->
-          <div class="table-card" style="padding:18px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
-              Recent tickets
-              <button class="btn sm" onclick="adminNav(document.querySelector('[onclick*=\'all\']'),'all')" style="font-size:11px">View all →</button>
-            </div>
-            <div id="dash-recent-tickets"></div>
-          </div>
-
-          <!-- Priority & category breakdown -->
-          <div style="display:flex;flex-direction:column;gap:16px">
-            <div class="table-card" style="padding:18px">
-              <div style="font-size:13px;font-weight:600;margin-bottom:14px">By priority</div>
-              <div id="dash-priority-bars"></div>
-            </div>
-            <div class="table-card" style="padding:18px">
-              <div style="font-size:13px;font-weight:600;margin-bottom:14px">By category</div>
-              <div id="dash-category-bars"></div>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- Tech News — full width -->
-        <div class="table-card" style="padding:18px">
-          <div style="font-size:13px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
-            Tech News
-            <button class="btn sm" onclick="loadDashNews(true)" style="font-size:11px">↻ Refresh</button>
-          </div>
-          <div id="dash-news">
-            <div style="text-align:center;padding:24px 0;color:var(--text3);font-size:12px">
-              <div class="loader" style="margin:0 auto 10px"></div>Loading…
-            </div>
-          </div>
-        </div>
-
-      </div>
-
       <!-- All tickets -->
-      <div class="page" id="page-all">
+      <div class="page active" id="page-all">
         <div class="page-header">
           <div><h1>All tickets</h1><p id="ticket-count-sub">Loading…</p></div>
           <button class="btn primary" onclick="openModal('modal-new-ticket')">
@@ -476,10 +343,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </button>
         </div>
         <div class="stats-grid">
-          <div class="stat-card" onclick="filterByStatCard('open')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'" onmouseout="this.style.boxShadow=''"><div class="label">Open</div><div class="value" id="stat-open" style="color:var(--accent)">—</div><div class="sub">Click to filter</div></div>
-          <div class="stat-card" onclick="filterByStatCard('in_progress')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--purple)'" onmouseout="this.style.boxShadow=''"><div class="label">In progress</div><div class="value" id="stat-inprog" style="color:var(--purple)">—</div><div class="sub">Click to filter</div></div>
-          <div class="stat-card" onclick="filterByStatCard('resolved')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--success)'" onmouseout="this.style.boxShadow=''"><div class="label">Resolved</div><div class="value" id="stat-resolved" style="color:var(--success)">—</div><div class="sub">Click to filter</div></div>
-          <div class="stat-card" onclick="filterByStatCard('')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--border2)'" onmouseout="this.style.boxShadow=''"><div class="label">Total</div><div class="value" id="stat-total">—</div><div class="sub">Click to show all</div></div>
+          <div class="stat-card"><div class="label">Open</div><div class="value" id="stat-open" style="color:var(--accent)">—</div><div class="sub"></div></div>
+          <div class="stat-card"><div class="label">In progress</div><div class="value" id="stat-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to agents</div></div>
+          <div class="stat-card"><div class="label">Resolved</div><div class="value" id="stat-resolved" style="color:var(--success)">—</div><div class="sub"></div></div>
+          <div class="stat-card"><div class="label">Total</div><div class="value" id="stat-total">—</div><div class="sub">All time</div></div>
         </div>
         <div class="table-card">
           <div class="table-toolbar">
@@ -502,31 +369,17 @@ textarea.fc { resize: vertical; min-height: 80px; }
               <option value="medium">Medium</option>
               <option value="low">Low</option>
             </select>
-            <select class="filter-sel" id="filter-assignee" onchange="renderTable()">
-              <option value="">All assignees</option>
-              <option value="__unassigned__">Unassigned</option>
-            </select>
-            <select class="filter-sel" id="sort-field" onchange="applySort(this.value)">
-              <option value="updated_at">Sort: Last updated</option>
-              <option value="created_at">Sort: Date created</option>
-              <option value="ticket_number">Sort: Ticket #</option>
-              <option value="subject">Sort: Subject</option>
-              <option value="priority">Sort: Priority</option>
-              <option value="status">Sort: Status</option>
-            </select>
-            <button class="btn sm" id="sort-dir-btn" onclick="toggleSortDir()" title="Toggle sort direction">↓</button>
             <button class="btn sm" onclick="loadTickets()">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
               Refresh
             </button>
           </div>
-          <table><thead><tr><th>ID</th><th>Subject</th><th>Status</th><th>Priority</th><th>Requester</th><th>Assignee</th><th>Comments</th><th>Updated</th><th></th></tr></thead>
+          <table><thead><tr><th>ID</th><th>Subject</th><th>Status</th><th>Priority</th><th>Requester</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
           <tbody id="admin-tbody"></tbody></table>
         </div>
       </div>
 
-      <!-- Active (Open + In Progress) combined page -->
-      <div class="page" id="page-active"></div>
+      <!-- Filtered pages -->
       <div class="page" id="page-open"></div>
       <div class="page" id="page-in_progress"></div>
       <div class="page" id="page-waiting"></div>
@@ -535,10 +388,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <!-- Agents -->
       <div class="page" id="page-agents">
         <div class="page-header">
-          <div><h1>Admins</h1><p>Admin team members</p></div>
+          <div><h1>Agents</h1><p>Support team members</p></div>
           <button class="btn primary" onclick="openModal('modal-invite-agent')">
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-            Invite admin
+            Invite agent
           </button>
         </div>
         <div id="agents-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
@@ -562,6 +415,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
             <select class="filter-sel" id="users-role-filter" onchange="renderUsersTable()">
               <option value="">All roles</option>
               <option value="admin">Admin</option>
+              <option value="agent">Agent</option>
               <option value="client">Client</option>
             </select>
             <button class="btn sm" onclick="loadAllProfiles()">
@@ -574,8 +428,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
               <tr>
                 <th>User</th>
                 <th>Role</th>
-                <th>Telephone</th>
-                <th>Company</th>
                 <th>Open tickets</th>
               </tr>
             </thead>
@@ -587,7 +439,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <!-- Reports -->
       <div class="page" id="page-reports">
         <div class="page-header"><div><h1>Reports</h1><p>Support performance overview</p></div></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
           <div class="table-card" style="padding:18px">
             <div style="font-size:13px;font-weight:600;margin-bottom:14px">Tickets by status</div>
             <div id="report-status-bars"></div>
@@ -596,12 +448,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
             <div style="font-size:13px;font-weight:600;margin-bottom:14px">Tickets by priority</div>
             <div id="report-priority-bars"></div>
           </div>
-        </div>
-        <div class="table-card" style="padding:18px">
-          <div style="font-size:13px;font-weight:600;margin-bottom:4px">Average time to resolve</div>
-          <div style="font-size:12px;color:var(--text2);margin-bottom:16px">Based on resolved tickets with valid created and updated timestamps</div>
-          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px" id="report-avg-cards"></div>
-          <div id="report-resolution-list"></div>
         </div>
       </div>
 
@@ -620,38 +466,12 @@ textarea.fc { resize: vertical; min-height: 80px; }
               <select class="fc"><option>4 hours</option><option>8 hours</option><option>24 hours</option></select>
             </div>
             <div class="fg">
-              <label class="fl">Software version</label>
-              <input class="fc" id="setting-version" type="text" placeholder="e.g. 1.0.0" oninput="updateFooterVersion(this.value)"/>
-            </div>
-            <div class="fg">
               <label class="fl">Connected Supabase project</label>
               <input class="fc" id="settings-url" readonly style="font-family:var(--mono);font-size:12px"/>
             </div>
             <div style="display:flex;gap:8px;margin-top:8px">
-              <button class="btn primary" onclick="saveSettings()">Save settings</button>
+              <button class="btn primary" onclick="toast('Settings saved')">Save settings</button>
               <button class="btn" onclick="clearCreds()">Disconnect Supabase</button>
-            </div>
-          </div>
-
-          <!-- Categories -->
-          <div class="table-card" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Ticket categories</div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">One category per line. These appear as a dropdown when creating or editing tickets.</div>
-            <textarea id="setting-categories" class="fc" style="min-height:100px;resize:vertical;font-family:var(--mono);font-size:12px" placeholder="Technical&#10;Billing&#10;Account&#10;General&#10;..."></textarea>
-            <div style="display:flex;gap:8px;margin-top:10px">
-              <button class="btn primary" onclick="saveCategories()">Save categories</button>
-              <span style="font-size:11px;color:var(--text3);align-self:center" id="categories-saved-msg"></span>
-            </div>
-          </div>
-
-          <!-- Organisations -->
-          <div class="table-card" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Organisations</div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6">One organisation per line. These appear as a dropdown when adding or editing users and tickets.</div>
-            <textarea id="setting-orgs" class="fc" style="min-height:120px;resize:vertical;font-family:var(--mono);font-size:12px" placeholder="El Martillo I.T.&#10;Acme Ltd&#10;TechCorp Gibraltar&#10;..."></textarea>
-            <div style="display:flex;gap:8px;margin-top:10px">
-              <button class="btn primary" onclick="saveOrgs()">Save organisations</button>
-              <span style="font-size:11px;color:var(--text3);align-self:center" id="orgs-saved-msg"></span>
             </div>
           </div>
 
@@ -659,13 +479,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           <div class="table-card" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Database backup</div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Export all tickets, profiles, comments, settings, audit log, and user activity as a JSON file. The backup is generated directly from your Supabase database and downloaded to your browser. Note: Supabase Auth users are not included (manage those via the Supabase dashboard).
-              <div style="margin-top:10px;padding:10px 14px;background:var(--warn-l);border-radius:var(--radius);border:1px solid rgba(133,79,11,.15);font-size:12px;color:var(--warn);line-height:1.7">
-                <strong>⚠ Not included in backup:</strong> <code style="background:rgba(133,79,11,.1);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px">auth.users</code> — Supabase Auth data (passwords, tokens) cannot be exported from the browser.
-                To back these up use the Supabase CLI: <code style="background:rgba(133,79,11,.1);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px">supabase db dump</code>
-                or use the
-                <a href="https://supabase.com/dashboard/project/gtcrmqbmlvtlyiwnshma/database/backups/scheduled" target="_blank" style="color:var(--warn);font-weight:600;text-decoration:underline">Supabase dashboard backups →</a>
-              </div>
+              Export all tickets, profiles, and comments as a JSON file. The backup is generated directly from your Supabase database and downloaded to your browser.
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px" id="backup-stats">
@@ -700,163 +514,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
             </div>
           </div>
 
-          <!-- Export Logs -->
-          <div class="table-card" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Export logs</div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Download activity logs as a plain text file. Includes both admin actions and user activity with full timestamps.
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn primary" onclick="exportLogs('both')">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Export all logs
-              </button>
-              <button class="btn" onclick="exportLogs('admin')">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                Admin log only
-              </button>
-              <button class="btn" onclick="exportLogs('user')">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                User activity only
-              </button>
-              <span style="font-size:11px;color:var(--text3);align-self:center" id="export-log-msg"></span>
-            </div>
-          </div>
-
         </div>
       </div>
-      <div class="page" id="page-useractivity">
-        <div class="page-header">
-          <div><h1>User Activity</h1><p>Client logins, signups, ticket submissions and actions</p></div>
-          <div style="display:flex;gap:8px">
-            <select class="filter-sel" id="ua-filter-action" onchange="renderUserActivity()">
-              <option value="">All actions</option>
-              <option value="signup_attempt">Signup attempts</option>
-              <option value="signup_failed">Failed signups</option>
-              <option value="login">Logins</option>
-              <option value="logout">Logouts</option>
-              <option value="ticket_created">Tickets created</option>
-              <option value="comment_added">Comments</option>
-            </select>
-            <select class="filter-sel" id="ua-filter-status" onchange="renderUserActivity()">
-              <option value="">All statuses</option>
-              <option value="success">Success</option>
-              <option value="failed">Failed</option>
-              <option value="blocked">Blocked</option>
-            </select>
-            <button class="btn" onclick="loadUserActivity(true)">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-              Refresh
-            </button>
-          </div>
-        </div>
-        <div class="table-card">
-          <div id="useractivity-body">
-            <div style="text-align:center;padding:48px;color:var(--text3);font-size:13px">
-              <div class="loader" style="margin:0 auto 12px"></div>Loading…
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Analytics -->
-      <div class="page" id="page-analytics">
-        <div class="page-header">
-          <div><h1>Analytics</h1><p>Google Analytics 4 — site traffic and engagement</p></div>
-          <a href="https://analytics.google.com/analytics/web/" target="_blank" class="btn">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            Open in GA4
-          </a>
-        </div>
-
-        <div class="stats-grid" style="margin-bottom:20px">
-          <div class="stat-card"><div class="label">Page views</div><div class="value" id="ga-pageviews" style="color:var(--accent)">—</div><div class="sub">Last 30 days</div></div>
-          <div class="stat-card"><div class="label">Active users</div><div class="value" id="ga-users" style="color:var(--success)">—</div><div class="sub">Last 30 days</div></div>
-          <div class="stat-card"><div class="label">Sessions</div><div class="value" id="ga-sessions" style="color:var(--purple)">—</div><div class="sub">Last 30 days</div></div>
-          <div class="stat-card"><div class="label">Avg. session</div><div class="value" id="ga-duration" style="color:var(--warn)">—</div><div class="sub">Duration</div></div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px">
-          <div class="table-card" style="padding:18px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:14px">Pageviews over time (last 30 days)</div>
-            <canvas id="ga-chart-pageviews" height="120"></canvas>
-          </div>
-          <div class="table-card" style="padding:18px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:14px">Top countries</div>
-            <div id="ga-countries"></div>
-          </div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-          <div class="table-card" style="padding:18px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:14px">Top pages</div>
-            <div id="ga-pages"></div>
-          </div>
-          <div class="table-card" style="padding:18px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:14px">Device category</div>
-            <canvas id="ga-chart-devices" height="160"></canvas>
-          </div>
-        </div>
-
-        <div style="padding:20px;background:var(--warn-l);border-radius:var(--radius);border:1px solid rgba(133,79,11,.15);font-size:13px;color:var(--warn);line-height:1.8">
-          <strong>⚠ Setup required for live data.</strong> The GA4 Reporting API requires OAuth authentication which must be done outside the browser.
-          See setup instructions below, or <a href="https://analytics.google.com" target="_blank" style="color:var(--warn);font-weight:600;text-decoration:underline">view your full dashboard on Google Analytics →</a>
-          <br><br>
-          <strong>Quick setup:</strong><br>
-          1. Go to <a href="https://console.cloud.google.com" target="_blank" style="color:var(--warn);font-weight:600">Google Cloud Console</a> → Enable <strong>Google Analytics Data API</strong><br>
-          2. Create a Service Account → download the JSON key<br>
-          3. In GA4 → Admin → Property Access Management → add the service account email with <strong>Viewer</strong> role<br>
-          4. Deploy a Supabase Edge Function with the key to proxy GA4 API calls<br><br>
-          <strong>GA4 Measurement ID:</strong> <code style="background:rgba(133,79,11,.1);padding:1px 6px;border-radius:3px;font-family:var(--mono);font-size:11px">G-EHHF524M5T</code> &nbsp;·&nbsp;
-          <strong>Property:</strong> El Martillo I.T. Helpdesk
-        </div>
-        <div id="ga-body" style="margin-top:16px"></div>
-      </div>
-
-      <!-- Activity Log -->
-      <div class="page" id="page-auditlog">
-        <div class="page-header">
-          <div><h1>Activity Log</h1><p>All admin actions recorded in the system</p></div>
-          <div style="display:flex;gap:8px">
-            <select class="filter-sel" id="log-filter-action" onchange="renderAuditLog()">
-              <option value="">All actions</option>
-              <option value="ticket">Tickets</option>
-              <option value="user">Users</option>
-              <option value="comment">Comments</option>
-              <option value="setting">Settings</option>
-            </select>
-            <button class="btn" onclick="loadAuditLog(true)">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-              Refresh
-            </button>
-          </div>
-        </div>
-        <div class="table-card">
-          <div id="auditlog-body">
-            <div style="text-align:center;padding:48px;color:var(--text3);font-size:13px">
-              <div class="loader" style="margin:0 auto 12px"></div>Loading…
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tech News -->
-      <div class="page" id="page-technews">
-        <div class="page-header">
-          <div><h1>Tech News</h1><p>Latest Microsoft, Windows &amp; Security updates</p></div>
-          <button class="btn" onclick="loadTechNews(true)">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-            Refresh
-          </button>
-        </div>
-        <div id="technews-body">
-          <div style="text-align:center;padding:48px;color:var(--text3);font-size:13px">
-            <div class="loader" style="margin:0 auto 12px"></div>
-            Loading news…
-          </div>
-        </div>
-      </div>
-
     </div>
   </div>
 </div>
@@ -865,19 +524,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
 <div class="overlay" id="modal-new-ticket">
   <div class="modal">
     <div class="modal-head"><div class="modal-title">Create ticket</div><button class="close-x" onclick="closeModal('modal-new-ticket')">✕</button></div>
-
-    <!-- Client selector — picks a user and auto-fills all their details -->
-    <div class="fg" style="margin-bottom:14px">
-      <label class="fl">Select client <span style="color:var(--text3);font-weight:400">(auto-fills details)</span></label>
-      <select id="nt-requester" class="fc" onchange="autofillFromRequester(this.value)">
-        <option value="">— Choose existing client or fill manually —</option>
-      </select>
-    </div>
-
     <div class="fg"><label class="fl">Subject *</label><input id="nt-subject" class="fc" type="text" placeholder="Brief description"/></div>
     <div class="fg"><label class="fl">Description</label><textarea id="nt-description" class="fc" placeholder="Provide full details…"></textarea></div>
     <div class="form-row">
-      <div class="fg"><label class="fl">Contact email *</label><input id="nt-email" class="fc" type="email" placeholder="client@example.com" oninput="autofillTicketFromEmail(this.value)"/></div>
+      <div class="fg"><label class="fl">Contact email *</label><input id="nt-email" class="fc" type="email" placeholder="client@example.com"/></div>
       <div class="fg"><label class="fl">Telephone</label><input id="nt-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
     </div>
     <div class="form-row">
@@ -885,11 +535,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <select id="nt-priority" class="fc"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="critical">Critical</option></select>
       </div>
       <div class="fg"><label class="fl">Category</label>
-        <select id="nt-category" class="fc"></select>
+        <select id="nt-category" class="fc"><option value="Billing">Billing</option><option value="Technical">Technical</option><option value="Account">Account</option><option value="General">General</option></select>
       </div>
-    </div>
-    <div class="fg"><label class="fl">Company / Organisation</label>
-      <select id="nt-company" class="fc"><option value="">— Select organisation —</option></select>
     </div>
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-new-ticket')">Cancel</button>
@@ -911,17 +558,14 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Phone</label><input id="au-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
-      <div class="fg"><label class="fl">Company / Organisation</label>
-        <select id="au-company" class="fc"><option value="">— Select organisation —</option></select>
-      </div>
+      <div class="fg"><label class="fl">Company / Organisation</label><input id="au-company" class="fc" type="text" placeholder="Acme Ltd"/></div>
     </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Role</label>
         <select id="au-role" class="fc">
           <option value="client">Client</option>
-          <option value="admin">Admin</option>
           <option value="agent">Agent</option>
-          <option value="super_admin">Super Admin</option>
+          <option value="admin">Admin</option>
         </select>
       </div>
     </div>
@@ -954,9 +598,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Phone</label><input id="eu-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
-      <div class="fg"><label class="fl">Company / Organisation</label>
-        <select id="eu-company" class="fc"><option value="">— Select organisation —</option></select>
-      </div>
+      <div class="fg"><label class="fl">Company / Organisation</label><input id="eu-company" class="fc" type="text" placeholder="Acme Ltd"/></div>
     </div>
 
     <div style="height:1px;background:var(--border);margin:14px 0"></div>
@@ -966,43 +608,9 @@ textarea.fc { resize: vertical; min-height: 80px; }
     <div class="fg"><label class="fl">Role</label>
       <select id="eu-role" class="fc">
         <option value="client">Client</option>
+        <option value="agent">Agent</option>
         <option value="admin">Admin</option>
       </select>
-    </div>
-
-    <div style="height:1px;background:var(--border);margin:14px 0"></div>
-
-    <div style="height:1px;background:var(--border);margin:14px 0"></div>
-
-    <!-- Password -->
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">Change password</div>
-    <div class="form-row">
-      <div class="fg">
-        <label class="fl">New password</label>
-        <input id="eu-password" class="fc" type="password" placeholder="Leave blank to keep current" autocomplete="new-password"/>
-      </div>
-      <div class="fg">
-        <label class="fl">Confirm password</label>
-        <input id="eu-password-confirm" class="fc" type="password" placeholder="Repeat new password" autocomplete="new-password"/>
-      </div>
-    </div>
-    <button class="btn sm" onclick="changePassword(document.getElementById('eu-id').value)" style="margin-bottom:4px">
-      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      Set new password
-    </button>
-    <div id="eu-password-msg" style="font-size:12px;margin-top:4px;min-height:18px"></div>
-
-    <div style="height:1px;background:var(--border);margin:14px 0"></div>
-
-    <!-- Resend confirmation -->
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">Account confirmation</div>
-    <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">Resend the signup confirmation email if the user hasn't confirmed their account yet.</div>
-    <div style="display:flex;align-items:center;gap:10px">
-      <button class="btn sm" onclick="resendConfirmation(document.getElementById('eu-id').value)">
-        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        Resend confirmation email
-      </button>
-      <span id="eu-resend-msg" style="font-size:12px;min-height:18px"></span>
     </div>
 
     <div style="height:1px;background:var(--border);margin:14px 0"></div>
@@ -1036,11 +644,11 @@ textarea.fc { resize: vertical; min-height: 80px; }
 <!-- Invite agent modal -->
 <div class="overlay" id="modal-invite-agent">
   <div class="modal">
-    <div class="modal-head"><div class="modal-title">Invite admin</div><button class="close-x" onclick="closeModal('modal-invite-agent')">✕</button></div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">The admin will receive an email invitation to set their password.</p>
+    <div class="modal-head"><div class="modal-title">Invite agent</div><button class="close-x" onclick="closeModal('modal-invite-agent')">✕</button></div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">The agent will receive an email invitation to set their password.</p>
     <div class="fg"><label class="fl">Full name</label><input id="ia-name" class="fc" type="text" placeholder="Jane Smith"/></div>
-    <div class="fg"><label class="fl">Email address</label><input id="ia-email" class="fc" type="email" placeholder="admin@el-martillo.com"/></div>
-    <div class="fg"><label class="fl">Role</label><select id="ia-role" class="fc"><option value="admin">Admin</option><option value="agent">Agent</option><option value="super_admin">Super Admin</option></select></div>
+    <div class="fg"><label class="fl">Email address</label><input id="ia-email" class="fc" type="email" placeholder="agent@support.com"/></div>
+    <div class="fg"><label class="fl">Role</label><select id="ia-role" class="fc"><option value="agent">Agent</option><option value="admin">Admin</option></select></div>
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-invite-agent')">Cancel</button>
       <button class="btn primary" onclick="inviteAgent()">Send invitation</button>
@@ -1055,7 +663,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
 let sbClient = null, currentUser = null, currentProfile = null;
 let tickets = [], profiles = [];
 let demoMode = false;
-let sortField = 'updated_at', sortDir = 'desc';
 const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
 
 /* ── Demo data ── */
@@ -1092,48 +699,10 @@ const DEMO_COMMENTS = {
 const initials = n => n ? n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '?';
 const avColor  = id => AV_COLORS[(id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0) % AV_COLORS.length];
 const timeAgo  = iso => { if(!iso) return '—'; const m=Math.floor((Date.now()-new Date(iso))/60000); if(m<1) return 'just now'; if(m<60) return m+'m ago'; const h=Math.floor(m/60); if(h<24) return h+'h ago'; return Math.floor(h/24)+'d ago'; };
-const formatUpdated = iso => {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  const date = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
-  const time = d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
-  return `<div style="font-size:12px;line-height:1.4">${date}</div><div style="font-size:11px;color:var(--text3)">${time} · ${timeAgo(iso)}</div>`;
-};
 const sLabel   = s => ({open:'Open',in_progress:'In progress',waiting:'Waiting',resolved:'Resolved',closed:'Closed'}[s]||s);
 const profileById = id => profiles.find(p=>p.id===id);
 function toast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
-function openModal(id) {
-  document.getElementById(id).classList.add('open');
-  if (id === 'modal-add-user' || id === 'modal-edit-user') populateOrgDropdowns();
-  if (id === 'modal-new-ticket') {
-    populateCategoryDropdowns();
-    // Populate org dropdown
-    const orgSel = document.getElementById('nt-company');
-    if (orgSel) {
-      const orgs = getOrgs();
-      orgSel.innerHTML = '<option value="">— Select organisation —</option>';
-      orgs.forEach(o => { const opt = document.createElement('option'); opt.value = o; opt.textContent = o; orgSel.appendChild(opt); });
-    }
-    // Populate requester dropdown with all clients
-    const reqSel = document.getElementById('nt-requester');
-    if (reqSel) {
-      const clients = allProfiles.filter(p => p.role === 'client' || p.role === 'user');
-      reqSel.innerHTML = '<option value="">— Choose existing client or fill manually —</option>';
-      clients.sort((a,b) => (a.full_name||'').localeCompare(b.full_name||'')).forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.id;
-        opt.textContent = `${p.full_name||'?'} ${p.email ? '('+p.email+')' : ''}`;
-        reqSel.appendChild(opt);
-      });
-      reqSel.value = '';
-    }
-    // Clear all fields on open
-    ['nt-subject','nt-description','nt-email','nt-phone'].forEach(id => {
-      const el = document.getElementById(id); if (el) el.value = '';
-    });
-    if (orgSel) orgSel.value = '';
-  }
-}
+function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
 
@@ -1158,14 +727,7 @@ function loadDemo() {
   document.getElementById('auth-screen').classList.remove('active');
   document.getElementById('app').style.display = 'flex';
   document.getElementById('topbar-user').textContent = 'Dev Kumar';
-  const fu = document.getElementById('footer-user-count');
-  if (fu) fu.textContent = DEMO_PROFILES.length;
-  loadTickets(); renderAgents(); renderReports(); populateAssigneeFilter();
-  loadVersion(); loadOrgs(); loadCategories();
-  setTimeout(() => {
-    const activeNav = document.querySelector('.nav-item.active');
-    if (activeNav) adminNav(activeNav, 'dashboard');
-  }, 0);
+  loadTickets(); renderAgents(); renderReports();
 }
 async function ensureProfile(user) {
   const {data:existing} = await sbClient.from('profiles').select('*').eq('id', user.id).single();
@@ -1182,21 +744,12 @@ async function signIn() {
   if (!sbClient) { loadDemo(); return; }
   const email = document.getElementById('auth-email').value;
   const pass  = document.getElementById('auth-password').value;
-  const errEl = document.getElementById('auth-err');
   const {data,error} = await sbClient.auth.signInWithPassword({email,password:pass});
-  if (error) { errEl.textContent = error.message; return; }
+  if (error) { document.getElementById('auth-err').textContent = error.message; return; }
   currentUser = data.user;
   const prof = await ensureProfile(currentUser);
   currentProfile = prof;
-  // Block non-admin access
-  if (!prof || (prof.role !== 'admin' && prof.role !== 'agent' && prof.role !== 'super_admin')) {
-    await sbClient.auth.signOut();
-    errEl.style.color = 'var(--danger)';
-    errEl.textContent = '⛔ Access denied. This panel is for admins only. Please use the client portal.';
-    errEl.innerHTML += `<br><a href="index.html" style="color:var(--accent);font-size:12px">→ Go to client portal</a>`;
-    currentUser = null; currentProfile = null;
-    return;
-  }
+  if (prof?.role==='client') { document.getElementById('auth-err').textContent='Access denied. Client accounts must use the client portal.'; return; }
   document.getElementById('auth-screen').classList.remove('active');
   document.getElementById('app').style.display = 'flex';
   document.getElementById('db-dot').className = 'dot connected';
@@ -1204,13 +757,6 @@ async function signIn() {
   document.getElementById('topbar-user').textContent = prof?.full_name||email;
   document.getElementById('settings-url').value = localStorage.getItem('sb_url')||'';
   loadTickets(); loadProfiles();
-  loadVersion(); loadOrgs(); loadCategories();
-  const fu = document.getElementById('footer-user-count');
-  if (fu) fu.textContent = '…';
-  setTimeout(() => {
-    const activeNav = document.querySelector('.nav-item.active');
-    if (activeNav) adminNav(activeNav, 'dashboard');
-  }, 0);
 }
 async function signOut() { if(sbClient) await sbClient.auth.signOut(); location.reload(); }
 function clearCreds() { localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key'); location.reload(); }
@@ -1220,319 +766,33 @@ async function loadTickets() {
   if (demoMode) { renderTable(); updateStats(); updateBadges(); return; }
   document.getElementById('admin-tbody').innerHTML='<tr class="loading-row"><td colspan="8"><div class="loader"></div></td></tr>';
   const {data,error} = await sbClient.from('tickets')
-    .select('*, requester:profiles!requester_id(id,full_name), assignee:profiles!assignee_id(id,full_name), comments(count)')
+    .select('*, requester:profiles!requester_id(id,full_name), assignee:profiles!assignee_id(id,full_name)')
     .order('updated_at',{ascending:false});
   if (error) { toast('Error: '+error.message); return; }
-  tickets = data||[];
-  renderTable(); updateStats(); updateBadges();
+  tickets = data||[]; renderTable(); updateStats(); updateBadges();
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
-  // Render the default dashboard page
-  const activeNav = document.querySelector('.nav-item.active');
-  if (activeNav) adminNav(activeNav, 'dashboard');
 }
 async function loadProfiles() {
   if (demoMode) { renderAgents(); return; }
-  const {data} = await sbClient.from('profiles').select('*').in('role',['agent','admin','super_admin']);
-  if (data) { profiles=data; renderAgents(); populateAssigneeFilter();
-    const fu = document.getElementById('footer-user-count');
-    if (fu && !allProfiles.length) fu.textContent = data.length;
-  }
+  const {data} = await sbClient.from('profiles').select('*').in('role',['agent','admin']);
+  if (data) profiles=data; renderAgents();
 }
-
-/* ── Full-field ticket search ── */
-function matchTicket(t, q) {
-  if (!q) return true;
-  const req = demoMode ? profileById(t.requester_id) : (t.requester || {});
-  const asgn = demoMode ? profileById(t.assignee_id) : (t.assignee || {});
-  const fields = [
-    t.subject, t.description, t.category,
-    t.priority, t.status,
-    t.contact_email, t.contact_phone,
-    String(t.ticket_number),
-    req?.full_name, req?.email,
-    asgn?.full_name,
-  ];
-  return fields.some(f => f && f.toLowerCase().includes(q));
-}
-
-function renderDashboardSearch(raw) {
-  const q = (raw || '').toLowerCase().trim();
-  const resultsEl = document.getElementById('dash-search-results');
-  const clearBtn  = document.getElementById('dash-search-clear');
-  const statsGrid = document.querySelector('#page-dashboard .stats-grid');
-  const twoCol    = document.querySelector('#page-dashboard > div:last-child');
-
-  if (!q) {
-    resultsEl.style.display = 'none';
-    if (clearBtn) clearBtn.style.display = 'none';
-    if (statsGrid) statsGrid.style.display = '';
-    if (twoCol) twoCol.style.display = '';
-    return;
-  }
-
-  if (clearBtn) clearBtn.style.display = 'inline-flex';
-  if (statsGrid) statsGrid.style.display = 'none';
-  if (twoCol) twoCol.style.display = 'none';
-  resultsEl.style.display = 'block';
-
-  const matches = tickets.filter(t => matchTicket(t, q));
-
-  if (!matches.length) {
-    resultsEl.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px">No tickets matched your search</div>';
-    return;
-  }
-
-  resultsEl.innerHTML = `
-    <div style="padding:8px 16px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">${matches.length} result${matches.length!==1?'s':''} for "<strong style="color:var(--text1)">${raw.replace(/</g,'&lt;')}</strong>"</div>
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
-      <thead><tr>
-        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;background:var(--surface2)">ID</th>
-        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.06em;background:var(--surface2)">Subject</th>
-        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;background:var(--surface2)">Status</th>
-        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;background:var(--surface2)">Priority</th>
-        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.06em;background:var(--surface2)">Requester</th>
-        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;background:var(--surface2)">Updated</th>
-      </tr></thead>
-      <tbody>
-        ${matches.map(t => {
-          const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
-          return `<tr onclick="openTicketDetail('${t.id}')" style="cursor:pointer" onmouseover="this.querySelectorAll('td').forEach(c=>c.style.background='var(--bg)')" onmouseout="this.querySelectorAll('td').forEach(c=>c.style.background='')">
-            <td style="padding:11px 16px;border-bottom:1px solid var(--border)"><span class="tid">#${t.ticket_number}</span></td>
-            <td style="padding:11px 16px;border-bottom:1px solid var(--border);max-width:280px">
-              <div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${highlight(t.subject, q)}</div>
-              ${t.description ? `<div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px">${highlight(t.description.slice(0,80), q)}</div>` : ''}
-            </td>
-            <td style="padding:11px 16px;border-bottom:1px solid var(--border)"><span class="sb s-${t.status}">${sLabel(t.status)}</span></td>
-            <td style="padding:11px 16px;border-bottom:1px solid var(--border)"><span class="pdot ${t.priority}"></span>${t.priority}</td>
-            <td style="padding:11px 16px;border-bottom:1px solid var(--border);font-size:12px">${highlight(req?.full_name||'—', q)}</td>
-            <td style="padding:11px 16px;border-bottom:1px solid var(--border);white-space:nowrap">${formatUpdated(t.updated_at)}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>`;
-}
-
-function highlight(text, q) {
-  if (!text || !q) return text || '';
-  const safe = String(text).replace(/</g,'&lt;');
-  const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
-  return safe.replace(re, '<mark style="background:#FFF176;color:inherit;border-radius:2px;padding:0 1px">$1</mark>');
-}
-
-function clearDashboardSearch() {
-  const inp = document.getElementById('dash-search-input');
-  if (inp) inp.value = '';
-  renderDashboardSearch('');
-}
-
-/* ── Sort ── */
-const PRIORITY_ORDER = { critical:0, high:1, medium:2, low:3 };
-const STATUS_ORDER   = { open:0, in_progress:1, waiting:2, resolved:3, closed:4 };
-
-function applySort(field) {
-  sortField = field;
-  renderTable();
-  renderActivePage();
-}
-
-function toggleSortDir() {
-  sortDir = sortDir === 'desc' ? 'asc' : 'desc';
-  const btn = document.getElementById('sort-dir-btn');
-  if (btn) btn.textContent = sortDir === 'desc' ? '↓' : '↑';
-  renderTable();
-  renderActivePage();
-}
-
-function sortList(list) {
-  return [...list].sort((a, b) => {
-    let av, bv;
-    if (sortField === 'priority') {
-      av = PRIORITY_ORDER[a.priority] ?? 9;
-      bv = PRIORITY_ORDER[b.priority] ?? 9;
-    } else if (sortField === 'status') {
-      av = STATUS_ORDER[a.status] ?? 9;
-      bv = STATUS_ORDER[b.status] ?? 9;
-    } else if (sortField === 'ticket_number') {
-      av = a.ticket_number || 0;
-      bv = b.ticket_number || 0;
-    } else if (sortField === 'subject') {
-      av = (a.subject || '').toLowerCase();
-      bv = (b.subject || '').toLowerCase();
-    } else {
-      // date fields
-      av = new Date(a[sortField] || 0).getTime();
-      bv = new Date(b[sortField] || 0).getTime();
-    }
-    if (av < bv) return sortDir === 'asc' ? -1 : 1;
-    if (av > bv) return sortDir === 'asc' ?  1 : -1;
-    return 0;
-  });
-}
-
-/* ── Per-page sort state ── */
-let pageSortDir = {};
-const pageState = {};
-function getPageState(id) {
-  if (!pageState[id]) pageState[id] = { q:'', pf:'', sf:'updated_at', dir:'desc' };
-  return pageState[id];
-}
-
-function sortToolbar(pageId) {
-  return `<div style="display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:var(--surface)">
-    <div class="search-wrap" style="flex:1;min-width:180px;max-width:280px">
-      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="text" id="search-${pageId}" placeholder="Search tickets…" oninput="rerenderPage('${pageId}', {q: this.value})" style="border:none;background:transparent;outline:none;font-size:13px;color:var(--text1);width:100%;font-family:var(--font)"/>
-    </div>
-    <select class="filter-sel" id="prio-${pageId}" onchange="rerenderPage('${pageId}', {pf: this.value})">
-      <option value="">All priorities</option>
-      <option value="critical">Critical</option>
-      <option value="high">High</option>
-      <option value="medium">Medium</option>
-      <option value="low">Low</option>
-    </select>
-    <select class="filter-sel" id="sort-${pageId}" onchange="rerenderPage('${pageId}', {sf: this.value})">
-      <option value="updated_at">Sort: Last updated</option>
-      <option value="created_at">Sort: Date created</option>
-      <option value="ticket_number">Sort: Ticket #</option>
-      <option value="subject">Sort: Subject</option>
-      <option value="priority">Sort: Priority</option>
-    </select>
-    <button class="btn sm" onclick="toggleSortDirPage('${pageId}')" id="sort-dir-${pageId}">↓</button>
-  </div>`;
-}
-
-function toggleSortDirPage(pageId) {
-  const s = getPageState(pageId);
-  s.dir = s.dir === 'asc' ? 'desc' : 'asc';
-  rerenderPage(pageId);
-}
-
-function rerenderPage(pageId, overrides) {
-  const pg = document.getElementById('page-'+pageId);
-  if (!pg) return;
-  const s = getPageState(pageId);
-  if (overrides) Object.assign(s, overrides);
-  const { q, pf, sf, dir } = s;
-
-  const prevField = sortField, prevDir = sortDir;
-  sortField = sf; sortDir = dir;
-
-  let statuses;
-  if (pageId === 'active')        statuses = ['open','in_progress'];
-  else if (pageId === 'waiting')  statuses = ['waiting'];
-  else if (pageId === 'resolved') statuses = ['resolved'];
-  else statuses = [pageId];
-
-  let list = tickets.filter(t => statuses.includes(t.status));
-  if (pf) list = list.filter(t => t.priority === pf);
-  if (q)  list = list.filter(t => matchTicket(t, q.toLowerCase()));
-  list = sortList(list);
-
-  sortField = prevField; sortDir = prevDir;
-
-  const rowHtml = items => items.length ? items.map(t => {
-    const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
-    const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
-    return `<tr onclick="openTicketDetail('${t.id}')">
-      <td><span class="tid">#${t.ticket_number}</span></td>
-      <td style="font-weight:500;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</td>
-      <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
-      <td style="font-size:12px">${req?.full_name||'—'}</td>
-      <td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td>
-      <td style="white-space:nowrap">${formatUpdated(t.updated_at)}</td>
-      <td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td>
-    </tr>`;
-  }).join('') : `<tr class="empty-row"><td colspan="7">No tickets found</td></tr>`;
-
-  const thead = `<table><thead><tr><th>ID</th><th>Subject</th><th>Priority</th><th>Requester</th><th>Assignee</th><th>Updated</th><th></th></tr></thead><tbody>`;
-
-  if (pageId === 'active') {
-    const open   = list.filter(t=>t.status==='open');
-    const inprog = list.filter(t=>t.status==='in_progress');
-    pg.innerHTML = `
-      <div class="page-header">
-        <div><h1>Active tickets</h1><p>${open.length + inprog.length} open &amp; in-progress tickets</p></div>
-        <button class="btn primary" onclick="openModal('modal-new-ticket')">
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>New ticket
-        </button>
-      </div>
-      <div class="table-card">
-        ${sortToolbar(pageId)}
-        <div style="padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
-          <span class="sb s-open">Open</span><span style="font-size:12px;color:var(--text2)">${open.length} ticket${open.length!==1?'s':''}</span>
-        </div>
-        ${thead}${rowHtml(open)}</tbody></table>
-        <div style="padding:10px 16px;background:var(--surface2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
-          <span class="sb s-in_progress">In progress</span><span style="font-size:12px;color:var(--text2)">${inprog.length} ticket${inprog.length!==1?'s':''}</span>
-        </div>
-        ${thead}${rowHtml(inprog)}</tbody></table>
-      </div>`;
-  } else {
-    pg.innerHTML = `
-      <div class="page-header"><div><h1>${sLabel(statuses[0])} tickets</h1><p>${list.length} ticket${list.length!==1?'s':''}</p></div></div>
-      <div class="table-card">
-        ${sortToolbar(pageId)}
-        ${thead}${rowHtml(list)}</tbody></table>
-      </div>`;
-  }
-
-  // Restore toolbar state after innerHTML wipe
-  const inp = document.getElementById('search-'+pageId);  if (inp) inp.value = q;
-  const ps  = document.getElementById('prio-'+pageId);    if (ps)  ps.value  = pf;
-  const ss  = document.getElementById('sort-'+pageId);    if (ss)  ss.value  = sf;
-  const db  = document.getElementById('sort-dir-'+pageId);if (db)  db.textContent = dir === 'asc' ? '↑' : '↓';
-}
-
-function renderActivePage() {
-  const pg = document.getElementById('page-active');
-  if (pg && pg.classList.contains('active')) rerenderPage('active');
-}
-
 
 /* ── Render table ── */
-function populateAssigneeFilter() {
-  const sel = document.getElementById('filter-assignee');
-  if (!sel) return;
-  const current = sel.value;
-  // Keep the first two fixed options, rebuild the rest
-  while (sel.options.length > 2) sel.remove(2);
-  profiles.filter(p=>p.role==='admin'||p.role==='agent'||p.role==='super_admin').forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.id;
-    opt.textContent = p.full_name;
-    sel.appendChild(opt);
-  });
-  sel.value = current;
-}
-
 function renderTable(statusFilter) {
   const q  = (document.getElementById('search-input')?.value||'').toLowerCase();
   const sf = statusFilter||document.getElementById('filter-status')?.value||'';
   const pf = document.getElementById('filter-priority')?.value||'';
-  const af = document.getElementById('filter-assignee')?.value||'';
   let list = tickets;
-  if (sf) list = list.filter(t=>t.status===sf);
-  if (pf) list = list.filter(t=>t.priority===pf);
-  if (af === '__unassigned__') list = list.filter(t=>!t.assignee_id);
-  else if (af) list = list.filter(t=>t.assignee_id===af);
-  if (q)  list = list.filter(t => matchTicket(t, q));
-  list = sortList(list);
+  if (sf) list=list.filter(t=>t.status===sf);
+  if (pf) list=list.filter(t=>t.priority===pf);
+  if (q)  list=list.filter(t=>t.subject.toLowerCase().includes(q)||(t.ticket_number+'').includes(q)||getReqName(t).toLowerCase().includes(q));
   const tbody = document.getElementById('admin-tbody');
   if (!tbody) return;
-  if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="9">No tickets found</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="8">No tickets found</td></tr>'; return; }
   tbody.innerHTML = list.map(t => {
     const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
     const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
-    // Comment count: from supabase aggregate or demo lookup
-    const commentCount = demoMode
-      ? (DEMO_COMMENTS[t.id]?.length || 0)
-      : (t.comments?.[0]?.count ?? '—');
-    const countDisplay = commentCount > 0
-      ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--accent);font-weight:500">
-          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          ${commentCount}
-        </span>`
-      : `<span style="font-size:12px;color:var(--text3)">—</span>`;
     return `<tr onclick="openTicketDetail('${t.id}')">
       <td><span class="tid">#${t.ticket_number}</span></td>
       <td style="max-width:240px"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</div><span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}" style="margin-top:3px">${t.category||'General'}</span></td>
@@ -1540,140 +800,12 @@ function renderTable(statusFilter) {
       <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
       <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${req?.full_name||'—'}</span></div></td>
       <td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td>
-      <td>${countDisplay}</td>
-      <td style="white-space:nowrap">${formatUpdated(t.updated_at)}</td>
+      <td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td>
       <td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td>
     </tr>`;
   }).join('');
 }
 const getReqName = t => { const p = demoMode ? profileById(t.requester_id) : t.requester; return p?.full_name||''; };
-
-/* ── Dashboard news panel ── */
-let dashNewsCache = null;
-let dashNewsLastFetch = 0;
-
-async function loadDashNews(force) {
-  if (!force && dashNewsCache && (Date.now() - dashNewsLastFetch < 30 * 60 * 1000)) {
-    renderDashNews(dashNewsCache); return;
-  }
-  const el = document.getElementById('dash-news');
-  if (!el) return;
-  el.innerHTML = `<div style="text-align:center;padding:24px 0;color:var(--text3);font-size:12px">
-    <div class="loader" style="margin:0 auto 10px"></div>Loading…</div>`;
-
-  try {
-    const results = await Promise.all(MS_FEEDS.map(f => fetchFeed(f.url, f.tag)));
-    const articles = results.flat()
-      .filter(a => a.title)
-      .sort((a,b) => new Date(b.date) - new Date(a.date))
-      .slice(0, 5);
-    if (!articles.length) throw new Error('No articles');
-    dashNewsCache = articles;
-    dashNewsLastFetch = Date.now();
-    renderDashNews(articles);
-  } catch(e) {
-    const el2 = document.getElementById('dash-news');
-    if (el2) el2.innerHTML = `<div style="font-size:12px;color:var(--danger);padding:8px 0">
-      Failed to load.<br><button class="btn sm" style="margin-top:8px" onclick="loadDashNews(true)">Retry</button></div>`;
-  }
-}
-
-function renderDashNews(articles) {
-  const el = document.getElementById('dash-news');
-  if (!el || !articles?.length) return;
-  const tagColor = {
-    'Windows':'var(--accent)','Microsoft':'var(--accent)','Office':'var(--success)',
-    'Security':'var(--danger)','Azure':'var(--purple)','Microsoft 365':'var(--warn)'
-  };
-  el.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
-      ${articles.map(a => `
-        <a href="${a.url||'#'}" target="_blank" rel="noopener"
-           style="display:block;padding:14px;border-radius:var(--radius);border:1px solid var(--border);text-decoration:none;color:inherit;transition:box-shadow .15s;background:var(--bg)"
-           onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'"
-           onmouseout="this.style.boxShadow=''">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px">
-            <span style="font-size:10px;font-weight:600;color:${tagColor[a.tag]||'var(--text3)'}">${a.tag}</span>
-            <span style="font-size:10px;color:var(--text3)">${a.date}</span>
-          </div>
-          <div style="font-size:13px;font-weight:500;line-height:1.4;color:var(--text1);margin-bottom:6px">${a.title}</div>
-          <div style="font-size:11px;color:var(--text3)">${a.source}</div>
-        </a>`).join('')}
-    </div>
-    <div style="font-size:11px;color:var(--text3);margin-top:12px;text-align:right">
-      <button class="btn sm" onclick="adminNav(document.querySelector('[onclick*=\\'technews\\']'),\\'technews\\')" style="font-size:11px;padding:2px 8px">Full view →</button>
-    </div>`;
-}
-
-/* ── Dashboard ── */
-function renderDashboard() {
-  const open    = tickets.filter(t=>t.status==='open').length;
-  const inprog  = tickets.filter(t=>t.status==='in_progress').length;
-  const waiting = tickets.filter(t=>t.status==='waiting').length;
-
-  // Update stat cards
-  const set = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
-  set('dash-open', open);
-  set('dash-inprog', inprog);
-  set('dash-waiting', waiting);
-  set('dash-total', tickets.length);
-
-  // Greeting
-  const hour = new Date().getHours();
-  const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const gEl = document.getElementById('dashboard-greeting');
-  if (gEl) gEl.textContent = `${greet}${currentProfile?.full_name ? ', '+currentProfile.full_name : ''} — ${tickets.length} ticket${tickets.length!==1?'s':''} in the system`;
-
-  // Recent tickets (last 6)
-  const recent = tickets.slice(0, 6);
-  const rEl = document.getElementById('dash-recent-tickets');
-  if (rEl) {
-    rEl.innerHTML = recent.length ? recent.map(t => {
-      const req = demoMode ? profileById(t.requester_id) : (t.requester||{});
-      return `<div onclick="openTicketDetail('${t.id}')" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
-        <span class="tid" style="flex-shrink:0">#${t.ticket_number}</span>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</div>
-          <div style="font-size:11px;color:var(--text3)">${req?.full_name||'—'} · ${timeAgo(t.updated_at)}</div>
-        </div>
-        <span class="sb s-${t.status}" style="flex-shrink:0;font-size:10px">${sLabel(t.status)}</span>
-      </div>`;
-    }).join('') : '<div style="color:var(--text3);font-size:13px;padding:8px 0">No tickets yet</div>';
-  }
-
-  // Priority bars
-  const priorities = ['critical','high','medium','low'];
-  const pc = {critical:'#E24B4A',high:'#EF9F27',medium:'#378ADD',low:'#9e9a94'};
-  const pmax = Math.max(...priorities.map(p=>tickets.filter(t=>t.priority===p).length),1);
-  const pEl = document.getElementById('dash-priority-bars');
-  if (pEl) pEl.innerHTML = priorities.map(p=>{const c=tickets.filter(t=>t.priority===p).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:8px"><div style="width:70px;color:var(--text2)">${p}</div><div style="flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden"><div style="width:${Math.round(c/pmax*100)}%;height:100%;background:${pc[p]};border-radius:3px"></div></div><div style="width:18px;text-align:right;font-weight:600;font-size:11px">${c}</div></div>`;}).join('');
-
-  // Category bars
-  const cats = ['Technical','Billing','Account','General'];
-  const catColors = {'Technical':'var(--accent)','Billing':'var(--success)','Account':'var(--purple)','General':'var(--text3)'};
-  const cmax = Math.max(...cats.map(c=>tickets.filter(t=>t.category===c).length),1);
-  const cEl = document.getElementById('dash-category-bars');
-  if (cEl) cEl.innerHTML = cats.map(c=>{const n=tickets.filter(t=>t.category===c).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:8px"><div style="width:70px;color:var(--text2)">${c}</div><div style="flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden"><div style="width:${Math.round(n/cmax*100)}%;height:100%;background:${catColors[c]};border-radius:3px"></div></div><div style="width:18px;text-align:right;font-weight:600;font-size:11px">${n}</div></div>`;}).join('');
-
-  // Load news panel (use cache if fresh)
-  loadDashNews(false);
-}
-
-/* ── Filter by stat card ── */
-function filterByStatCard(status) {
-  const sel = document.getElementById('filter-status');
-  if (sel) sel.value = status;
-  const search = document.getElementById('search-input');
-  if (search) search.value = '';
-  const prio = document.getElementById('filter-priority');
-  if (prio) prio.value = '';
-  renderTable();
-  // Highlight clicked card, clear others
-  const colors = { open:'var(--accent)', in_progress:'var(--purple)', resolved:'var(--success)', '':'var(--border2)' };
-  document.querySelectorAll('.stat-card').forEach(c => c.style.outline = '');
-  event.currentTarget.style.outline = '2px solid ' + (colors[status] || 'var(--border2)');
-  document.querySelector('.table-card')?.scrollIntoView({ behavior:'smooth', block:'nearest' });
-}
 
 function updateStats() {
   document.getElementById('stat-open').textContent    = tickets.filter(t=>t.status==='open').length;
@@ -1682,14 +814,12 @@ function updateStats() {
   document.getElementById('stat-total').textContent   = tickets.length;
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
   const fc = document.getElementById('footer-ticket-count');
-  if (fc) fc.textContent = tickets.filter(t => t.status === 'open' || t.status === 'in_progress').length;
-  renderDashboard();
+  if (fc) fc.textContent = tickets.length;
 }
 function updateBadges() {
-  const open   = tickets.filter(t=>t.status==='open').length;
-  const inprog = tickets.filter(t=>t.status==='in_progress').length;
-  const activeBadge = document.getElementById('badge-active');
-  if (activeBadge) activeBadge.textContent = open + inprog;
+  document.getElementById('badge-all').textContent   = tickets.length;
+  document.getElementById('badge-open').textContent  = tickets.filter(t=>t.status==='open').length;
+  document.getElementById('badge-inprog').textContent= tickets.filter(t=>t.status==='in_progress').length;
 }
 
 /* ── Navigation ── */
@@ -1700,12 +830,17 @@ function adminNav(el, page) {
   const pg = document.getElementById('page-'+page);
   if (!pg) return;
   pg.classList.add('active');
-  if (['active','waiting','resolved'].includes(page)) rerenderPage(page);
+  if (['open','in_progress','waiting','resolved'].includes(page)) {
+    const filtered = tickets.filter(t=>t.status===page);
+    pg.innerHTML = `<div class="page-header"><div><h1>${sLabel(page)} tickets</h1><p>${filtered.length} tickets</p></div></div>
+    <div class="table-card"><table><thead><tr><th>ID</th><th>Subject</th><th>Priority</th><th>Requester</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
+    <tbody>${filtered.length ? filtered.map(t=>{
+      const req=demoMode?profileById(t.requester_id):(t.requester||{});
+      const asgn=demoMode?profileById(t.assignee_id):(t.assignee||{});
+      return `<tr onclick="openTicketDetail('${t.id}')"><td><span class="tid">#${t.ticket_number}</span></td><td style="font-weight:500;max-width:260px">${t.subject}</td><td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td><td style="font-size:12px">${req?.full_name||'—'}</td><td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td><td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td><td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td></tr>`;
+    }).join('') : '<tr class="empty-row"><td colspan="7">No tickets in this status</td></tr>'}</tbody></table></div>`;
+  }
   if (page==='reports') renderReports();
-  if (page==='dashboard') renderDashboard();
-  if (page==='settings') { loadVersion(); loadOrgs(); loadCategories(); }
-  if (page==='technews') loadTechNews(false);
-  if (page==='analytics') loadAnalytics();
 }
 
 /* ── Ticket detail ── */
@@ -1713,110 +848,38 @@ async function openTicketDetail(id) {
   const t = tickets.find(x=>x.id===id); if (!t) return;
   const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
   const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
-  document.getElementById('detail-title').textContent = `Edit Ticket #${t.ticket_number}`;
-  document.getElementById('detail-sub').textContent   = `${t.category||'General'} · ${timeAgo(t.updated_at)}`;
+  document.getElementById('detail-title').textContent = t.subject;
+  document.getElementById('detail-sub').textContent   = `#${t.ticket_number} · ${t.category||'General'} · ${timeAgo(t.updated_at)}`;
   let comments=[];
   if (demoMode) { comments=DEMO_COMMENTS[id]||[]; }
   else { const {data}=await sbClient.from('comments').select('*,author:profiles(id,full_name,role)').eq('ticket_id',id).order('created_at'); comments=data||[]; }
-  const agentOpts = profiles.filter(p=>p.role==='agent'||p.role==='admin'||p.role==='super_admin')
+  const agentOpts = profiles.filter(p=>p.role==='agent'||p.role==='admin')
     .map(p=>`<option value="${p.id}" ${p.id===t.assignee_id?'selected':''}>${p.full_name}</option>`).join('');
-
   document.getElementById('detail-body').innerHTML=`
-
-    <!-- Editable fields -->
-    <div class="fg" style="margin-bottom:12px">
-      <label class="fl">Subject</label>
-      <input id="td-subject" class="fc" type="text" value="${(t.subject||'').replace(/"/g,'&quot;')}"/>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+      <span class="sb s-${t.status}">${sLabel(t.status)}</span>
+      <span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}">${t.category||'General'}</span>
+      <span style="font-size:12px;color:var(--text2)"><span class="pdot ${t.priority}"></span>${t.priority} priority</span>
+      <select class="filter-sel" style="margin-left:auto" onchange="updateStatus('${t.id}',this.value)">
+        <option value="open" ${t.status==='open'?'selected':''}>Open</option>
+        <option value="in_progress" ${t.status==='in_progress'?'selected':''}>In progress</option>
+        <option value="waiting" ${t.status==='waiting'?'selected':''}>Waiting</option>
+        <option value="resolved" ${t.status==='resolved'?'selected':''}>Resolved</option>
+        <option value="closed" ${t.status==='closed'?'selected':''}>Closed</option>
+      </select>
+      <select class="filter-sel" onchange="updateAssignee('${t.id}',this.value)">
+        <option value="">Unassigned</option>${agentOpts}
+      </select>
     </div>
-
-    <div class="form-row" style="margin-bottom:12px">
-      <div class="fg">
-        <label class="fl">Status</label>
-        <select id="td-status" class="fc">
-          <option value="open"        ${t.status==='open'?'selected':''}>Open</option>
-          <option value="in_progress" ${t.status==='in_progress'?'selected':''}>In progress</option>
-          <option value="waiting"     ${t.status==='waiting'?'selected':''}>Waiting</option>
-          <option value="resolved"    ${t.status==='resolved'?'selected':''}>Resolved</option>
-          <option value="closed"      ${t.status==='closed'?'selected':''}>Closed</option>
-        </select>
-      </div>
-      <div class="fg">
-        <label class="fl">Priority</label>
-        <select id="td-priority" class="fc">
-          <option value="low"      ${t.priority==='low'?'selected':''}>Low</option>
-          <option value="medium"   ${t.priority==='medium'?'selected':''}>Medium</option>
-          <option value="high"     ${t.priority==='high'?'selected':''}>High</option>
-          <option value="critical" ${t.priority==='critical'?'selected':''}>Critical</option>
-        </select>
-      </div>
+    <div class="detail-meta-grid">
+      <div class="dmi"><div class="key">Requester</div><div class="val flex-c"><div class="avatar ${avColor(req?.id)}" style="width:22px;height:22px;font-size:9px">${initials(req?.full_name||'?')}</div>${req?.full_name||'—'}</div></div>
+      <div class="dmi"><div class="key">Assignee</div><div class="val">${asgn?.full_name||'Unassigned'}</div></div>
+      <div class="dmi"><div class="key">Created</div><div class="val">${timeAgo(t.created_at||t.updated_at)}</div></div>
+      <div class="dmi"><div class="key">Category</div><div class="val">${t.category||'General'}</div></div>
+      ${t.contact_email?`<div class="dmi"><div class="key">Email</div><div class="val"><a href="mailto:${t.contact_email}" style="color:var(--accent)">${t.contact_email}</a></div></div>`:''}
+      ${t.contact_phone?`<div class="dmi"><div class="key">Telephone</div><div class="val"><a href="tel:${t.contact_phone}" style="color:var(--accent)">${t.contact_phone}</a></div></div>`:''}
     </div>
-
-    <div class="form-row" style="margin-bottom:12px">
-      <div class="fg">
-        <label class="fl">Category</label>
-        <select id="td-category" class="fc">
-          ${getCategories().map(c=>`<option value="${c}" ${(t.category||'')=== c?'selected':''}>${c}</option>`).join('')}
-        </select>
-      </div>
-      <div class="fg">
-        <label class="fl">Assignee</label>
-        <select id="td-assignee" class="fc">
-          <option value="">Unassigned</option>${agentOpts}
-        </select>
-      </div>
-    </div>
-
-    <div class="form-row" style="margin-bottom:12px">
-      <div class="fg">
-        <label class="fl">Contact email</label>
-        <input id="td-email" class="fc" type="email" value="${t.contact_email||''}" placeholder="client@example.com"/>
-      </div>
-      <div class="fg">
-        <label class="fl">Telephone</label>
-        <input id="td-phone" class="fc" type="tel" value="${t.contact_phone||''}" placeholder="+350 200 00000"/>
-      </div>
-    </div>
-
-    <div class="form-row" style="margin-bottom:12px">
-      <div class="fg">
-        <label class="fl">Company / Organisation</label>
-        <select id="td-company" class="fc">
-          <option value="">— Select organisation —</option>
-          ${getOrgs().map(o=>`<option value="${o}" ${(t.company||'')=== o?'selected':''}>${o}</option>`).join('')}
-        </select>
-      </div>
-    </div>
-
-    <div class="fg" style="margin-bottom:16px">
-      <label class="fl">Description</label>
-      <textarea id="td-description" class="fc" style="min-height:80px;resize:vertical">${t.description||''}</textarea>
-    </div>
-
-    <!-- Meta info row -->
-    <div style="display:flex;gap:16px;flex-wrap:wrap;padding:10px 12px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:16px;font-size:12px;color:var(--text2)">
-      <span><strong>Client Name:</strong>
-        <span class="flex-c" style="display:inline-flex;gap:5px;vertical-align:middle">
-          <span class="avatar ${avColor(req?.id)}" style="width:18px;height:18px;font-size:8px">${initials(req?.full_name||'?')}</span>
-          ${req?.full_name||'—'}
-        </span>
-      </span>
-      <span><strong>Created:</strong> ${timeAgo(t.created_at||t.updated_at)}</span>
-      <span><strong>Last updated:</strong> ${timeAgo(t.updated_at)}</span>
-    </div>
-
-    <!-- Save / Close buttons -->
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:20px">
-      <button class="btn" onclick="closeModal('modal-ticket-detail')">
-        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        Close
-      </button>
-      <button class="btn primary" onclick="saveTicketDetail('${t.id}')">
-        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Save changes
-      </button>
-    </div>
-
-    <!-- Activity / comments -->
+    <div class="desc-box">${t.description||'<em style="color:var(--text3)">No description provided.</em>'}</div>
     <div class="activity">
       <div class="activity-label">Activity (${comments.length} comments)</div>
       <div id="comments-list">${renderComments(comments,true)}</div>
@@ -1826,53 +889,21 @@ async function openTicketDetail(id) {
           <label class="internal-toggle"><input type="checkbox" id="reply-internal"/> Internal note only</label>
           <button class="btn primary sm" onclick="addComment('${t.id}')">
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            Add comment
+            Send reply
           </button>
         </div>
       </div>
     </div>`;
-
   openModal('modal-ticket-detail');
 }
-
-async function saveTicketDetail(id) {
-  const subject      = document.getElementById('td-subject').value.trim();
-  const status       = document.getElementById('td-status').value;
-  const priority     = document.getElementById('td-priority').value;
-  const category     = document.getElementById('td-category').value;
-  const assignee_id  = document.getElementById('td-assignee').value || null;
-  const contact_email= document.getElementById('td-email').value.trim() || null;
-  const contact_phone= document.getElementById('td-phone').value.trim() || null;
-  const company      = document.getElementById('td-company').value || null;
-  const description  = document.getElementById('td-description').value.trim() || null;
-  if (!subject) { toast('Subject is required'); return; }
-  const updates = { subject, status, priority, category, assignee_id, contact_email, contact_phone, company, description };
-  if (demoMode) {
-    const t = tickets.find(x=>x.id===id);
-    if (t) Object.assign(t, updates, { updated_at: new Date().toISOString() });
-    renderTable(); updateStats(); updateBadges();
-    closeModal('modal-ticket-detail'); toast('Ticket saved');
-    const activeNav = document.querySelector('.nav-item[onclick*="active"]');
-    if (activeNav) adminNav(activeNav, 'active');
-    return;
-  }
-  const { error } = await sbClient.from('tickets').update(updates).eq('id', id);
-  if (error) { toast('Error: ' + error.message); return; }
-  auditLog('Updated ticket', 'ticket', id, subject, `Status: ${status}, Priority: ${priority}`);
-  closeModal('modal-ticket-detail');
-  loadTickets(); toast('Ticket saved');
-  const activeNav = document.querySelector('.nav-item[onclick*="active"]');
-  if (activeNav) adminNav(activeNav, 'active');
-}
-
 function renderComments(comments, showInternal=false) {
   if (!comments.length) return '<div style="color:var(--text3);font-size:13px;padding:8px 0">No comments yet.</div>';
   return comments.filter(c=>showInternal||!c.is_internal).map(c=>{
     const author=demoMode?profileById(c.author_id):(c.author||{});
-    const isAgent=author?.role==='agent'||author?.role==='admin'||author?.role==='super_admin';
+    const isAgent=author?.role==='agent'||author?.role==='admin';
     const cls=c.is_internal?'internal-bubble':(isAgent?'agent-bubble':'');
     return `<div class="comment-item"><div class="avatar ${avColor(author?.id)}" style="flex-shrink:0">${initials(author?.full_name||'?')}</div>
-      <div class="comment-bubble ${cls}"><div class="comment-meta">${author?.full_name||'Unknown'} ${isAgent?'(admin)':''} ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${c.body}</div></div>`;
+      <div class="comment-bubble ${cls}"><div class="comment-meta">${author?.full_name||'Unknown'} ${isAgent?'(agent)':''} ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${c.body}</div></div>`;
   }).join('');
 }
 async function addComment(ticketId) {
@@ -1898,54 +929,12 @@ async function updateAssignee(id, assigneeId) {
   await sbClient.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id); loadTickets(); toast('Assignee updated');
 }
 
-/* ── Auto-fill ticket from profile ── */
-function autofillFromRequester(userId) {
-  if (!userId) return;
-  const profile = allProfiles.find(p => p.id === userId);
-  if (!profile) return;
-  const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
-  set('nt-email', profile.email);
-  set('nt-phone', profile.phone);
-  // Set company select
-  const companyEl = document.getElementById('nt-company');
-  if (companyEl && profile.company) {
-    const opt = Array.from(companyEl.options).find(o => o.value === profile.company);
-    if (opt) companyEl.value = profile.company;
-  }
-}
-
-let autofillTimer = null;
-async function autofillTicketFromEmail(email) {
-  clearTimeout(autofillTimer);
-  if (!email || !email.includes('@')) return;
-  autofillTimer = setTimeout(async () => {
-    // Search allProfiles first (already loaded)
-    let profile = allProfiles.find(p => p.email?.toLowerCase() === email.toLowerCase());
-    // If not found locally, query Supabase
-    if (!profile && !demoMode && sbClient) {
-      const { data } = await sbClient
-        .from('profiles')
-        .select('full_name, phone, company, email')
-        .ilike('email', email)
-        .single();
-      profile = data;
-    }
-    if (!profile) return;
-    // Only fill if fields are currently empty
-    const phoneEl   = document.getElementById('nt-phone');
-    const companyEl = document.getElementById('nt-company');
-    if (phoneEl   && !phoneEl.value   && profile.phone)   phoneEl.value   = profile.phone;
-    if (companyEl && !companyEl.value && profile.company) companyEl.value = profile.company;
-  }, 400); // debounce 400ms
-}
-
 /* ── Create ticket ── */
 async function createTicket() {
   const subject=document.getElementById('nt-subject').value.trim();
   const email=document.getElementById('nt-email').value.trim();
   if (!subject){toast('Subject is required');return;}
   if (!email){toast('Contact email is required');return;}
-  const selectedRequester = document.getElementById('nt-requester')?.value || null;
   const payload={
     subject,
     description:document.getElementById('nt-description').value,
@@ -1953,8 +942,6 @@ async function createTicket() {
     category:document.getElementById('nt-category').value,
     contact_email:email,
     contact_phone:document.getElementById('nt-phone').value.trim(),
-    company:document.getElementById('nt-company')?.value || null,
-    requester_id: selectedRequester || currentUser?.id || null,
     status:'open'
   };
   function clearForm(){
@@ -1962,8 +949,6 @@ async function createTicket() {
     document.getElementById('nt-description').value='';
     document.getElementById('nt-email').value='';
     document.getElementById('nt-phone').value='';
-    const co = document.getElementById('nt-company'); if (co) co.value='';
-    const rq = document.getElementById('nt-requester'); if (rq) rq.value='';
   }
   if (demoMode) {
     tickets.unshift({id:'t'+Date.now(),ticket_number:tickets.length+1,...payload,requester_id:'p4',assignee_id:null,updated_at:new Date().toISOString(),created_at:new Date().toISOString()});
@@ -1976,7 +961,7 @@ async function createTicket() {
 
 /* ── Agents ── */
 function renderAgents() {
-  const agents=profiles.filter(p=>p.role==='agent'||p.role==='admin'||p.role==='super_admin');
+  const agents=profiles.filter(p=>p.role==='agent'||p.role==='admin');
   const openByAgent={};
   tickets.forEach(t=>{if(t.assignee_id&&t.status!=='resolved'&&t.status!=='closed') openByAgent[t.assignee_id]=(openByAgent[t.assignee_id]||0)+1;});
   const ss={online:'s-open',away:'s-waiting',offline:'s-closed'};
@@ -1984,7 +969,7 @@ function renderAgents() {
     <div class="table-card" style="display:flex;align-items:center;gap:14px;padding:16px">
       <div class="avatar ${avColor(p.id)}" style="width:42px;height:42px;font-size:15px">${initials(p.full_name)}</div>
       <div style="flex:1"><div style="font-size:14px;font-weight:600">${p.full_name}</div>
-      <div style="font-size:12px;color:var(--text2)">Admin · ${openByAgent[p.id]||0} open</div></div>
+      <div style="font-size:12px;color:var(--text2)">${p.role==='admin'?'Admin':'Support Agent'} · ${openByAgent[p.id]||0} open</div></div>
       <span class="sb ${ss[p.status]||'s-closed'}">${p.status||'offline'}</span>
     </div>`).join('');
 }
@@ -2007,85 +992,6 @@ function renderReports() {
   const pc={critical:'#E24B4A',high:'#EF9F27',medium:'#378ADD',low:'#9e9a94'};
   document.getElementById('report-status-bars').innerHTML=statuses.map(s=>{const c=tickets.filter(t=>t.status===s).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${sLabel(s)}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/max*100)}%;height:100%;background:${sc[s]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
   document.getElementById('report-priority-bars').innerHTML=priorities.map(p=>{const c=tickets.filter(t=>t.priority===p).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${p}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/pmax*100)}%;height:100%;background:${pc[p]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
-
-  // ── Average resolution time ──────────────────────────────
-  const resolved = tickets.filter(t =>
-    (t.status === 'resolved' || t.status === 'closed') && t.created_at && t.updated_at
-  );
-
-  const formatDuration = ms => {
-    if (ms < 0) return '—';
-    const mins = Math.floor(ms / 60000);
-    if (mins < 60) return mins + 'm';
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return hrs + 'h ' + (mins % 60) + 'm';
-    const days = Math.floor(hrs / 24);
-    const remHrs = hrs % 24;
-    return days + 'd ' + remHrs + 'h';
-  };
-
-  const avgMs = arr => {
-    if (!arr.length) return null;
-    const durations = arr.map(t => new Date(t.updated_at) - new Date(t.created_at)).filter(d => d > 0);
-    if (!durations.length) return null;
-    return durations.reduce((a,b) => a+b, 0) / durations.length;
-  };
-
-  // Overall + per priority
-  const overallAvg  = avgMs(resolved);
-  const criticalAvg = avgMs(resolved.filter(t => t.priority === 'critical'));
-  const highAvg     = avgMs(resolved.filter(t => t.priority === 'high'));
-  const mediumAvg   = avgMs(resolved.filter(t => t.priority === 'medium'));
-  const lowAvg      = avgMs(resolved.filter(t => t.priority === 'low'));
-
-  const statCard = (label, val, color) => `
-    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center">
-      <div style="font-size:20px;font-weight:600;color:${color};margin-bottom:4px">${val !== null ? formatDuration(val) : '—'}</div>
-      <div style="font-size:11px;color:var(--text3)">${label}</div>
-    </div>`;
-
-  document.getElementById('report-avg-cards').innerHTML =
-    statCard('Overall', overallAvg, 'var(--accent)') +
-    statCard('Critical', criticalAvg, '#E24B4A') +
-    statCard('High', highAvg, '#EF9F27') +
-    statCard('Medium', mediumAvg, '#378ADD') +
-    statCard('Low', lowAvg, 'var(--text3)');
-
-  // Recent resolved ticket list
-  const recent = resolved.slice().sort((a,b) => new Date(b.updated_at)-new Date(a.updated_at)).slice(0,8);
-  if (recent.length) {
-    document.getElementById('report-resolution-list').innerHTML = `
-      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Recent resolved tickets</div>
-      <table style="width:100%;border-collapse:collapse;font-size:12px">
-        <thead>
-          <tr>
-            <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Ticket</th>
-            <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Priority</th>
-            <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Opened</th>
-            <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Resolved</th>
-            <th style="text-align:right;padding:6px 10px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)">Time taken</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${recent.map(t => {
-            const dur = new Date(t.updated_at) - new Date(t.created_at);
-            return `<tr>
-              <td style="padding:7px 10px;border-bottom:1px solid var(--border)">
-                <span class="tid">#${t.ticket_number}</span>
-                <span style="margin-left:8px;color:var(--text1)">${t.subject.length > 40 ? t.subject.slice(0,40)+'…' : t.subject}</span>
-              </td>
-              <td style="padding:7px 10px;border-bottom:1px solid var(--border)"><span class="pdot ${t.priority}"></span>${t.priority}</td>
-              <td style="padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text2)">${new Date(t.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</td>
-              <td style="padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text2)">${new Date(t.updated_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</td>
-              <td style="padding:7px 10px;border-bottom:1px solid var(--border);text-align:right;font-weight:600;color:var(--accent)">${formatDuration(dur)}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>`;
-  } else {
-    document.getElementById('report-resolution-list').innerHTML =
-      '<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">No resolved tickets yet</div>';
-  }
 }
 
 /* ── Auto-restore session ── */
@@ -2113,24 +1019,11 @@ async function initSupabase() {
       currentUser = session.user;
       const { data: prof } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).single();
       currentProfile = prof;
-      // Block non-admin access even with existing session
-      if (!prof || (prof.role !== 'admin' && prof.role !== 'agent' && prof.role !== 'super_admin')) {
-        await sbClient.auth.signOut();
-        document.getElementById('cfg-screen').classList.remove('active');
-        document.getElementById('auth-screen').classList.add('active');
-        const errEl = document.getElementById('auth-err');
-        if (errEl) {
-          errEl.style.color = 'var(--danger)';
-          errEl.innerHTML = '⛔ Access denied. This panel is for admins only.<br><a href="index.html" style="color:var(--accent);font-size:12px">→ Go to client portal</a>';
-        }
-        return;
-      }
       document.getElementById('cfg-screen').classList.remove('active');
       const tu = document.getElementById('topbar-user');
       if (tu) tu.textContent = prof?.full_name || currentUser.email;
       document.getElementById('app').style.display = 'flex';
       loadTickets(); loadProfiles();
-      loadVersion(); loadOrgs(); loadCategories();
     } else {
       document.getElementById('cfg-screen').classList.remove('active');
       document.getElementById('auth-screen').classList.add('active');
@@ -2140,735 +1033,6 @@ async function initSupabase() {
     document.getElementById('cfg-screen').classList.remove('active');
     document.getElementById('auth-screen').classList.add('active');
   }
-}
-
-/* ── Analytics ── */
-let gaChartsLoaded = false;
-
-async function loadAnalytics() {
-  // Load Chart.js if not already loaded
-  if (!window.Chart) {
-    await new Promise((res, rej) => {
-      const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
-      s.onload = res; s.onerror = rej;
-      document.head.appendChild(s);
-    });
-  }
-
-  // Try to fetch data from GA4 via edge function
-  if (!demoMode && sbClient) {
-    try {
-      const { data, error } = await sbClient.functions.invoke('ga4-report', {
-        body: { measurementId: 'G-EHHF524M5T', days: 30 }
-      });
-      if (!error && data) {
-        renderAnalytics(data);
-        return;
-      }
-    } catch(e) { /* edge function not deployed, use demo data */ }
-  }
-
-  // Fallback: show demo/placeholder data
-  const today = new Date();
-  const labels = Array.from({length:30}, (_,i) => {
-    const d = new Date(today); d.setDate(d.getDate()-29+i);
-    return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
-  });
-  const demoData = {
-    pageviews:   Math.floor(Math.random()*500+200),
-    users:       Math.floor(Math.random()*200+80),
-    sessions:    Math.floor(Math.random()*300+120),
-    avgDuration: '2m 14s',
-    daily: labels.map(() => Math.floor(Math.random()*30+5)),
-    labels,
-    countries: [
-      { name:'Gibraltar', views: 312 },
-      { name:'United Kingdom', views: 89 },
-      { name:'Spain', views: 44 },
-      { name:'United States', views: 21 },
-    ],
-    pages: [
-      { path:'/helpdesk/', views: 287 },
-      { path:'/helpdesk/admin.html', views: 198 },
-      { path:'/helpdesk/about.html', views: 34 },
-    ],
-    devices: { Desktop: 61, Mobile: 32, Tablet: 7 },
-    isDemo: true,
-  };
-  renderAnalytics(demoData);
-}
-
-function renderAnalytics(data) {
-  // Stat cards
-  document.getElementById('ga-pageviews').textContent = (data.pageviews||0).toLocaleString();
-  document.getElementById('ga-users').textContent     = (data.users||0).toLocaleString();
-  document.getElementById('ga-sessions').textContent  = (data.sessions||0).toLocaleString();
-  document.getElementById('ga-duration').textContent  = data.avgDuration || '—';
-
-  // Pageviews line chart
-  const pvCtx = document.getElementById('ga-chart-pageviews');
-  if (pvCtx) {
-    if (pvCtx._chart) pvCtx._chart.destroy();
-    pvCtx._chart = new Chart(pvCtx, {
-      type: 'line',
-      data: {
-        labels: data.labels || [],
-        datasets: [{
-          label: 'Pageviews',
-          data: data.daily || [],
-          borderColor: '#185FA5',
-          backgroundColor: 'rgba(24,95,165,.08)',
-          borderWidth: 2,
-          pointRadius: 2,
-          fill: true,
-          tension: 0.4,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: true,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { display: false }, ticks: { maxTicksLimit: 8, font: { size: 11 } } },
-          y: { grid: { color: 'rgba(0,0,0,.05)' }, ticks: { font: { size: 11 } }, beginAtZero: true }
-        }
-      }
-    });
-  }
-
-  // Countries
-  const cEl = document.getElementById('ga-countries');
-  if (cEl && data.countries?.length) {
-    const max = data.countries[0].views;
-    cEl.innerHTML = data.countries.map(c => `
-      <div style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
-          <span>${c.name}</span><span style="color:var(--text3)">${c.views}</span>
-        </div>
-        <div style="height:5px;background:var(--bg);border-radius:3px;overflow:hidden">
-          <div style="width:${Math.round(c.views/max*100)}%;height:100%;background:var(--accent);border-radius:3px"></div>
-        </div>
-      </div>`).join('');
-  }
-
-  // Top pages
-  const pgEl = document.getElementById('ga-pages');
-  if (pgEl && data.pages?.length) {
-    const max = data.pages[0].views;
-    pgEl.innerHTML = data.pages.map(p => `
-      <div style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
-          <span style="color:var(--text1);font-family:var(--mono);font-size:11px">${p.path}</span>
-          <span style="color:var(--text3)">${p.views}</span>
-        </div>
-        <div style="height:5px;background:var(--bg);border-radius:3px;overflow:hidden">
-          <div style="width:${Math.round(p.views/max*100)}%;height:100%;background:var(--purple);border-radius:3px"></div>
-        </div>
-      </div>`).join('');
-  }
-
-  // Devices doughnut chart
-  const dvCtx = document.getElementById('ga-chart-devices');
-  if (dvCtx && data.devices) {
-    if (dvCtx._chart) dvCtx._chart.destroy();
-    dvCtx._chart = new Chart(dvCtx, {
-      type: 'doughnut',
-      data: {
-        labels: Object.keys(data.devices),
-        datasets: [{
-          data: Object.values(data.devices),
-          backgroundColor: ['#185FA5','#534AB7','#378ADD'],
-          borderWidth: 0,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: true,
-        plugins: { legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 12 } } },
-        cutout: '65%',
-      }
-    });
-  }
-
-  // Demo notice
-  if (data.isDemo) {
-    const gb = document.getElementById('ga-body');
-    if (gb) gb.innerHTML = `<div style="padding:12px 16px;background:var(--accent-l);border-radius:var(--radius);font-size:12px;color:var(--accent)">
-      📊 Showing <strong>sample data</strong>. Live data requires deploying the <code style="font-family:var(--mono);font-size:11px">ga4-report</code> edge function with a Google service account key.
-      <a href="https://analytics.google.com" target="_blank" style="color:var(--accent);font-weight:600;margin-left:8px">View live data in GA4 →</a>
-    </div>`;
-  }
-}
-
-/* ── Export Logs ── */
-async function exportLogs(type) {
-  const msg = document.getElementById('export-log-msg');
-  if (msg) { msg.textContent = 'Fetching logs…'; }
-
-  const lines = [];
-  const sep   = '─'.repeat(80);
-  const now   = new Date().toLocaleString('en-GB', { dateStyle:'full', timeStyle:'medium' });
-
-  lines.push('EL MARTILLO I.T. — SYSTEM LOG EXPORT');
-  lines.push(`Generated: ${now}`);
-  lines.push(`Export type: ${type === 'both' ? 'All logs' : type === 'admin' ? 'Admin activity' : 'User activity'}`);
-  lines.push(sep);
-  lines.push('');
-
-  const fmt = iso => {
-    if (!iso) return '—';
-    const d = new Date(iso);
-    return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) + ' ' +
-           d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  };
-
-  // ── Admin audit log ─────────────────────────────
-  if (type === 'both' || type === 'admin') {
-    lines.push('ADMIN ACTIVITY LOG');
-    lines.push(sep);
-    let adminData = [];
-    if (demoMode) {
-      adminData = auditLogCache;
-    } else {
-      try {
-        const { data } = await sbClient.from('audit_log').select('*').order('created_at', { ascending: false }).limit(1000);
-        adminData = data || [];
-      } catch(e) { lines.push(`[ERROR] Could not fetch admin log: ${e.message}`); }
-    }
-    if (adminData.length) {
-      adminData.forEach(l => {
-        lines.push(`[${fmt(l.created_at)}]  ${(l.actor_name||'System').padEnd(20)} ${(l.action||'').padEnd(25)} ${l.entity_label||''} ${l.details ? '| '+l.details : ''}`);
-      });
-    } else {
-      lines.push('No admin activity recorded.');
-    }
-    lines.push('');
-    lines.push(`Total admin entries: ${adminData.length}`);
-    lines.push('');
-  }
-
-  // ── User activity log ────────────────────────────
-  if (type === 'both' || type === 'user') {
-    lines.push('USER ACTIVITY LOG');
-    lines.push(sep);
-    let userData = [];
-    if (demoMode) {
-      userData = userActivityCache;
-    } else {
-      try {
-        const { data } = await sbClient.from('user_activity').select('*').order('created_at', { ascending: false }).limit(1000);
-        userData = data || [];
-      } catch(e) { lines.push(`[ERROR] Could not fetch user log: ${e.message}`); }
-    }
-    if (userData.length) {
-      userData.forEach(l => {
-        const status = (l.status||'').toUpperCase().padEnd(8);
-        const action = (l.action||'').replace(/_/g,' ').padEnd(20);
-        const name   = (l.user_name||l.user_email||'unknown').padEnd(25);
-        lines.push(`[${fmt(l.created_at)}]  ${status} ${action} ${name} ${l.details ? '| '+l.details : ''}`);
-      });
-    } else {
-      lines.push('No user activity recorded.');
-    }
-    lines.push('');
-    lines.push(`Total user entries: ${userData.length}`);
-    lines.push('');
-  }
-
-  lines.push(sep);
-  lines.push('END OF LOG');
-
-  // Download as .txt
-  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  const ts   = new Date().toISOString().slice(0,10);
-  a.href     = url;
-  a.download = `el-martillo-logs-${type}-${ts}.txt`;
-  a.click();
-  URL.revokeObjectURL(url);
-
-  if (msg) { msg.textContent = '✓ Downloaded'; setTimeout(() => msg.textContent = '', 3000); }
-  auditLog('Exported logs', 'setting', 'logs', `Log export (${type})`, '');
-}
-
-/* ── User Activity Log ── */
-let userActivityCache = [];
-
-async function loadUserActivity(force) {
-  const el = document.getElementById('useractivity-body');
-  if (!el) return;
-  if (!force && userActivityCache.length) { renderUserActivity(); return; }
-  el.innerHTML = `<div style="text-align:center;padding:48px;color:var(--text3);font-size:13px">
-    <div class="loader" style="margin:0 auto 12px"></div>Loading…</div>`;
-  try {
-    const { data, error } = await sbClient
-      .from('user_activity')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(300);
-    if (error) throw error;
-    userActivityCache = data || [];
-    renderUserActivity();
-  } catch(e) {
-    el.innerHTML = `<div style="padding:24px;color:var(--danger);font-size:13px">
-      Failed to load: ${e.message}<br><small>Run add_user_activity_table.sql in Supabase SQL editor first.</small></div>`;
-  }
-}
-
-function renderUserActivity() {
-  const el = document.getElementById('useractivity-body');
-  if (!el) return;
-  const fa = document.getElementById('ua-filter-action')?.value || '';
-  const fs = document.getElementById('ua-filter-status')?.value || '';
-  let list = userActivityCache;
-  if (fa) list = list.filter(l => l.action === fa);
-  if (fs) list = list.filter(l => l.status === fs);
-
-  if (!list.length) {
-    el.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px">No user activity recorded yet</div>';
-    return;
-  }
-
-  const actionIcon  = { signup_attempt:'👤', signup_failed:'❌', login:'🔓', logout:'🔒', ticket_created:'🎫', ticket_viewed:'👁️', comment_added:'💬' };
-  const statusBadge = s => ({
-    success: `<span class="sb s-resolved" style="font-size:10px">Success</span>`,
-    failed:  `<span class="sb s-closed"   style="font-size:10px">Failed</span>`,
-    blocked: `<span class="sb" style="font-size:10px;background:var(--warn-l);color:var(--warn)">Blocked</span>`,
-  }[s] || `<span style="font-size:11px;color:var(--text3)">${s||'—'}</span>`);
-
-  el.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
-      <thead><tr style="background:var(--surface2)">
-        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">When</th>
-        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">User</th>
-        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">Action</th>
-        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">Status</th>
-        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">Details</th>
-      </tr></thead>
-      <tbody>
-        ${list.map(l => `
-          <tr onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
-            <td style="padding:10px 16px;border-bottom:1px solid var(--border);white-space:nowrap">
-              <div style="font-size:12px;color:var(--text1)">${new Date(l.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>
-              <div style="font-size:11px;color:var(--text3)">${new Date(l.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>
-            </td>
-            <td style="padding:10px 16px;border-bottom:1px solid var(--border)">
-              <div style="font-size:12px;font-weight:500">${l.user_name||'—'}</div>
-              <div style="font-size:11px;color:var(--text3)">${l.user_email||''}</div>
-            </td>
-            <td style="padding:10px 16px;border-bottom:1px solid var(--border);white-space:nowrap">
-              <span>${actionIcon[l.action]||'📋'}</span>
-              <span style="margin-left:6px;font-size:12px;font-weight:500">${(l.action||'').replace(/_/g,' ')}</span>
-            </td>
-            <td style="padding:10px 16px;border-bottom:1px solid var(--border)">${statusBadge(l.status)}</td>
-            <td style="padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2)">${l.details||'—'}</td>
-          </tr>`).join('')}
-      </tbody>
-    </table>
-    <div style="padding:10px 16px;font-size:11px;color:var(--text3);text-align:right">
-      Showing ${list.length} of ${userActivityCache.length} entries
-    </div>`;
-}
-
-/* ── Audit Log ── */
-let auditLogCache = [];
-
-async function auditLog(action, entityType, entityId, entityLabel, details) {
-  if (demoMode) {
-    auditLogCache.unshift({
-      id: 'al'+Date.now(), created_at: new Date().toISOString(),
-      actor_name: currentProfile?.full_name || 'Admin',
-      action, entity_type: entityType, entity_id: entityId,
-      entity_label: entityLabel, details
-    });
-    return;
-  }
-  try {
-    await sbClient.from('audit_log').insert({
-      actor_id:     currentProfile?.id   || null,
-      actor_name:   currentProfile?.full_name || 'Admin',
-      action,
-      entity_type:  entityType  || null,
-      entity_id:    entityId    ? String(entityId) : null,
-      entity_label: entityLabel || null,
-      details:      details     || null,
-    });
-  } catch(e) { console.warn('Audit log failed:', e.message); }
-}
-
-async function loadAuditLog(force) {
-  const el = document.getElementById('auditlog-body');
-  if (!el) return;
-  if (!force && auditLogCache.length) { renderAuditLog(); return; }
-  el.innerHTML = `<div style="text-align:center;padding:48px;color:var(--text3);font-size:13px">
-    <div class="loader" style="margin:0 auto 12px"></div>Loading…</div>`;
-  if (demoMode) { renderAuditLog(); return; }
-  try {
-    const { data, error } = await sbClient
-      .from('audit_log')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(200);
-    if (error) throw error;
-    auditLogCache = data || [];
-    renderAuditLog();
-  } catch(e) {
-    el.innerHTML = `<div style="padding:24px;color:var(--danger);font-size:13px">
-      Failed to load log: ${e.message}<br><small>Run add_audit_log_table.sql in Supabase SQL editor first.</small></div>`;
-  }
-}
-
-function renderAuditLog() {
-  const el = document.getElementById('auditlog-body');
-  if (!el) return;
-  const filterAction = document.getElementById('log-filter-action')?.value || '';
-  let list = auditLogCache;
-  if (filterAction) list = list.filter(l => l.entity_type === filterAction);
-
-  if (!list.length) {
-    el.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px">No activity recorded yet</div>';
-    return;
-  }
-
-  const actionIcon = a => ({
-    'Created ticket':     '🎫', 'Updated ticket':    '✏️', 'Deleted ticket':    '🗑️',
-    'Status changed':     '🔄', 'Assigned ticket':   '👤', 'Added comment':     '💬',
-    'Created user':       '👤', 'Updated user':      '✏️', 'Deleted user':      '🗑️',
-    'Changed password':   '🔑', 'Saved settings':    '⚙️', 'Saved organisations':'🏢',
-  }[a] || '📋');
-
-  const actionColor = a => {
-    if (a.includes('Deleted')) return 'var(--danger)';
-    if (a.includes('Created')) return 'var(--success)';
-    if (a.includes('password') || a.includes('Password')) return 'var(--warn)';
-    return 'var(--accent)';
-  };
-
-  el.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
-      <thead><tr style="background:var(--surface2)">
-        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">When</th>
-        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">Admin</th>
-        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">Action</th>
-        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">Target</th>
-        <th style="padding:10px 16px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)">Details</th>
-      </tr></thead>
-      <tbody>
-        ${list.map(l => `
-          <tr onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
-            <td style="padding:10px 16px;border-bottom:1px solid var(--border);white-space:nowrap">
-              <div style="font-size:12px;color:var(--text1)">${new Date(l.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>
-              <div style="font-size:11px;color:var(--text3)">${new Date(l.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>
-            </td>
-            <td style="padding:10px 16px;border-bottom:1px solid var(--border)">
-              <div style="font-size:12px;font-weight:500">${l.actor_name||'System'}</div>
-            </td>
-            <td style="padding:10px 16px;border-bottom:1px solid var(--border);white-space:nowrap">
-              <span style="font-size:13px">${actionIcon(l.action)}</span>
-              <span style="margin-left:6px;font-size:12px;font-weight:600;color:${actionColor(l.action)}">${l.action}</span>
-            </td>
-            <td style="padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);max-width:200px">
-              ${l.entity_label ? `<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.entity_label}</div>` : '—'}
-              ${l.entity_id ? `<div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${l.entity_type||''} ${l.entity_id.slice(0,8)}…</div>` : ''}
-            </td>
-            <td style="padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2)">${l.details||'—'}</td>
-          </tr>`).join('')}
-      </tbody>
-    </table>
-    <div style="padding:10px 16px;font-size:11px;color:var(--text3);text-align:right">
-      Showing ${list.length} of ${auditLogCache.length} entries
-    </div>`;
-}
-
-/* ── Categories ── */
-const DEFAULT_CATEGORIES = ['Technical','Billing','Account','General'];
-
-function getCategories() {
-  const raw = localStorage.getItem('app_categories') || '';
-  const list = raw.split('\n').map(s => s.trim()).filter(Boolean);
-  return list.length ? list : DEFAULT_CATEGORIES;
-}
-
-function populateCategoryDropdowns(currentVal) {
-  const cats = getCategories();
-  ['nt-category','td-category'].forEach(id => {
-    const sel = document.getElementById(id);
-    if (!sel) return;
-    const val = currentVal !== undefined ? currentVal : (sel.value || cats[0]);
-    sel.innerHTML = cats.map(c =>
-      `<option value="${c}" ${c === val ? 'selected' : ''}>${c}</option>`
-    ).join('');
-  });
-}
-
-async function saveCategories() {
-  const val = (document.getElementById('setting-categories').value || '').trim();
-  localStorage.setItem('app_categories', val);
-  populateCategoryDropdowns();
-  // Persist to Supabase settings table
-  if (!demoMode && sbClient) {
-    await sbClient.from('settings').upsert({ key: 'categories', value: val }, { onConflict: 'key' });
-  }
-  const msg = document.getElementById('categories-saved-msg');
-  if (msg) { msg.textContent = '✓ Saved'; setTimeout(() => msg.textContent = '', 2000); }
-  auditLog('Saved categories', 'setting', 'categories', 'Ticket categories', '');
-  toast('Categories saved');
-}
-
-async function loadCategories() {
-  if (!demoMode && sbClient) {
-    try {
-      const { data } = await sbClient.from('settings').select('value').eq('key','categories').single();
-      if (data?.value) localStorage.setItem('app_categories', data.value);
-    } catch { /* use defaults */ }
-  }
-  const raw = localStorage.getItem('app_categories') || DEFAULT_CATEGORIES.join('\n');
-  const ta = document.getElementById('setting-categories');
-  if (ta) ta.value = raw;
-  populateCategoryDropdowns();
-}
-
-/* ── Organisations ── */
-function getOrgs() {
-  const raw = localStorage.getItem('app_orgs') || '';
-  return raw.split('\n').map(s => s.trim()).filter(Boolean);
-}
-
-function populateOrgDropdowns() {
-  const orgs = getOrgs();
-  ['au-company','eu-company'].forEach(id => {
-    const sel = document.getElementById(id);
-    if (!sel) return;
-    const current = sel.value;
-    sel.innerHTML = '<option value="">— Select organisation —</option>';
-    orgs.forEach(o => {
-      const opt = document.createElement('option');
-      opt.value = o; opt.textContent = o;
-      sel.appendChild(opt);
-    });
-    if (current && orgs.includes(current)) sel.value = current;
-  });
-}
-
-async function saveOrgs() {
-  const val = (document.getElementById('setting-orgs').value || '').trim();
-  localStorage.setItem('app_orgs', val);
-  populateOrgDropdowns();
-  // Also persist to Supabase so client portal can read it
-  if (!demoMode && sbClient) {
-    await sbClient.from('settings').upsert({ key: 'organisations', value: val }, { onConflict: 'key' });
-  }
-  const msg = document.getElementById('orgs-saved-msg');
-  if (msg) { msg.textContent = '✓ Saved'; setTimeout(() => msg.textContent = '', 2000); }
-  auditLog('Saved organisations', 'setting', 'organisations', 'Organisations list', '');
-  toast('Organisations saved');
-}
-
-async function loadOrgs() {
-  // Try Supabase first, fall back to localStorage
-  if (!demoMode && sbClient) {
-    try {
-      const { data } = await sbClient.from('settings').select('value').eq('key','organisations').single();
-      if (data?.value !== undefined) {
-        localStorage.setItem('app_orgs', data.value);
-      }
-    } catch { /* use localStorage fallback */ }
-  }
-  const raw = localStorage.getItem('app_orgs') || '';
-  const ta = document.getElementById('setting-orgs');
-  if (ta) ta.value = raw;
-  populateOrgDropdowns();
-}
-
-/* ── Tech News ── */
-let techNewsCache = null;
-let techNewsLastFetch = 0;
-
-// Microsoft & tech news feeds — fetched via corsproxy.io (no API key needed)
-const MS_FEEDS = [
-  { url: 'https://www.bleepingcomputer.com/feed/',           tag: 'Security'  },
-  { url: 'https://www.theverge.com/microsoft/rss/index.xml', tag: 'Microsoft' },
-  { url: 'https://arstechnica.com/gadgets/feed/',            tag: 'Windows'   },
-];
-
-async function fetchFeed(feedUrl, tag) {
-  const proxies = [
-    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-  ];
-  for (const makeUrl of proxies) {
-    try {
-      const res = await fetch(makeUrl(feedUrl), { signal: AbortSignal.timeout(8000) });
-      if (!res.ok) continue;
-      const text = await res.text();
-      const doc  = new DOMParser().parseFromString(text, 'text/xml');
-      const items = [...doc.querySelectorAll('item, entry')].slice(0, 3);
-      if (!items.length) continue;
-      return items.map(item => {
-        const get  = sel => item.querySelector(sel)?.textContent?.trim() || '';
-        const link = get('link') || item.querySelector('link')?.getAttribute('href') || '';
-        const raw  = get('description') || get('summary') || get('content');
-        const tmp  = document.createElement('div'); tmp.innerHTML = raw;
-        const summary = (tmp.textContent || '').replace(/\s+/g,' ').trim().slice(0,160) + '…';
-        const d    = new Date(get('pubDate') || get('published') || get('updated'));
-        const date = isNaN(d) ? '' : d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-        const src  = feedUrl.replace(/https?:\/\/(www\.)?/,'').split('/')[0];
-
-        // Extract image: try multiple RSS image fields
-        let image = '';
-        // 1. media:content or media:thumbnail
-        image = image || item.querySelector('content')?.getAttribute('url') || '';
-        image = image || item.querySelector('thumbnail')?.getAttribute('url') || '';
-        // 2. enclosure
-        const enc = item.querySelector('enclosure');
-        if (!image && enc && (enc.getAttribute('type')||'').startsWith('image'))
-          image = enc.getAttribute('url') || '';
-        // 3. first <img> inside description HTML
-        if (!image) {
-          const firstImg = tmp.querySelector('img');
-          image = firstImg?.getAttribute('src') || firstImg?.getAttribute('data-src') || '';
-        }
-        // 4. itunes:image
-        if (!image) image = item.querySelector('image')?.getAttribute('href') || '';
-
-        return { title: get('title'), url: link, summary, date, tag, source: src, image };
-      }).filter(a => a.title);
-    } catch { continue; }
-  }
-  return [];
-}
-
-async function loadTechNews(force) {
-  if (!force && techNewsCache && (Date.now() - techNewsLastFetch < 30 * 60 * 1000)) {
-    renderTechNews(techNewsCache); return;
-  }
-  const el = document.getElementById('technews-body');
-  if (!el) return;
-  el.innerHTML = `<div style="text-align:center;padding:48px;color:var(--text3);font-size:13px">
-    <div class="loader" style="margin:0 auto 12px"></div>Loading latest news…</div>`;
-
-  try {
-    const results = await Promise.all(MS_FEEDS.map(f => fetchFeed(f.url, f.tag)));
-    let articles = results.flat();
-    console.log('[TechNews] fetched', articles.length, 'articles from', MS_FEEDS.length, 'feeds');
-
-    articles = articles
-      .filter(a => a.title)
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, 6);
-
-    if (!articles.length) throw new Error('No articles returned — feeds may be temporarily unavailable');
-
-    techNewsCache = articles;
-    techNewsLastFetch = Date.now();
-    renderTechNews(articles);
-  } catch(e) {
-    el.innerHTML = `<div style="text-align:center;padding:48px;color:var(--danger);font-size:13px">
-      ${e.message}<br><br>
-      <button class="btn sm" onclick="loadTechNews(true)">Try again</button>
-    </div>`;
-  }
-}
-
-function newsPlaceholder(tag) {
-  const bg = {
-    'Windows':'#E6F1FB','Microsoft':'#E6F1FB','Security':'#FCEBEB',
-    'Microsoft 365':'#FAEEDA','Windows':'#E6F1FB'
-  }[tag] || '#f1efea';
-  const ic = {
-    'Windows':    `<path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>`,
-    'Microsoft':  `<rect x="3" y="3" width="8" height="8"/><rect x="13" y="3" width="8" height="8"/><rect x="13" y="13" width="8" height="8"/><rect x="3" y="13" width="8" height="8"/>`,
-    'Security':   `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`,
-    'Microsoft 365': `<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>`,
-  }[tag] || `<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>`;
-  const color = {
-    'Windows':'#185FA5','Microsoft':'#185FA5','Security':'#A32D2D',
-    'Microsoft 365':'#854F0B'
-  }[tag] || '#6b6963';
-  return `<div style="width:100%;height:160px;background:${bg};display:flex;align-items:center;justify-content:center;border-radius:var(--radius) var(--radius) 0 0">
-    <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="${color}" stroke-width="1.5">${ic}</svg>
-  </div>`;
-}
-
-function renderTechNews(articles) {
-  const el = document.getElementById('technews-body');
-  if (!el || !articles?.length) return;
-
-  const tagColor = {
-    'Windows':      { bg:'var(--accent-l)',   color:'var(--accent)'  },
-    'Microsoft':    { bg:'var(--accent-l)',   color:'var(--accent)'  },
-    'Office':       { bg:'var(--success-l)',  color:'var(--success)' },
-    'Security':     { bg:'var(--danger-l)',   color:'var(--danger)'  },
-    'Azure':        { bg:'var(--purple-l)',   color:'var(--purple)'  },
-    'Microsoft 365':{ bg:'var(--warn-l)',     color:'var(--warn)'    },
-  };
-  const tagStyle = t => {
-    const c = tagColor[t] || { bg:'var(--bg)', color:'var(--text2)' };
-    return `background:${c.bg};color:${c.color}`;
-  };
-
-  el.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
-      ${articles.map(a => {
-        const img = a.image
-          ? `<div style="width:100%;height:160px;overflow:hidden;border-radius:var(--radius) var(--radius) 0 0;background:var(--surface2)">
-               <img src="${a.image}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"
-                 onerror="this.parentElement.outerHTML='${newsPlaceholder(a.tag).replace(/'/g,"\\'")}'"/>
-             </div>`
-          : newsPlaceholder(a.tag);
-        return `
-          <a href="${a.url||'#'}" target="_blank" rel="noopener"
-             style="text-decoration:none;color:inherit;display:flex;flex-direction:column">
-            <div class="table-card" style="padding:0;flex:1;display:flex;flex-direction:column;overflow:hidden;transition:box-shadow .15s"
-              onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'"
-              onmouseout="this.style.boxShadow=''">
-              ${img}
-              <div style="padding:14px;display:flex;flex-direction:column;gap:8px;flex:1">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-                  <span style="display:inline-block;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:600;${tagStyle(a.tag)}">${a.tag||'Microsoft'}</span>
-                  <span style="font-size:11px;color:var(--text3);white-space:nowrap">${a.date||''}</span>
-                </div>
-                <div style="font-size:13px;font-weight:600;line-height:1.4;color:var(--text1)">${a.title}</div>
-                <div style="font-size:12px;color:var(--text2);line-height:1.6;flex:1">${a.summary}</div>
-                <div style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px;margin-top:auto;padding-top:8px;border-top:1px solid var(--border)">
-                  <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                  ${a.source||'Microsoft'} &nbsp;→ Read article
-                </div>
-              </div>
-            </div>
-          </a>`;
-      }).join('')}
-    </div>
-    <div style="font-size:11px;color:var(--text3);margin-top:12px;text-align:right">
-      Last updated: ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}
-    </div>`;
-}
-
-/* ── Settings ── */
-function updateFooterVersion(val) {
-  const wrap = document.getElementById('footer-version-wrap');
-  const el   = document.getElementById('footer-version');
-  if (val && val.trim()) {
-    el.textContent = val.trim();
-    wrap.style.display = 'inline';
-  } else {
-    wrap.style.display = 'none';
-  }
-}
-
-function saveSettings() {
-  const version = document.getElementById('setting-version')?.value.trim() || '';
-  localStorage.setItem('app_version', version);
-  updateFooterVersion(version);
-  auditLog('Saved settings', 'setting', 'settings', 'System settings', version ? `Version: ${version}` : '');
-  toast('Settings saved');
-}
-
-function loadVersion() {
-  const v = localStorage.getItem('app_version') || '';
-  const input = document.getElementById('setting-version');
-  if (input) input.value = v;
-  updateFooterVersion(v);
 }
 
 /* ── Users management ── */
@@ -2887,8 +1051,6 @@ async function loadAllProfiles() {
   allProfiles = data || [];
   renderUsersTable();
   document.getElementById('users-count-sub').textContent = allProfiles.length + ' registered profiles';
-  const fu = document.getElementById('footer-user-count');
-  if (fu) fu.textContent = allProfiles.length;
 }
 
 function renderUsersTable() {
@@ -2899,13 +1061,12 @@ function renderUsersTable() {
   if (q)  list = list.filter(p => (p.full_name||'').toLowerCase().includes(q) || (p.email||'').toLowerCase().includes(q));
   const tbody = document.getElementById('users-tbody');
   if (!tbody) return;
-  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No users found</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="3">No users found</td></tr>'; return; }
 
   const roleBadge = r => ({
-    admin:       '<span class="sb s-in_progress">Admin</span>',
-    agent:       '<span class="sb s-in_progress">Agent</span>',
-    super_admin: '<span class="sb" style="background:#FEF3DA;color:#854F0B">Super Admin</span>',
-    client:      '<span class="sb s-closed">Client</span>',
+    admin:  '<span class="sb s-in_progress">Admin</span>',
+    agent:  '<span class="sb s-open">Agent</span>',
+    client: '<span class="sb s-closed">Client</span>',
   }[r] || r);
   const renderRow = p => {
     const openCount = tickets.filter(t => t.requester_id === p.id && !['resolved','closed'].includes(t.status)).length;
@@ -2920,15 +1081,13 @@ function renderUsersTable() {
         </div>
       </td>
       <td>${roleBadge(p.role)}</td>
-      <td style="font-size:12px;color:var(--text2)">${p.phone ? `<a href="tel:${p.phone}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${p.phone}</a>` : '<span style="color:var(--text3)">—</span>'}</td>
-      <td style="font-size:12px;color:var(--text2)">${p.company||'<span style="color:var(--text3)">—</span>'}</td>
       <td style="font-size:13px;color:var(--text2)">${openCount || '—'}</td>
     </tr>`;
   };
 
   const sectionHeader = (label, count) =>
     `<tr style="background:var(--surface2)">
-      <td colspan="5" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">
+      <td colspan="3" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">
         ${label} <span style="font-weight:500;color:var(--text3);margin-left:4px">(${count})</span>
       </td>
     </tr>`;
@@ -2938,7 +1097,7 @@ function renderUsersTable() {
 
   let html = '';
   if (staff.length) {
-    html += sectionHeader('Admins', staff.length);
+    html += sectionHeader('Staff — Admins & Agents', staff.length);
     html += staff.map(renderRow).join('');
   }
   if (clients.length) {
@@ -2956,95 +1115,10 @@ function openEditUser(id) {
   document.getElementById('eu-name').value    = p.full_name  || '';
   document.getElementById('eu-email').value   = p.email      || '';
   document.getElementById('eu-phone').value   = p.phone      || '';
+  document.getElementById('eu-company').value = p.company    || '';
   document.getElementById('eu-role').value    = p.role       || 'client';
   document.getElementById('eu-notes').value   = p.notes      || '';
-  populateOrgDropdowns();
-  document.getElementById('eu-company').value = p.company || '';
-  document.getElementById('eu-password').value = '';
-  document.getElementById('eu-password-confirm').value = '';
-  document.getElementById('eu-password-msg').textContent = '';
-  const resendMsg = document.getElementById('eu-resend-msg');
-  if (resendMsg) resendMsg.textContent = '';
   openModal('modal-edit-user');
-}
-
-async function resendConfirmation(userId) {
-  const msg = document.getElementById('eu-resend-msg');
-  const email = document.getElementById('eu-email').value.trim();
-  if (!email) { msg.style.color='var(--danger)'; msg.textContent='No email address on this profile.'; return; }
-  if (demoMode) { msg.style.color='var(--success)'; msg.textContent='✓ Email sent (demo).'; return; }
-
-  msg.style.color='var(--text3)'; msg.textContent='Sending…';
-
-  // Supabase admin.generateLink creates a new confirmation link and sends it
-  try {
-    const { error } = await sbClient.auth.resend({ type: 'signup', email });
-    if (error) {
-      msg.style.color='var(--danger)';
-      msg.textContent = error.message.includes('already confirmed')
-        ? 'This account is already confirmed.'
-        : 'Error: ' + error.message;
-      return;
-    }
-    msg.style.color='var(--success)';
-    msg.textContent='✓ Confirmation email sent to ' + email;
-    auditLog('Resent confirmation email', 'user', userId, document.getElementById('eu-name').value, `Email: ${email}`);
-  } catch(e) {
-    msg.style.color='var(--danger)'; msg.textContent='Error: ' + e.message;
-  }
-}
-
-async function changePassword(userId) {
-  const pw  = document.getElementById('eu-password').value;
-  const pw2 = document.getElementById('eu-password-confirm').value;
-  const msg = document.getElementById('eu-password-msg');
-
-  if (!pw) { msg.style.color='var(--danger)'; msg.textContent='Enter a new password.'; return; }
-  if (pw.length < 6) { msg.style.color='var(--danger)'; msg.textContent='Password must be at least 6 characters.'; return; }
-  if (pw !== pw2) { msg.style.color='var(--danger)'; msg.textContent='Passwords do not match.'; return; }
-
-  if (demoMode) {
-    msg.style.color='var(--success)'; msg.textContent='✓ Password updated (demo).';
-    document.getElementById('eu-password').value='';
-    document.getElementById('eu-password-confirm').value='';
-    return;
-  }
-
-  msg.style.color='var(--text3)'; msg.textContent='Updating…';
-
-  try {
-    // Use sbClient.functions.invoke — handles auth and CORS automatically
-    const { data, error } = await sbClient.functions.invoke('reset-user-password', {
-      body: { userId, password: pw },
-    });
-
-    if (error) {
-      // Function not deployed yet
-      if (error.message?.includes('Failed to send') || error.message?.includes('fetch') || error.status === 404) {
-        msg.style.color='var(--danger)';
-        msg.textContent='Edge function not deployed. Run: supabase functions deploy reset-user-password';
-        return;
-      }
-      msg.style.color='var(--danger)'; msg.textContent='Error: ' + error.message;
-      return;
-    }
-
-    if (data?.error) {
-      msg.style.color='var(--danger)'; msg.textContent='Error: ' + data.error;
-      return;
-    }
-
-    msg.style.color='var(--success)'; msg.textContent='✓ Password updated successfully.';
-    document.getElementById('eu-password').value='';
-    document.getElementById('eu-password-confirm').value='';
-    auditLog('Changed password', 'user', userId, document.getElementById('eu-name')?.value||userId, '');
-    toast('Password updated');
-  } catch(e) {
-    msg.style.color='var(--danger)';
-    msg.textContent = e.message?.includes('fetch')
-      ? 'Cannot reach edge function. Is it deployed? Run: supabase functions deploy reset-user-password'
-      : 'Error: ' + e.message;
-  }
 }
 
 async function saveUser() {
@@ -3068,59 +1142,20 @@ async function saveUser() {
   }
   const { error } = await sbClient.from('profiles').update(updates).eq('id', id);
   if (error) { toast('Error: ' + error.message); return; }
-  auditLog('Updated user', 'user', id, name, `Role: ${role}`);
   closeModal('modal-edit-user');
   loadAllProfiles(); loadProfiles(); toast('User updated');
 }
 
 async function deleteUser(id) {
-  if (!confirm('Delete this user? This removes their profile and login access and cannot be undone.')) return;
-
+  if (!confirm('Delete this profile? This cannot be undone.')) return;
   if (demoMode) {
     allProfiles = allProfiles.filter(x => x.id !== id);
     closeModal('modal-edit-user'); renderUsersTable(); toast('User deleted'); return;
   }
-
-  const profile = allProfiles.find(p => p.id === id);
-  const email   = profile?.email || null;
-
-  // Method 1 — SQL RPC function (runs as security definer, can delete auth.users)
-  try {
-    const { error } = await sbClient.rpc('delete_user_completely', { target_user_id: id });
-    if (!error) {
-      closeModal('modal-edit-user');
-      loadAllProfiles(); loadProfiles();
-      auditLog('Deleted user', 'user', id, profile?.full_name || email || id, `Email: ${email||'unknown'}`);
-      toast('User fully deleted');
-      return;
-    }
-    console.warn('RPC delete failed:', error.message);
-  } catch(e) { console.warn('RPC error:', e.message); }
-
-  // Method 2 — Edge function
-  try {
-    const { data, error } = await sbClient.functions.invoke('delete-user', {
-      body: { userId: id, email },
-    });
-    if (!error && !data?.error) {
-      closeModal('modal-edit-user');
-      loadAllProfiles(); loadProfiles();
-      auditLog('Deleted user', 'user', id, profile?.full_name || email || id, `Email: ${email||'unknown'}`);
-      toast('User fully deleted');
-      return;
-    }
-  } catch(e) { console.warn('Edge function error:', e.message); }
-
-  // Method 3 — Profile + related data only (fallback)
-  await sbClient.from('tickets').update({ assignee_id: null }).eq('assignee_id', id);
-  await sbClient.from('tickets').update({ requester_id: null }).eq('requester_id', id);
-  await sbClient.from('comments').delete().eq('author_id', id);
-  await sbClient.from('profiles').delete().eq('id', id);
-
+  const { error } = await sbClient.from('profiles').delete().eq('id', id);
+  if (error) { toast('Error: ' + error.message); return; }
   closeModal('modal-edit-user');
-  loadAllProfiles(); loadProfiles();
-  auditLog('Deleted user', 'user', id, profile?.full_name || email || id, `Email: ${email||'unknown'}`);
-  toast('User deleted');
+  loadAllProfiles(); loadProfiles(); toast('User deleted');
 }
 
 async function addUser() {
@@ -3148,7 +1183,6 @@ async function addUser() {
   }
   const { error } = await sbClient.from('profiles').insert(payload);
   if (error) { toast('Error: ' + error.message); return; }
-  auditLog('Created user', 'user', newId, name, `Role: ${role}, Email: ${email}`);
   closeModal('modal-add-user'); clearForm();
   loadAllProfiles(); toast('User profile created. To grant login access, invite them via Supabase Auth.');
 }
@@ -3172,10 +1206,10 @@ async function loadBackupStats() {
 }
 
 async function runBackup() {
-  const btn      = document.getElementById('btn-backup');
+  const btn = document.getElementById('btn-backup');
   const progress = document.getElementById('backup-progress');
-  const msg      = document.getElementById('backup-progress-msg');
-  btn.disabled   = true;
+  const msg = document.getElementById('backup-progress-msg');
+  btn.disabled = true;
   progress.style.display = 'block';
 
   const setMsg = m => { msg.textContent = m; };
@@ -3187,7 +1221,7 @@ async function runBackup() {
       const backup = {
         exported_at: new Date().toISOString(),
         project: 'demo',
-        tables: { tickets, profiles, comments: [], settings: [], audit_log: [], user_activity: [] }
+        tables: { tickets, profiles, comments: [] }
       };
       downloadJSON(backup);
       toast('Demo backup downloaded');
@@ -3195,57 +1229,39 @@ async function runBackup() {
     }
 
     setMsg('Fetching tickets…');
-    const { data: ticketData,       error: e1 } = await sbClient.from('tickets').select('*').order('created_at');
-    if (e1) throw e1;
+    const { data: ticketData, error: te } = await sbClient.from('tickets').select('*').order('created_at');
+    if (te) throw te;
 
     setMsg('Fetching comments…');
-    const { data: commentData,      error: e2 } = await sbClient.from('comments').select('*').order('created_at');
-    if (e2) throw e2;
+    const { data: commentData, error: ce } = await sbClient.from('comments').select('*').order('created_at');
+    if (ce) throw ce;
 
     setMsg('Fetching profiles…');
-    const { data: profileData,      error: e3 } = await sbClient.from('profiles').select('*');
-    if (e3) throw e3;
-
-    setMsg('Fetching settings…');
-    const { data: settingsData,     error: e4 } = await sbClient.from('settings').select('*');
-
-    setMsg('Fetching audit log…');
-    const { data: auditData,        error: e5 } = await sbClient.from('audit_log').select('*').order('created_at');
-
-    setMsg('Fetching user activity…');
-    const { data: activityData,     error: e6 } = await sbClient.from('user_activity').select('*').order('created_at');
+    const { data: profileData, error: pe } = await sbClient.from('profiles').select('*');
+    if (pe) throw pe;
 
     setMsg('Building backup file…');
     await new Promise(r => setTimeout(r, 300));
 
     const backup = {
-      exported_at:   new Date().toISOString(),
-      exported_by:   currentProfile?.full_name || 'Admin',
-      project_url:   SB_URL,
-      version:       localStorage.getItem('app_version') || '',
+      exported_at: new Date().toISOString(),
+      project_url: SB_URL,
       summary: {
-        tickets:       ticketData?.length       || 0,
-        comments:      commentData?.length      || 0,
-        profiles:      profileData?.length      || 0,
-        settings:      settingsData?.length     || 0,
-        audit_log:     auditData?.length        || 0,
-        user_activity: activityData?.length     || 0,
+        tickets:  ticketData.length,
+        comments: commentData.length,
+        profiles: profileData.length,
       },
       tables: {
-        tickets:       ticketData       || [],
-        comments:      commentData      || [],
-        profiles:      profileData      || [],
-        settings:      settingsData     || [],
-        audit_log:     auditData        || [],
-        user_activity: activityData     || [],
+        tickets:  ticketData,
+        comments: commentData,
+        profiles: profileData,
       }
     };
 
     downloadJSON(backup);
     const now = new Date().toLocaleTimeString();
     document.getElementById('backup-last').textContent = 'Last backup: ' + now;
-    auditLog('Database backup', 'setting', 'backup', 'Full database backup', `${backup.summary.tickets} tickets, ${backup.summary.profiles} profiles`);
-    toast('Full backup downloaded successfully');
+    toast('Backup downloaded successfully');
     loadBackupStats();
 
   } catch(e) {
@@ -3271,14 +1287,6 @@ function downloadJSON(data) {
 }
 
 document.addEventListener('DOMContentLoaded', initSupabase);
-
-/* ── Auto-refresh every 5 minutes ── */
-setInterval(() => {
-  if (!demoMode && sbClient) {
-    loadTickets();
-    loadAllProfiles();
-  }
-}, 5 * 60 * 1000);
 </script>
 <style>
 .footer {
@@ -3309,12 +1317,7 @@ setInterval(() => {
   <span class="footer-sep">|</span>
   <span>Email: <a href="mailto:helpdesk@el-martillo.com">helpdesk@el-martillo.com</a></span>
   <span class="footer-sep">|</span>
-  <span>Active tickets: <span class="footer-tickets" id="footer-ticket-count" onclick="adminNav(document.querySelector('.nav-item[onclick*=\'active\']'),\'active\')" style="cursor:pointer;text-decoration:underline;text-underline-offset:2px">—</span></span>
-  <span class="footer-sep">|</span>
-  <span>Users: <span class="footer-tickets" id="footer-user-count">—</span></span>
-  <span id="footer-version-wrap" style="display:none"><span class="footer-sep">|</span> Version <span class="footer-tickets" id="footer-version"></span></span>
-  <span class="footer-sep">|</span>
-  <a href="about.html">About</a>
+  <span>Tickets: <span class="footer-tickets" id="footer-ticket-count">—</span></span>
 </div>
 
 </body>
