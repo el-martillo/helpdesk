@@ -192,6 +192,52 @@ textarea.fc { resize: vertical; min-height: 80px; }
 #toast.show { opacity: 1; transform: translateY(0); }
 .tid { font-family: var(--mono); font-size: 11px; color: var(--text3); }
 .flex-c { display: flex; align-items: center; gap: 6px; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  /* Topbar */
+  .topbar { padding: 0 14px; height: 52px; }
+  .logo { font-size: 12px; }
+  .logo-sub { display: none; }
+  .user-pill span { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-link { display: none !important; }
+
+  /* Main */
+  .main { padding: 16px 14px; }
+
+  /* Hero CTA */
+  .hero-cta { padding: 22px 16px; }
+
+  /* form-row: single column */
+  .form-row { grid-template-columns: 1fr; }
+
+  /* Modal */
+  .overlay { padding: 12px 8px; align-items: flex-end; }
+  .modal, .modal.wide { padding: 18px 14px; max-width: 100%; border-radius: var(--radius-l) var(--radius-l) 0 0; margin: 0; }
+
+  /* Filter pills: scroll horizontally */
+  #filter-pills { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  #filter-pills::-webkit-scrollbar { display: none; }
+
+  /* Footer */
+  .footer {
+    flex-wrap: wrap;
+    height: auto !important;
+    padding: 10px 16px;
+    gap: 6px 16px;
+    justify-content: center;
+  }
+  .footer-sep { display: none; }
+  .main { padding-bottom: 80px !important; }
+}
+
+@media (max-width: 480px) {
+  .topbar { height: 48px; }
+  /* Logo text: shorten */
+  .logo { font-size: 11px; }
+  .hero-cta h2 { font-size: 15px; }
+  .ticket-card { padding: 12px; gap: 10px; }
+}
 </style>
 <!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-EHHF524M5T"></script>
@@ -1184,7 +1230,6 @@ document.addEventListener('DOMContentLoaded', initSupabase);
 .footer a:hover { text-decoration: underline; }
 .footer-sep { color: var(--border2); }
 .footer-tickets { color: var(--text2); font-weight: 500; }
-/* Push main content above the fixed footer */
 .main { padding-bottom: 56px !important; }
 </style>
 
