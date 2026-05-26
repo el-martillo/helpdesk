@@ -111,6 +111,8 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
 /* Stats */
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
 .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-l); padding: 16px; }
+.stat-card.clickable { cursor: pointer; transition: border-color .15s, transform .12s, box-shadow .15s; }
+.stat-card.clickable:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: var(--shadow); }
 .stat-card .label { font-size: 11px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
 .stat-card .value { font-size: 26px; font-weight: 600; line-height: 1; }
 .stat-card .sub { font-size: 11px; color: var(--text3); margin-top: 6px; }
@@ -363,7 +365,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       </svg>
     </div>
     <h2>Admin sign in</h2>
-    <p class="desc">Sign in with your admin or agent account.</p>
+    <p class="desc">Sign in with your admin account.</p>
     <div class="fg"><label class="fl">Email</label><input id="auth-email" class="fc" type="email" placeholder="admin@example.com"/></div>
     <div class="fg"><label class="fl">Password</label><input id="auth-password" class="fc" type="password" placeholder="••••••••"/></div>
     <button class="btn primary" style="width:100%;justify-content:center" onclick="signIn()">Sign in</button>
@@ -457,9 +459,9 @@ textarea.fc { resize: vertical; min-height: 80px; }
         </div>
         <div class="stats-grid">
           <div class="stat-card"><div class="label">Open</div><div class="value" id="stat-open" style="color:var(--accent)">—</div><div class="sub"></div></div>
-          <div class="stat-card"><div class="label">In progress</div><div class="value" id="stat-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to agents</div></div>
+          <div class="stat-card"><div class="label">In progress</div><div class="value" id="stat-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to admins</div></div>
           <div class="stat-card"><div class="label">Resolved</div><div class="value" id="stat-resolved" style="color:var(--success)">—</div><div class="sub"></div></div>
-          <div class="stat-card"><div class="label">Total</div><div class="value" id="stat-total">—</div><div class="sub">All time</div></div>
+          <div class="stat-card clickable" onclick="openModal('modal-new-ticket')" title="Create new ticket"><div class="label">Total</div><div class="value" id="stat-total">—</div><div class="sub">All time</div></div>
         </div>
         <div class="table-card">
           <div class="table-toolbar">
@@ -487,7 +489,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
               Refresh
             </button>
           </div>
-          <table><thead><tr><th>ID</th><th>Subject</th><th>Status</th><th>Priority</th><th>Requester</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
+          <table><thead><tr><th>Client</th><th>Company</th><th>ID</th><th>Subject</th><th>Status</th><th>Priority</th><th>Tech Assigned</th><th>Updated</th><th></th></tr></thead>
           <tbody id="admin-tbody"></tbody></table>
         </div>
       </div>
@@ -504,7 +506,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           <div><h1>Agents</h1><p>Support team members</p></div>
           <button class="btn primary" onclick="openModal('modal-invite-agent')">
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-            Invite agent
+            Invite user
           </button>
         </div>
         <div id="agents-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
@@ -528,7 +530,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
             <select class="filter-sel" id="users-role-filter" onchange="renderUsersTable()">
               <option value="">All roles</option>
               <option value="admin">Admin</option>
-              <option value="agent">Agent</option>
+              <option value="super_admin">Super Admin</option>
               <option value="client">Client</option>
             </select>
             <button class="btn sm" onclick="loadAllProfiles()">
@@ -677,13 +679,25 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <div class="fg"><label class="fl">Role</label>
         <select id="au-role" class="fc">
           <option value="client">Client</option>
-          <option value="agent">Agent</option>
           <option value="admin">Admin</option>
+          <option value="super_admin">Super Admin</option>
         </select>
       </div>
     </div>
     <div class="fg"><label class="fl">Notes</label><textarea id="au-notes" class="fc" placeholder="Any additional notes about this user…" style="min-height:60px;resize:none"></textarea></div>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:4px;line-height:1.6">A profile row will be created. To also grant login access, invite the user via <a href="https://supabase.com/dashboard/project/gtcrmqbmlvtlyiwnshma/auth/users" target="_blank" style="color:var(--accent)">Supabase Auth →</a></p>
+    <div style="height:1px;background:var(--border);margin:14px 0"></div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">Login access</div>
+    <div class="form-row">
+      <div class="fg">
+        <label class="fl">Password</label>
+        <input id="au-password" class="fc" type="password" placeholder="Min 6 characters"/>
+        <div class="hint">Leave blank to create a profile without login access</div>
+      </div>
+      <div class="fg">
+        <label class="fl">Confirm password</label>
+        <input id="au-password2" class="fc" type="password" placeholder="Repeat password"/>
+      </div>
+    </div>
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-add-user')">Cancel</button>
       <button class="btn primary" onclick="addUser()">Add user</button>
@@ -721,8 +735,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
     <div class="fg"><label class="fl">Role</label>
       <select id="eu-role" class="fc">
         <option value="client">Client</option>
-        <option value="agent">Agent</option>
         <option value="admin">Admin</option>
+        <option value="super_admin">Super Admin</option>
       </select>
     </div>
 
@@ -754,14 +768,14 @@ textarea.fc { resize: vertical; min-height: 80px; }
   </div>
 </div>
 
-<!-- Invite agent modal -->
+<!-- Invite user modal -->
 <div class="overlay" id="modal-invite-agent">
   <div class="modal">
-    <div class="modal-head"><div class="modal-title">Invite agent</div><button class="close-x" onclick="closeModal('modal-invite-agent')">✕</button></div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">The agent will receive an email invitation to set their password.</p>
+    <div class="modal-head"><div class="modal-title">Invite user</div><button class="close-x" onclick="closeModal('modal-invite-agent')">✕</button></div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">The user will receive an email invitation to set their password.</p>
     <div class="fg"><label class="fl">Full name</label><input id="ia-name" class="fc" type="text" placeholder="Jane Smith"/></div>
-    <div class="fg"><label class="fl">Email address</label><input id="ia-email" class="fc" type="email" placeholder="agent@support.com"/></div>
-    <div class="fg"><label class="fl">Role</label><select id="ia-role" class="fc"><option value="agent">Agent</option><option value="admin">Admin</option></select></div>
+    <div class="fg"><label class="fl">Email address</label><input id="ia-email" class="fc" type="email" placeholder="admin@support.com"/></div>
+    <div class="fg"><label class="fl">Role</label><select id="ia-role" class="fc"><option value="admin">Admin</option><option value="super_admin">Super Admin</option></select></div>
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-invite-agent')">Cancel</button>
       <button class="btn primary" onclick="inviteAgent()">Send invitation</button>
@@ -780,12 +794,12 @@ const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
 
 /* ── Demo data ── */
 const DEMO_PROFILES = [
-  {id:'p1',full_name:'Sarah Johnson', email:'sarah@support.com', role:'agent', status:'online'},
-  {id:'p2',full_name:'Marcus Reid',   email:'marcus@support.com',role:'agent', status:'online'},
-  {id:'p3',full_name:'Aiko Lim',      email:'aiko@support.com',  role:'agent', status:'away'},
+  {id:'p1',full_name:'Sarah Johnson', email:'sarah@support.com', role:'admin', status:'online'},
+  {id:'p2',full_name:'Marcus Reid',   email:'marcus@support.com',role:'admin', status:'online'},
+  {id:'p3',full_name:'Aiko Lim',      email:'aiko@support.com',  role:'admin', status:'away'},
   {id:'p4',full_name:'Dev Kumar',     email:'dev@support.com',   role:'admin', status:'online'},
-  {id:'p5',full_name:'Jane Doe',      email:'jane@client.com',   role:'client',status:'online'},
-  {id:'p6',full_name:'Robert Chen',   email:'robert@client.com', role:'client',status:'offline'},
+  {id:'p5',full_name:'Jane Doe',      email:'jane@client.com',   role:'client',status:'online',  company:'Acme Ltd'},
+  {id:'p6',full_name:'Robert Chen',   email:'robert@client.com', role:'client',status:'offline', company:'GlobalTech'},
 ];
 const DEMO_TICKETS = [
   {id:'t1',ticket_number:12,subject:'Cannot export invoices to PDF',description:'When clicking Export PDF the page just spins. Happens on Chrome and Firefox.',status:'open',priority:'high',category:'Billing',requester_id:'p5',assignee_id:'p1',updated_at:new Date(Date.now()-2*60000).toISOString(),created_at:new Date(Date.now()-30*60000).toISOString()},
@@ -879,7 +893,7 @@ async function loadTickets() {
   if (demoMode) { renderTable(); updateStats(); updateBadges(); return; }
   document.getElementById('admin-tbody').innerHTML='<tr class="loading-row"><td colspan="8"><div class="loader"></div></td></tr>';
   const {data,error} = await sbClient.from('tickets')
-    .select('*, requester:profiles!requester_id(id,full_name), assignee:profiles!assignee_id(id,full_name)')
+    .select('*, requester:profiles!requester_id(id,full_name,company), assignee:profiles!assignee_id(id,full_name)')
     .order('updated_at',{ascending:false});
   if (error) { toast('Error: '+error.message); return; }
   tickets = data||[]; renderTable(); updateStats(); updateBadges();
@@ -887,7 +901,7 @@ async function loadTickets() {
 }
 async function loadProfiles() {
   if (demoMode) { renderAgents(); return; }
-  const {data} = await sbClient.from('profiles').select('*').in('role',['agent','admin']);
+  const {data} = await sbClient.from('profiles').select('*').in('role',['admin','super_admin']);
   if (data) profiles=data; renderAgents();
 }
 
@@ -907,11 +921,12 @@ function renderTable(statusFilter) {
     const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
     const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
     return `<tr onclick="openTicketDetail('${t.id}')">
+      <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${req?.full_name||'—'}</span></div></td>
+      <td style="font-size:12px;color:var(--text2)">${req?.company||'—'}</td>
       <td><span class="tid">#${t.ticket_number}</span></td>
       <td style="max-width:240px"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</div><span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}" style="margin-top:3px">${t.category||'General'}</span></td>
       <td><span class="sb s-${t.status}">${sLabel(t.status)}</span></td>
       <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
-      <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${req?.full_name||'—'}</span></div></td>
       <td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td>
       <td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td>
       <td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td>
@@ -947,11 +962,11 @@ function adminNav(el, page) {
   if (['open','in_progress','waiting','resolved'].includes(page)) {
     const filtered = tickets.filter(t=>t.status===page);
     pg.innerHTML = `<div class="page-header"><div><h1>${sLabel(page)} tickets</h1><p>${filtered.length} tickets</p></div></div>
-    <div class="table-card"><table><thead><tr><th>ID</th><th>Subject</th><th>Priority</th><th>Requester</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
+    <div class="table-card"><table><thead><tr><th>Client</th><th>Company</th><th>ID</th><th>Subject</th><th>Priority</th><th>Tech Assigned</th><th>Updated</th><th></th></tr></thead>
     <tbody>${filtered.length ? filtered.map(t=>{
       const req=demoMode?profileById(t.requester_id):(t.requester||{});
       const asgn=demoMode?profileById(t.assignee_id):(t.assignee||{});
-      return `<tr onclick="openTicketDetail('${t.id}')"><td><span class="tid">#${t.ticket_number}</span></td><td style="font-weight:500;max-width:260px">${t.subject}</td><td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td><td style="font-size:12px">${req?.full_name||'—'}</td><td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td><td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td><td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td></tr>`;
+      return `<tr onclick="openTicketDetail('${t.id}')"><td style="font-size:12px">${req?.full_name||'—'}</td><td style="font-size:12px;color:var(--text2)">${req?.company||'—'}</td><td><span class="tid">#${t.ticket_number}</span></td><td style="font-weight:500;max-width:260px">${t.subject}</td><td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td><td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td><td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td><td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td></tr>`;
     }).join('') : '<tr class="empty-row"><td colspan="7">No tickets in this status</td></tr>'}</tbody></table></div>`;
   }
   if (page==='reports') renderReports();
@@ -967,7 +982,7 @@ async function openTicketDetail(id) {
   let comments=[];
   if (demoMode) { comments=DEMO_COMMENTS[id]||[]; }
   else { const {data}=await sbClient.from('comments').select('*,author:profiles(id,full_name,role)').eq('ticket_id',id).order('created_at'); comments=data||[]; }
-  const agentOpts = profiles.filter(p=>p.role==='agent'||p.role==='admin')
+  const assigneeOpts = profiles.filter(p=>p.role==='admin'||p.role==='super_admin')
     .map(p=>`<option value="${p.id}" ${p.id===t.assignee_id?'selected':''}>${p.full_name}</option>`).join('');
   document.getElementById('detail-body').innerHTML=`
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
@@ -982,12 +997,12 @@ async function openTicketDetail(id) {
         <option value="closed" ${t.status==='closed'?'selected':''}>Closed</option>
       </select>
       <select class="filter-sel" onchange="updateAssignee('${t.id}',this.value)">
-        <option value="">Unassigned</option>${agentOpts}
+        <option value="">Unassigned</option>${assigneeOpts}
       </select>
     </div>
     <div class="detail-meta-grid">
-      <div class="dmi"><div class="key">Requester</div><div class="val flex-c"><div class="avatar ${avColor(req?.id)}" style="width:22px;height:22px;font-size:9px">${initials(req?.full_name||'?')}</div>${req?.full_name||'—'}</div></div>
-      <div class="dmi"><div class="key">Assignee</div><div class="val">${asgn?.full_name||'Unassigned'}</div></div>
+      <div class="dmi"><div class="key">Client</div><div class="val flex-c"><div class="avatar ${avColor(req?.id)}" style="width:22px;height:22px;font-size:9px">${initials(req?.full_name||'?')}</div>${req?.full_name||'—'}</div></div>
+      <div class="dmi"><div class="key">Tech Assigned</div><div class="val">${asgn?.full_name||'Unassigned'}</div></div>
       <div class="dmi"><div class="key">Created</div><div class="val">${timeAgo(t.created_at||t.updated_at)}</div></div>
       <div class="dmi"><div class="key">Category</div><div class="val">${t.category||'General'}</div></div>
       ${t.contact_email?`<div class="dmi"><div class="key">Email</div><div class="val"><a href="mailto:${t.contact_email}" style="color:var(--accent)">${t.contact_email}</a></div></div>`:''}
@@ -1014,7 +1029,7 @@ function renderComments(comments, showInternal=false) {
   if (!comments.length) return '<div style="color:var(--text3);font-size:13px;padding:8px 0">No comments yet.</div>';
   return comments.filter(c=>showInternal||!c.is_internal).map(c=>{
     const author=demoMode?profileById(c.author_id):(c.author||{});
-    const isAgent=author?.role==='agent'||author?.role==='admin';
+    const isAgent=author?.role==='admin'||author?.role==='super_admin';
     const cls=c.is_internal?'internal-bubble':(isAgent?'agent-bubble':'');
     return `<div class="comment-item"><div class="avatar ${avColor(author?.id)}" style="flex-shrink:0">${initials(author?.full_name||'?')}</div>
       <div class="comment-bubble ${cls}"><div class="comment-meta">${author?.full_name||'Unknown'} ${isAgent?'(agent)':''} ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${c.body}</div></div>`;
@@ -1039,8 +1054,8 @@ async function updateStatus(id, status) {
   await sbClient.from('tickets').update({status}).eq('id',id); loadTickets(); toast('Status updated');
 }
 async function updateAssignee(id, assigneeId) {
-  if (demoMode) { const t=tickets.find(x=>x.id===id); if(t) t.assignee_id=assigneeId||null; renderTable();toast('Assignee updated');return; }
-  await sbClient.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id); loadTickets(); toast('Assignee updated');
+  if (demoMode) { const t=tickets.find(x=>x.id===id); if(t) t.assignee_id=assigneeId||null; renderTable();toast('Tech assigned updated');return; }
+  await sbClient.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id); loadTickets(); toast('Tech assigned updated');
 }
 
 /* ── Create ticket ── */
@@ -1083,7 +1098,7 @@ function renderAgents() {
     <div class="table-card" style="display:flex;align-items:center;gap:14px;padding:16px">
       <div class="avatar ${avColor(p.id)}" style="width:42px;height:42px;font-size:15px">${initials(p.full_name)}</div>
       <div style="flex:1"><div style="font-size:14px;font-weight:600">${p.full_name}</div>
-      <div style="font-size:12px;color:var(--text2)">${p.role==='admin'?'Admin':'Support Agent'} · ${openByAgent[p.id]||0} open</div></div>
+      <div style="font-size:12px;color:var(--text2)">${p.role==='admin'?'Admin':'Staff'} · ${openByAgent[p.id]||0} open</div></div>
       <span class="sb ${ss[p.status]||'s-closed'}">${p.status||'offline'}</span>
     </div>`).join('');
 }
@@ -1179,7 +1194,8 @@ function renderUsersTable() {
 
   const roleBadge = r => ({
     admin:  '<span class="sb s-in_progress">Admin</span>',
-    agent:  '<span class="sb s-open">Agent</span>',
+    super_admin: '<span class="sb s-in_progress" style="background:var(--danger-l);color:var(--danger)">Super Admin</span>',
+    
     client: '<span class="sb s-closed">Client</span>',
   }[r] || r);
   const renderRow = p => {
@@ -1206,7 +1222,7 @@ function renderUsersTable() {
       </td>
     </tr>`;
 
-  const staff   = list.filter(p => p.role === 'admin' || p.role === 'agent');
+  const staff   = list.filter(p => p.role === 'admin' || p.role === 'super_admin');
   const clients = list.filter(p => p.role === 'client');
 
   let html = '';
@@ -1252,11 +1268,10 @@ async function saveUser() {
   if (demoMode) {
     const p = allProfiles.find(x => x.id === id);
     if (p) Object.assign(p, updates);
-    closeModal('modal-edit-user'); renderUsersTable(); toast('User updated'); return;
+    renderUsersTable(); toast('User updated'); return;
   }
   const { error } = await sbClient.from('profiles').update(updates).eq('id', id);
   if (error) { toast('Error: ' + error.message); return; }
-  closeModal('modal-edit-user');
   loadAllProfiles(); loadProfiles(); toast('User updated');
 }
 
@@ -1273,32 +1288,48 @@ async function deleteUser(id) {
 }
 
 async function addUser() {
-  const name    = document.getElementById('au-name').value.trim();
-  const email   = document.getElementById('au-email').value.trim();
-  const phone   = document.getElementById('au-phone').value.trim();
-  const company = document.getElementById('au-company').value.trim();
-  const role    = document.getElementById('au-role').value;
-  const notes   = document.getElementById('au-notes').value.trim();
+  const name     = document.getElementById('au-name').value.trim();
+  const email    = document.getElementById('au-email').value.trim();
+  const phone    = document.getElementById('au-phone').value.trim();
+  const company  = document.getElementById('au-company').value.trim();
+  const role     = document.getElementById('au-role').value;
+  const notes    = document.getElementById('au-notes').value.trim();
+  const password = document.getElementById('au-password').value;
+  const password2= document.getElementById('au-password2').value;
   if (!name || !email) { toast('Name and email are required'); return; }
-  const newId = crypto.randomUUID();
-  const payload = { id: newId, full_name: name, role };
-  if (email)   payload.email   = email;
-  if (phone)   payload.phone   = phone;
-  if (company) payload.company = company;
-  if (notes)   payload.notes   = notes;
+  if (password && password.length < 6) { toast('Password must be at least 6 characters'); return; }
+  if (password !== password2) { toast('Passwords do not match'); return; }
   function clearForm() {
-    ['au-name','au-email','au-phone','au-company','au-notes'].forEach(id => document.getElementById(id).value = '');
+    ['au-name','au-email','au-phone','au-company','au-notes','au-password','au-password2'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('au-role').value = 'client';
   }
   if (demoMode) {
-    allProfiles.push({ ...payload });
+    const newId = crypto.randomUUID();
+    allProfiles.push({ id: newId, full_name: name, email, phone, company, role, notes });
     closeModal('modal-add-user'); clearForm();
     renderUsersTable(); toast('User added (demo)'); return;
   }
-  const { error } = await sbClient.from('profiles').insert(payload);
+  let userId;
+  if (password) {
+    // Create auth user with password
+    const { data: authData, error: authErr } = await sbClient.auth.admin.createUser({
+      email, password, email_confirm: true,
+      user_metadata: { full_name: name, role }
+    });
+    if (authErr) { toast('Auth error: ' + authErr.message); return; }
+    userId = authData.user.id;
+  } else {
+    userId = crypto.randomUUID();
+  }
+  const payload = { id: userId, full_name: name, email, role };
+  if (phone)   payload.phone   = phone;
+  if (company) payload.company = company;
+  if (notes)   payload.notes   = notes;
+  const { error } = await sbClient.from('profiles').upsert(payload, { onConflict: 'id' });
   if (error) { toast('Error: ' + error.message); return; }
   closeModal('modal-add-user'); clearForm();
-  loadAllProfiles(); toast('User profile created. To grant login access, invite them via Supabase Auth.');
+  loadAllProfiles();
+  toast(password ? 'User created with login access' : 'Profile created (no login access)');
 }
 
 /* ── Backup ── */
