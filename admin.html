@@ -402,8 +402,13 @@ textarea.fc { resize: vertical; min-height: 80px; }
   <div class="body">
     <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
     <div class="sidebar" id="main-sidebar">
+      <div class="nav-item active" onclick="adminNav(this,'dashboard')">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Dashboard
+      </div>
+      <div class="sep"></div>
       <div class="sidebar-label">Tickets</div>
-      <div class="nav-item active" onclick="adminNav(this,'all')">
+      <div class="nav-item" onclick="adminNav(this,'all')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8h18M3 12h18M3 16h18"/></svg>
         All tickets <span class="nav-badge" id="badge-all">—</span>
       </div>
@@ -453,8 +458,13 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
 
     <div class="content">
+      <!-- Dashboard -->
+      <div class="page active" id="page-dashboard">
+        <!-- populated by adminNav -->
+      </div>
+
       <!-- All tickets -->
-      <div class="page active" id="page-all">
+      <div class="page" id="page-all">
         <div class="page-header">
           <div><h1>All tickets</h1><p id="ticket-count-sub">Loading…</p></div>
           <button class="btn primary" onclick="openModal('modal-new-ticket')">
@@ -860,6 +870,8 @@ function loadDemo() {
   document.getElementById('auth-screen').classList.remove('active');
   document.getElementById('app').style.display = 'flex';
   document.getElementById('topbar-user').textContent = 'Dev Kumar';
+  document.getElementById('page-dashboard').classList.remove('active');
+  document.getElementById('page-all').classList.add('active');
   loadTickets(); renderAgents(); renderReports();
 }
 async function ensureProfile(user) {
@@ -889,6 +901,8 @@ async function signIn() {
   document.getElementById('db-label').textContent = 'Supabase connected';
   document.getElementById('topbar-user').textContent = prof?.full_name||email;
   document.getElementById('settings-url').value = localStorage.getItem('sb_url')||'';
+  document.getElementById('page-dashboard').classList.remove('active');
+  document.getElementById('page-all').classList.add('active');
   loadTickets(); loadProfiles();
 }
 async function signOut() { if(sbClient) await sbClient.auth.signOut(); location.reload(); }
@@ -999,6 +1013,13 @@ function adminNav(el, page) {
   const pg = document.getElementById('page-'+page);
   if (!pg) return;
   pg.classList.add('active');
+  if (page==='dashboard') {
+    // Dashboard shows the same all-tickets view
+    document.getElementById('page-dashboard').classList.remove('active');
+    document.getElementById('page-all').classList.add('active');
+    renderTable(); updateStats(); updateBadges();
+    return;
+  }
   if (['open','in_progress','waiting','resolved'].includes(page)) {
     pg.innerHTML = `
       <div class="page-header">
@@ -1214,17 +1235,28 @@ async function createTicket() {
 
 /* ── Agents ── */
 function renderAgents() {
-  const agents=profiles.filter(p=>p.role==='agent'||p.role==='admin');
+  const all = profiles.filter(p=>p.role==='admin'||p.role==='super_admin');
   const openByAgent={};
   tickets.forEach(t=>{if(t.assignee_id&&t.status!=='resolved'&&t.status!=='closed') openByAgent[t.assignee_id]=(openByAgent[t.assignee_id]||0)+1;});
   const ss={online:'s-open',away:'s-waiting',offline:'s-closed'};
-  document.getElementById('agents-grid').innerHTML=agents.map(p=>`
+  const roleLabel = r => r==='super_admin'?'Super Admin':r==='admin'?'Admin':'Staff';
+  const card = p => `
     <div class="table-card" style="display:flex;align-items:center;gap:14px;padding:16px">
       <div class="avatar ${avColor(p.id)}" style="width:42px;height:42px;font-size:15px">${initials(p.full_name)}</div>
-      <div style="flex:1"><div style="font-size:14px;font-weight:600">${p.full_name}</div>
-      <div style="font-size:12px;color:var(--text2)">${p.role==='admin'?'Admin':'Staff'} · ${openByAgent[p.id]||0} open</div></div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600">${p.full_name}</div>
+        <div style="font-size:12px;color:var(--text2)">${roleLabel(p.role)} · ${openByAgent[p.id]||0} open</div>
+      </div>
       <span class="sb ${ss[p.status]||'s-closed'}">${p.status||'offline'}</span>
-    </div>`).join('');
+    </div>`;
+  const superAdmins = all.filter(p=>p.role==='super_admin');
+  const admins      = all.filter(p=>p.role==='admin');
+  const sectionHd = (label, count) =>
+    `<div style="grid-column:1/-1;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);padding:4px 2px 2px">${label} <span style="font-weight:500">(${count})</span></div>`;
+  let html = '';
+  if (superAdmins.length) html += sectionHd('Super Admins', superAdmins.length) + superAdmins.map(card).join('');
+  if (admins.length)      html += sectionHd('Admins', admins.length) + admins.map(card).join('');
+  document.getElementById('agents-grid').innerHTML = html || '<div style="color:var(--text3);font-size:13px;padding:8px">No staff found.</div>';
 }
 async function inviteAgent() {
   const name=document.getElementById('ia-name').value.trim(),email=document.getElementById('ia-email').value.trim();
