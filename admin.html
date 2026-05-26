@@ -124,11 +124,16 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
 .search-wrap { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--bg); border: 1px solid var(--border2); border-radius: var(--radius); flex: 1; min-width: 180px; max-width: 300px; }
 .search-wrap input { border: none; background: transparent; outline: none; font-size: 13px; color: var(--text1); width: 100%; font-family: var(--font); }
 .filter-sel { padding: 6px 10px; font-size: 12px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text1); cursor: pointer; font-family: var(--font); }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--text1); background: var(--surface); }
+th.sort-asc::after  { content: ' ↑'; color: var(--accent); }
+th.sort-desc::after { content: ' ↓'; color: var(--accent); }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th { padding: 10px 16px; text-align: left; font-size: 10px; font-weight: 600; color: var(--text3); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; background: var(--surface2); }
 td { padding: 11px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 tr:last-child td { border-bottom: none; }
-tbody tr:hover td { background: var(--bg); cursor: pointer; }
+tbody tr:nth-child(even) td { background: var(--surface2); }
+tbody tr:hover td { background: var(--accent-l); cursor: pointer; }
 .empty-row td { text-align: center; padding: 40px; color: var(--text3); }
 .loading-row td { text-align: center; padding: 32px; }
 
@@ -412,7 +417,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       </div>
       <div class="nav-item" onclick="adminNav(this,'waiting')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-        Waiting
+        Waiting <span class="nav-badge warn" id="badge-waiting">—</span>
       </div>
       <div class="nav-item" onclick="adminNav(this,'resolved')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
@@ -489,7 +494,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
               Refresh
             </button>
           </div>
-          <table><thead><tr><th>Client</th><th>Company</th><th>ID</th><th>Subject</th><th>Status</th><th>Priority</th><th>Tech Assigned</th><th>Updated</th><th></th></tr></thead>
+          <table><thead><tr><th class="sortable" onclick="setSort('ticket_number')">ID</th><th class="sortable" onclick="setSort('requester')">Client</th><th class="sortable" onclick="setSort('company')">Company</th><th class="sortable" onclick="setSort('subject')">Subject</th><th class="sortable" onclick="setSort('status')">Status</th><th class="sortable" onclick="setSort('priority')">Priority</th><th class="sortable" onclick="setSort('assignee')">Tech Assigned</th><th class="sortable" onclick="setSort('updated_at')">Updated</th><th></th></tr></thead>
           <tbody id="admin-tbody"></tbody></table>
         </div>
       </div>
@@ -789,6 +794,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 /* ── State ── */
 let sbClient = null, currentUser = null, currentProfile = null;
 let tickets = [], profiles = [];
+let sortCol = 'updated_at', sortDir = 'desc';
 let demoMode = false;
 const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
 
@@ -900,10 +906,29 @@ async function loadTickets() {
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
 }
 async function loadProfiles() {
-  if (demoMode) { renderAgents(); return; }
+  if (demoMode) {
+    const fu = document.getElementById('footer-user-count'); if (fu) fu.textContent = DEMO_PROFILES.length;
+    renderAgents(); return;
+  }
   const {data} = await sbClient.from('profiles').select('*').in('role',['admin','super_admin']);
   if (data) profiles=data; renderAgents();
+  const {count} = await sbClient.from('profiles').select('*',{count:'exact',head:true});
+  const fu = document.getElementById('footer-user-count'); if (fu && count!=null) fu.textContent = count;
 }
+
+/* ── Sorting ── */
+function setSort(col) {
+  if (sortCol === col) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+  else { sortCol = col; sortDir = col === 'updated_at' ? 'desc' : 'asc'; }
+  document.querySelectorAll('th.sortable').forEach(th => th.classList.remove('sort-asc','sort-desc'));
+  document.querySelectorAll('th.sortable').forEach(th => {
+    const map = {requester:'Client',company:'Company',ticket_number:'ID',subject:'Subject',status:'Status',priority:'Priority',assignee:'Tech Assigned',updated_at:'Updated'};
+    if (th.textContent.trim() === map[sortCol]) th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+  });
+  renderTable();
+}
+const PRIORITY_ORDER = {critical:0, high:1, medium:2, low:3};
+const STATUS_ORDER   = {open:0, in_progress:1, waiting:2, resolved:3, closed:4};
 
 /* ── Render table ── */
 function renderTable(statusFilter) {
@@ -914,6 +939,20 @@ function renderTable(statusFilter) {
   if (sf) list=list.filter(t=>t.status===sf);
   if (pf) list=list.filter(t=>t.priority===pf);
   if (q)  list=list.filter(t=>t.subject.toLowerCase().includes(q)||(t.ticket_number+'').includes(q)||getReqName(t).toLowerCase().includes(q));
+  // Sort
+  list = [...list].sort((a,b) => {
+    let av, bv;
+    if (sortCol==='requester')     { av=getReqName(a).toLowerCase(); bv=getReqName(b).toLowerCase(); }
+    else if (sortCol==='company')  { av=(demoMode?profileById(a.requester_id)?.company:a.requester?.company)||''; bv=(demoMode?profileById(b.requester_id)?.company:b.requester?.company)||''; av=av.toLowerCase(); bv=bv.toLowerCase(); }
+    else if (sortCol==='assignee') { av=(demoMode?profileById(a.assignee_id)?.full_name:a.assignee?.full_name)||''; bv=(demoMode?profileById(b.assignee_id)?.full_name:b.assignee?.full_name)||''; av=av.toLowerCase(); bv=bv.toLowerCase(); }
+    else if (sortCol==='priority') { av=PRIORITY_ORDER[a.priority]??9; bv=PRIORITY_ORDER[b.priority]??9; }
+    else if (sortCol==='status')   { av=STATUS_ORDER[a.status]??9; bv=STATUS_ORDER[b.status]??9; }
+    else if (sortCol==='updated_at'||sortCol==='created_at') { av=new Date(a[sortCol]||0); bv=new Date(b[sortCol]||0); }
+    else { av=a[sortCol]??''; bv=b[sortCol]??''; if(typeof av==='string'){av=av.toLowerCase();bv=bv.toLowerCase();} }
+    if (av < bv) return sortDir==='asc' ? -1 : 1;
+    if (av > bv) return sortDir==='asc' ? 1 : -1;
+    return 0;
+  });
   const tbody = document.getElementById('admin-tbody');
   if (!tbody) return;
   if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="8">No tickets found</td></tr>'; return; }
@@ -921,9 +960,9 @@ function renderTable(statusFilter) {
     const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
     const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
     return `<tr onclick="openTicketDetail('${t.id}')">
+      <td><span class="tid">#${t.ticket_number}</span></td>
       <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${req?.full_name||'—'}</span></div></td>
       <td style="font-size:12px;color:var(--text2)">${req?.company||'—'}</td>
-      <td><span class="tid">#${t.ticket_number}</span></td>
       <td style="max-width:240px"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</div><span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}" style="margin-top:3px">${t.category||'General'}</span></td>
       <td><span class="sb s-${t.status}">${sLabel(t.status)}</span></td>
       <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
@@ -945,9 +984,10 @@ function updateStats() {
   if (fc) fc.textContent = tickets.length;
 }
 function updateBadges() {
-  document.getElementById('badge-all').textContent   = tickets.length;
-  document.getElementById('badge-open').textContent  = tickets.filter(t=>t.status==='open').length;
-  document.getElementById('badge-inprog').textContent= tickets.filter(t=>t.status==='in_progress').length;
+  document.getElementById('badge-all').textContent     = tickets.length;
+  document.getElementById('badge-open').textContent    = tickets.filter(t=>t.status==='open').length;
+  document.getElementById('badge-inprog').textContent  = tickets.filter(t=>t.status==='in_progress').length;
+  document.getElementById('badge-waiting').textContent = tickets.filter(t=>t.status==='waiting').length;
 }
 
 /* ── Navigation ── */
@@ -962,11 +1002,11 @@ function adminNav(el, page) {
   if (['open','in_progress','waiting','resolved'].includes(page)) {
     const filtered = tickets.filter(t=>t.status===page);
     pg.innerHTML = `<div class="page-header"><div><h1>${sLabel(page)} tickets</h1><p>${filtered.length} tickets</p></div></div>
-    <div class="table-card"><table><thead><tr><th>Client</th><th>Company</th><th>ID</th><th>Subject</th><th>Priority</th><th>Tech Assigned</th><th>Updated</th><th></th></tr></thead>
+    <div class="table-card"><table><thead><tr><th>ID</th><th>Client</th><th>Company</th><th>Subject</th><th>Priority</th><th>Tech Assigned</th><th>Updated</th><th></th></tr></thead>
     <tbody>${filtered.length ? filtered.map(t=>{
       const req=demoMode?profileById(t.requester_id):(t.requester||{});
       const asgn=demoMode?profileById(t.assignee_id):(t.assignee||{});
-      return `<tr onclick="openTicketDetail('${t.id}')"><td style="font-size:12px">${req?.full_name||'—'}</td><td style="font-size:12px;color:var(--text2)">${req?.company||'—'}</td><td><span class="tid">#${t.ticket_number}</span></td><td style="font-weight:500;max-width:260px">${t.subject}</td><td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td><td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td><td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td><td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td></tr>`;
+      return `<tr onclick="openTicketDetail('${t.id}')"><td><span class="tid">#${t.ticket_number}</span></td><td style="font-size:12px">${req?.full_name||'—'}</td><td style="font-size:12px;color:var(--text2)">${req?.company||'—'}</td><td style="font-weight:500;max-width:260px">${t.subject}</td><td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td><td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td><td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td><td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td></tr>`;
     }).join('') : '<tr class="empty-row"><td colspan="7">No tickets in this status</td></tr>'}</tbody></table></div>`;
   }
   if (page==='reports') renderReports();
@@ -1173,11 +1213,13 @@ async function loadAllProfiles() {
   tbody.innerHTML = '<tr class="loading-row"><td colspan="5"><div class="loader"></div></td></tr>';
   if (demoMode) {
     allProfiles = [...DEMO_PROFILES];
+    const fu = document.getElementById('footer-user-count'); if (fu) fu.textContent = allProfiles.length;
     renderUsersTable(); return;
   }
   const { data, error } = await sbClient.from('profiles').select('*').order('full_name');
   if (error) { toast('Error loading users: ' + error.message); return; }
   allProfiles = data || [];
+  const fu = document.getElementById('footer-user-count'); if (fu) fu.textContent = allProfiles.length;
   renderUsersTable();
   document.getElementById('users-count-sub').textContent = allProfiles.length + ' registered profiles';
 }
@@ -1475,6 +1517,8 @@ function closeSidebar() {
   <span>Email: <a href="mailto:helpdesk@el-martillo.com">helpdesk@el-martillo.com</a></span>
   <span class="footer-sep">|</span>
   <span>Tickets: <span class="footer-tickets" id="footer-ticket-count">—</span></span>
+  <span class="footer-sep">|</span>
+  <span>Users: <span class="footer-tickets" id="footer-user-count">—</span></span>
 </div>
 
 </body>
