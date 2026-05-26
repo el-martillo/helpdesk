@@ -213,6 +213,24 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .cat-account   { background:#EEEDFE; color:#534AB7; }
 .cat-general   { background:#F1EFE8; color:#5F5E5A; }
 
+/* ── Tech news cards ── */
+.news-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-l); padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 6px;
+  transition: border-color .15s, transform .12s, box-shadow .15s;
+  text-decoration: none; color: var(--text1);
+}
+.news-card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: var(--shadow); }
+.news-card-source { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+.news-card-title { font-size: 13px; font-weight: 600; line-height: 1.45; }
+.news-card-desc { font-size: 12px; color: var(--text2); line-height: 1.55; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.news-card-date { font-size: 11px; color: var(--text3); margin-top: auto; }
+
+@media (max-width: 768px) {
+  #tech-news-grid { grid-template-columns: 1fr !important; }
+}
+
 /* ── Hamburger ── */
 .hamburger {
   display: none; align-items: center; justify-content: center;
@@ -473,9 +491,9 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </button>
         </div>
         <div class="stats-grid">
-          <div class="stat-card"><div class="label">Open</div><div class="value" id="stat-open" style="color:var(--accent)">—</div><div class="sub"></div></div>
-          <div class="stat-card"><div class="label">In progress</div><div class="value" id="stat-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to admins</div></div>
-          <div class="stat-card"><div class="label">Resolved</div><div class="value" id="stat-resolved" style="color:var(--success)">—</div><div class="sub"></div></div>
+          <div class="stat-card clickable" onclick="navToPage('open')" title="View open tickets"><div class="label">Open</div><div class="value" id="stat-open" style="color:var(--accent)">—</div><div class="sub"></div></div>
+          <div class="stat-card clickable" onclick="navToPage('in_progress')" title="View in progress tickets"><div class="label">In progress</div><div class="value" id="stat-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to admins</div></div>
+          <div class="stat-card clickable" onclick="navToPage('resolved')" title="View resolved tickets"><div class="label">Resolved</div><div class="value" id="stat-resolved" style="color:var(--success)">—</div><div class="sub"></div></div>
           <div class="stat-card clickable" onclick="openModal('modal-new-ticket')" title="Create new ticket"><div class="label">Total</div><div class="value" id="stat-total">—</div><div class="sub">All time</div></div>
         </div>
         <div class="table-card">
@@ -506,6 +524,22 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </div>
           <table><thead><tr><th class="sortable" onclick="setSort('ticket_number')">ID</th><th class="sortable" onclick="setSort('requester')">Client</th><th class="sortable" onclick="setSort('company')">Company</th><th class="sortable" onclick="setSort('subject')">Subject</th><th class="sortable" onclick="setSort('status')">Status</th><th class="sortable" onclick="setSort('priority')">Priority</th><th class="sortable" onclick="setSort('assignee')">Tech Assigned</th><th class="sortable" onclick="setSort('updated_at')">Updated</th><th></th></tr></thead>
           <tbody id="admin-tbody"></tbody></table>
+        </div>
+
+        <!-- Tech News -->
+        <div id="tech-news-section" style="margin-top:24px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div style="font-size:14px;font-weight:600">Tech News</div>
+            <button class="btn sm" onclick="loadTechNews()">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+              Refresh
+            </button>
+          </div>
+          <div id="tech-news-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+            <div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text3);font-size:13px">
+              <div class="loader" style="display:inline-block;margin-bottom:10px"></div><br/>Loading news…
+            </div>
+          </div>
         </div>
       </div>
 
@@ -805,6 +839,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 let sbClient = null, currentUser = null, currentProfile = null;
 let tickets = [], profiles = [];
 let sortCol = 'updated_at', sortDir = 'desc';
+let dashboardMode = false;
 let demoMode = false;
 const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
 
@@ -872,7 +907,8 @@ function loadDemo() {
   document.getElementById('topbar-user').textContent = 'Dev Kumar';
   document.getElementById('page-dashboard').classList.remove('active');
   document.getElementById('page-all').classList.add('active');
-  loadTickets(); renderAgents(); renderReports();
+  dashboardMode = true;
+  loadTickets(); renderAgents(); renderReports(); loadTechNews();
 }
 async function ensureProfile(user) {
   const {data:existing} = await sbClient.from('profiles').select('*').eq('id', user.id).single();
@@ -903,7 +939,8 @@ async function signIn() {
   document.getElementById('settings-url').value = localStorage.getItem('sb_url')||'';
   document.getElementById('page-dashboard').classList.remove('active');
   document.getElementById('page-all').classList.add('active');
-  loadTickets(); loadProfiles();
+  dashboardMode = true;
+  loadTickets(); loadProfiles(); loadTechNews();
 }
 async function signOut() { if(sbClient) await sbClient.auth.signOut(); location.reload(); }
 function clearCreds() { localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key'); location.reload(); }
@@ -930,6 +967,13 @@ async function loadProfiles() {
   const fu = document.getElementById('footer-user-count'); if (fu && count!=null) fu.textContent = count;
 }
 
+function navToPage(page) {
+  const navItem = [...document.querySelectorAll('.nav-item')].find(el =>
+    el.getAttribute('onclick')?.includes("'"+page+"'")
+  );
+  if (navItem) adminNav(navItem, page);
+}
+
 /* ── Sorting ── */
 function setSort(col) {
   if (sortCol === col) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
@@ -950,6 +994,7 @@ function renderTable(statusFilter) {
   const sf = statusFilter||document.getElementById('filter-status')?.value||'';
   const pf = document.getElementById('filter-priority')?.value||'';
   let list = tickets;
+  if (dashboardMode) list = list.filter(t=>['open','in_progress','waiting'].includes(t.status));
   if (sf) list=list.filter(t=>t.status===sf);
   if (pf) list=list.filter(t=>t.priority===pf);
   if (q)  list=list.filter(t=>t.subject.toLowerCase().includes(q)||(t.ticket_number+'').includes(q)||getReqName(t).toLowerCase().includes(q));
@@ -1014,10 +1059,15 @@ function adminNav(el, page) {
   if (!pg) return;
   pg.classList.add('active');
   if (page==='dashboard') {
-    // Dashboard shows the same all-tickets view
+    dashboardMode = true;
     document.getElementById('page-dashboard').classList.remove('active');
     document.getElementById('page-all').classList.add('active');
+    const h1 = document.querySelector('#page-all .page-header h1');
+    if (h1) h1.textContent = 'Dashboard';
+    const ns = document.getElementById('tech-news-section');
+    if (ns) ns.style.display = '';
     renderTable(); updateStats(); updateBadges();
+    loadTechNews();
     return;
   }
   if (['open','in_progress','waiting','resolved'].includes(page)) {
@@ -1049,6 +1099,7 @@ function adminNav(el, page) {
             <th class="sortable" onclick="setFpSort('${page}','requester')">Client</th>
             <th class="sortable" onclick="setFpSort('${page}','company')">Company</th>
             <th class="sortable" onclick="setFpSort('${page}','subject')">Subject</th>
+            <th class="sortable" onclick="setFpSort('${page}','status')">Status</th>
             <th class="sortable" onclick="setFpSort('${page}','priority')">Priority</th>
             <th class="sortable" onclick="setFpSort('${page}','assignee')">Tech Assigned</th>
             <th class="sortable" onclick="setFpSort('${page}','updated_at')">Updated</th>
@@ -1058,6 +1109,14 @@ function adminNav(el, page) {
         </table>
       </div>`;
     renderFilteredPage(page);
+  }
+  if (page==='all') {
+    dashboardMode = false;
+    const h1 = document.querySelector('#page-all .page-header h1');
+    if (h1) h1.textContent = 'All tickets';
+    const ns = document.getElementById('tech-news-section');
+    if (ns) ns.style.display = 'none';
+    renderTable(); updateStats(); updateBadges();
   }
   if (page==='reports') renderReports();
 }
@@ -1071,7 +1130,7 @@ function setFpSort(page, col) {
   const pg = document.getElementById('page-'+page);
   if (pg) pg.querySelectorAll('th.sortable').forEach(th => {
     th.classList.remove('sort-asc','sort-desc');
-    const map = {ticket_number:'ID',requester:'Client',company:'Company',subject:'Subject',priority:'Priority',assignee:'Tech Assigned',updated_at:'Updated'};
+    const map = {ticket_number:'ID',requester:'Client',company:'Company',subject:'Subject',status:'Status',priority:'Priority',assignee:'Tech Assigned',updated_at:'Updated'};
     if (th.textContent.trim() === map[s.col]) th.classList.add(s.dir==='asc'?'sort-asc':'sort-desc');
   });
   renderFilteredPage(page);
@@ -1090,6 +1149,7 @@ function renderFilteredPage(page) {
     else if (s.col==='company') { av=(demoMode?profileById(a.requester_id)?.company:a.requester?.company)||''; bv=(demoMode?profileById(b.requester_id)?.company:b.requester?.company)||''; av=av.toLowerCase();bv=bv.toLowerCase(); }
     else if (s.col==='assignee'){ av=(demoMode?profileById(a.assignee_id)?.full_name:a.assignee?.full_name)||''; bv=(demoMode?profileById(b.assignee_id)?.full_name:b.assignee?.full_name)||''; av=av.toLowerCase();bv=bv.toLowerCase(); }
     else if (s.col==='priority'){ av=PRIORITY_ORDER[a.priority]??9; bv=PRIORITY_ORDER[b.priority]??9; }
+    else if (s.col==='status')  { av=STATUS_ORDER[a.status]??9;    bv=STATUS_ORDER[b.status]??9; }
     else if (s.col==='updated_at'){ av=new Date(a.updated_at||0); bv=new Date(b.updated_at||0); }
     else { av=a[s.col]??''; bv=b[s.col]??''; if(typeof av==='string'){av=av.toLowerCase();bv=bv.toLowerCase();} }
     if(av<bv) return s.dir==='asc'?-1:1;
@@ -1100,15 +1160,16 @@ function renderFilteredPage(page) {
   if (countEl) countEl.textContent = list.length + ' ticket' + (list.length!==1?'s':'');
   const tbody = document.getElementById(`fp-tbody-${page}`);
   if (!tbody) return;
-  if (!list.length) { tbody.innerHTML=`<tr class="empty-row"><td colspan="8">No tickets found</td></tr>`; return; }
+  if (!list.length) { tbody.innerHTML=`<tr class="empty-row"><td colspan="9">No tickets found</td></tr>`; return; }
   tbody.innerHTML = list.map(t=>{
     const req  = demoMode?profileById(t.requester_id):(t.requester||{});
     const asgn = demoMode?profileById(t.assignee_id):(t.assignee||{});
     return `<tr onclick="openTicketDetail('${t.id}')">
       <td><span class="tid">#${t.ticket_number}</span></td>
-      <td style="font-size:12px">${req?.full_name||'—'}</td>
+      <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${req?.full_name||'—'}</span></div></td>
       <td style="font-size:12px;color:var(--text2)">${req?.company||'—'}</td>
-      <td style="font-weight:500;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</td>
+      <td style="max-width:240px"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</div><span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}" style="margin-top:3px">${t.category||'General'}</span></td>
+      <td><span class="sb s-${t.status}">${sLabel(t.status)}</span></td>
       <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
       <td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td>
       <td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td>
@@ -1587,6 +1648,48 @@ function downloadJSON(data) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/* ── Tech News ── */
+async function loadTechNews() {
+  const grid = document.getElementById('tech-news-grid');
+  if (!grid) return;
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text3);font-size:13px"><div class="loader" style="display:inline-block;margin-bottom:10px"></div><br/>Loading news…</div>`;
+  const feeds = [
+    { url: 'https://feeds.arstechnica.com/arstechnica/technology-lab', source: 'Ars Technica' },
+    { url: 'https://www.theverge.com/rss/index.xml', source: 'The Verge' },
+    { url: 'https://feeds.feedburner.com/TechCrunch', source: 'TechCrunch' },
+  ];
+  const api = url => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&count=3`;
+  try {
+    const results = await Promise.allSettled(feeds.map(f => fetch(api(f.url)).then(r=>r.json()).then(d=>({...d,source:f.source}))));
+    const articles = [];
+    results.forEach(r => {
+      if (r.status==='fulfilled' && r.value.items) {
+        r.value.items.slice(0,2).forEach(item => articles.push({
+          title:       item.title,
+          description: item.description?.replace(/<[^>]+>/g,'').slice(0,120)||'',
+          link:        item.link,
+          pubDate:     item.pubDate,
+          source:      r.value.source,
+        }));
+      }
+    });
+    if (!articles.length) { grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text3);font-size:13px">Could not load news. Check your connection.</div>`; return; }
+    // Shuffle and cap at 6
+    articles.sort(()=>Math.random()-.5);
+    const show = articles.slice(0,6);
+    const ago = d => { if(!d) return ''; const m=Math.floor((Date.now()-new Date(d))/60000); if(m<60) return m+'m ago'; if(m<1440) return Math.floor(m/60)+'h ago'; return Math.floor(m/1440)+'d ago'; };
+    grid.innerHTML = show.map(a=>`
+      <a href="${a.link}" target="_blank" rel="noopener" class="news-card">
+        <div class="news-card-source">${a.source}</div>
+        <div class="news-card-title">${a.title}</div>
+        <div class="news-card-desc">${a.description}</div>
+        <div class="news-card-date">${ago(a.pubDate)}</div>
+      </a>`).join('');
+  } catch(e) {
+    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text3);font-size:13px">Could not load news.</div>`;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', initSupabase);
