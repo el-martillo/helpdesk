@@ -109,7 +109,7 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
 .btn.sm { padding: 4px 10px; font-size: 12px; }
 
 /* Stats */
-.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
 .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-l); padding: 16px; }
 .stat-card.clickable { cursor: pointer; transition: border-color .15s, transform .12s, box-shadow .15s; }
 .stat-card.clickable:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: var(--shadow); }
@@ -477,12 +477,12 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
     <div class="content">
       <!-- Dashboard -->
-      <div class="page active" id="page-dashboard">
+      <div class="page" id="page-dashboard">
         <!-- populated by adminNav -->
       </div>
 
       <!-- All tickets -->
-      <div class="page" id="page-all">
+      <div class="page active" id="page-all">
         <div class="page-header">
           <div><h1>All tickets</h1><p id="ticket-count-sub">Loading…</p></div>
           <button class="btn primary" onclick="openModal('modal-new-ticket')">
@@ -493,6 +493,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <div class="stats-grid">
           <div class="stat-card clickable" onclick="navToPage('open')" title="View open tickets"><div class="label">Open</div><div class="value" id="stat-open" style="color:var(--accent)">—</div><div class="sub"></div></div>
           <div class="stat-card clickable" onclick="navToPage('in_progress')" title="View in progress tickets"><div class="label">In progress</div><div class="value" id="stat-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to admins</div></div>
+          <div class="stat-card clickable" onclick="navToPage('waiting')" title="View waiting tickets"><div class="label">Waiting</div><div class="value" id="stat-waiting" style="color:var(--warn)">—</div><div class="sub"></div></div>
           <div class="stat-card clickable" onclick="navToPage('resolved')" title="View resolved tickets"><div class="label">Resolved</div><div class="value" id="stat-resolved" style="color:var(--success)">—</div><div class="sub"></div></div>
           <div class="stat-card clickable" onclick="openModal('modal-new-ticket')" title="Create new ticket"><div class="label">Total</div><div class="value" id="stat-total">—</div><div class="sub">All time</div></div>
         </div>
@@ -631,11 +632,38 @@ textarea.fc { resize: vertical; min-height: 80px; }
             </div>
             <div class="fg">
               <label class="fl">Connected Supabase project</label>
-              <input class="fc" id="settings-url" readonly style="font-family:var(--mono);font-size:12px"/>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg)">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:#5cb85c;flex-shrink:0"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
+                <span id="settings-url-display" style="font-size:12px;color:var(--text2);font-family:var(--mono)">••••••••••••••••</span>
+                <input id="settings-url" type="hidden"/>
+              </div>
             </div>
             <div style="display:flex;gap:8px;margin-top:8px">
               <button class="btn primary" onclick="toast('Settings saved')">Save settings</button>
               <button class="btn" onclick="clearCreds()">Disconnect Supabase</button>
+            </div>
+          </div>
+
+          <!-- Roles -->
+          <div class="table-card" style="padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">User roles</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Active roles in the system. Update the Supabase <code style="font-family:var(--mono);font-size:11px;background:var(--bg);padding:1px 5px;border-radius:4px">profiles_role_check</code> constraint to match.</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
+                <span class="sb" style="background:var(--danger-l);color:var(--danger);font-size:11px">Super Admin</span>
+                <span style="font-size:12px;color:var(--text2);flex:1">Full system access. Can manage all users, tickets, and settings.</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
+                <span class="sb s-in_progress" style="font-size:11px">Admin</span>
+                <span style="font-size:12px;color:var(--text2);flex:1">Can manage tickets, users, and view reports.</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
+                <span class="sb s-closed" style="font-size:11px">Client</span>
+                <span style="font-size:12px;color:var(--text2);flex:1">Can submit and track their own support tickets via the client portal.</span>
+              </div>
+            </div>
+            <div style="margin-top:12px;font-size:11px;color:var(--text3)">
+              Supabase constraint: <code style="font-family:var(--mono);background:var(--bg);padding:2px 6px;border-radius:4px;border:1px solid var(--border)">role IN ('super_admin', 'admin', 'client')</code>
             </div>
           </div>
 
@@ -905,9 +933,8 @@ function loadDemo() {
   document.getElementById('auth-screen').classList.remove('active');
   document.getElementById('app').style.display = 'flex';
   document.getElementById('topbar-user').textContent = 'Dev Kumar';
-  document.getElementById('page-dashboard').classList.remove('active');
-  document.getElementById('page-all').classList.add('active');
   dashboardMode = true;
+  const ns = document.getElementById('tech-news-section'); if (ns) ns.style.display = '';
   loadTickets(); renderAgents(); renderReports(); loadTechNews();
 }
 async function ensureProfile(user) {
@@ -936,10 +963,10 @@ async function signIn() {
   document.getElementById('db-dot').className = 'dot connected';
   document.getElementById('db-label').textContent = 'Supabase connected';
   document.getElementById('topbar-user').textContent = prof?.full_name||email;
-  document.getElementById('settings-url').value = localStorage.getItem('sb_url')||'';
-  document.getElementById('page-dashboard').classList.remove('active');
-  document.getElementById('page-all').classList.add('active');
+  const su = document.getElementById('settings-url-display');
+  if (su) { const u = localStorage.getItem('sb_url')||''; const m = u.match(/https?:\/\/([^.]+)/); su.textContent = m ? m[1].slice(0,4)+'••••••••.supabase.co' : '••••••••.supabase.co'; }
   dashboardMode = true;
+  const ns2 = document.getElementById('tech-news-section'); if (ns2) ns2.style.display = '';
   loadTickets(); loadProfiles(); loadTechNews();
 }
 async function signOut() { if(sbClient) await sbClient.auth.signOut(); location.reload(); }
@@ -947,7 +974,11 @@ function clearCreds() { localStorage.removeItem('sb_url'); localStorage.removeIt
 
 /* ── Data ── */
 async function loadTickets() {
-  if (demoMode) { renderTable(); updateStats(); updateBadges(); return; }
+  if (demoMode) {
+    renderTable(); updateStats(); updateBadges();
+    if (dashboardMode) { const h1=document.querySelector('#page-all .page-header h1'); if(h1) h1.textContent='Dashboard'; }
+    return;
+  }
   document.getElementById('admin-tbody').innerHTML='<tr class="loading-row"><td colspan="8"><div class="loader"></div></td></tr>';
   const {data,error} = await sbClient.from('tickets')
     .select('*, requester:profiles!requester_id(id,full_name,company), assignee:profiles!assignee_id(id,full_name)')
@@ -955,6 +986,10 @@ async function loadTickets() {
   if (error) { toast('Error: '+error.message); return; }
   tickets = data||[]; renderTable(); updateStats(); updateBadges();
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
+  if (dashboardMode) {
+    const h1 = document.querySelector('#page-all .page-header h1');
+    if (h1) h1.textContent = 'Dashboard';
+  }
 }
 async function loadProfiles() {
   if (demoMode) {
@@ -1036,6 +1071,7 @@ const getReqName = t => { const p = demoMode ? profileById(t.requester_id) : t.r
 function updateStats() {
   document.getElementById('stat-open').textContent    = tickets.filter(t=>t.status==='open').length;
   document.getElementById('stat-inprog').textContent  = tickets.filter(t=>t.status==='in_progress').length;
+  document.getElementById('stat-waiting').textContent = tickets.filter(t=>t.status==='waiting').length;
   document.getElementById('stat-resolved').textContent= tickets.filter(t=>t.status==='resolved').length;
   document.getElementById('stat-total').textContent   = tickets.length;
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
@@ -1060,7 +1096,7 @@ function adminNav(el, page) {
   pg.classList.add('active');
   if (page==='dashboard') {
     dashboardMode = true;
-    document.getElementById('page-dashboard').classList.remove('active');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.getElementById('page-all').classList.add('active');
     const h1 = document.querySelector('#page-all .page-header h1');
     if (h1) h1.textContent = 'Dashboard';
@@ -1357,8 +1393,8 @@ async function initSupabase() {
   const dbLabel = document.getElementById('db-label');
   if (dbDot) dbDot.className = 'dot connected';
   if (dbLabel) dbLabel.textContent = 'Supabase connected';
-  const settingsUrl = document.getElementById('settings-url');
-  if (settingsUrl) settingsUrl.value = url;
+  const settingsUrl = document.getElementById('settings-url-display');
+  if (settingsUrl) { const m = url.match(/https?:\/\/([^.]+)/); settingsUrl.textContent = m ? m[1].slice(0,4)+'••••••••.supabase.co' : '••••••••.supabase.co'; }
   try {
     const { data: { session } } = await sbClient.auth.getSession();
     if (session) {
@@ -1655,40 +1691,28 @@ async function loadTechNews() {
   const grid = document.getElementById('tech-news-grid');
   if (!grid) return;
   grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text3);font-size:13px"><div class="loader" style="display:inline-block;margin-bottom:10px"></div><br/>Loading news…</div>`;
-  const feeds = [
-    { url: 'https://feeds.arstechnica.com/arstechnica/technology-lab', source: 'Ars Technica' },
-    { url: 'https://www.theverge.com/rss/index.xml', source: 'The Verge' },
-    { url: 'https://feeds.feedburner.com/TechCrunch', source: 'TechCrunch' },
-  ];
-  const api = url => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&count=3`;
   try {
-    const results = await Promise.allSettled(feeds.map(f => fetch(api(f.url)).then(r=>r.json()).then(d=>({...d,source:f.source}))));
-    const articles = [];
-    results.forEach(r => {
-      if (r.status==='fulfilled' && r.value.items) {
-        r.value.items.slice(0,2).forEach(item => articles.push({
-          title:       item.title,
-          description: item.description?.replace(/<[^>]+>/g,'').slice(0,120)||'',
-          link:        item.link,
-          pubDate:     item.pubDate,
-          source:      r.value.source,
-        }));
-      }
-    });
-    if (!articles.length) { grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text3);font-size:13px">Could not load news. Check your connection.</div>`; return; }
-    // Shuffle and cap at 6
-    articles.sort(()=>Math.random()-.5);
-    const show = articles.slice(0,6);
-    const ago = d => { if(!d) return ''; const m=Math.floor((Date.now()-new Date(d))/60000); if(m<60) return m+'m ago'; if(m<1440) return Math.floor(m/60)+'h ago'; return Math.floor(m/1440)+'d ago'; };
-    grid.innerHTML = show.map(a=>`
-      <a href="${a.link}" target="_blank" rel="noopener" class="news-card">
-        <div class="news-card-source">${a.source}</div>
-        <div class="news-card-title">${a.title}</div>
-        <div class="news-card-desc">${a.description}</div>
-        <div class="news-card-date">${ago(a.pubDate)}</div>
+    const topIds = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json').then(r=>r.json());
+    const ids = topIds.slice(0, 18);
+    const items = await Promise.all(ids.map(id =>
+      fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).then(r=>r.json())
+    ));
+    const stories = items.filter(i => i && i.url && i.title && i.score > 10).slice(0, 6);
+    if (!stories.length) { grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text3);font-size:13px">No stories found. Try refreshing.</div>`; return; }
+    const ago = ts => { if(!ts) return ''; const m=Math.floor((Date.now()-ts*1000)/60000); if(m<60) return m+'m ago'; if(m<1440) return Math.floor(m/60)+'h ago'; return Math.floor(m/1440)+'d ago'; };
+    const domain = url => { try { return new URL(url).hostname.replace('www.',''); } catch(e){ return ''; } };
+    grid.innerHTML = stories.map(s=>`
+      <a href="${s.url}" target="_blank" rel="noopener" class="news-card">
+        <div class="news-card-source">${domain(s.url)}</div>
+        <div class="news-card-title">${s.title}</div>
+        <div class="news-card-desc" style="display:flex;align-items:center;gap:10px;margin-top:2px">
+          <span>▲ ${s.score} points</span>
+          <span>💬 ${s.descendants||0} comments</span>
+        </div>
+        <div class="news-card-date">${ago(s.time)}</div>
       </a>`).join('');
   } catch(e) {
-    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text3);font-size:13px">Could not load news.</div>`;
+    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text3);font-size:13px">Could not load news. Check your connection.</div>`;
   }
 }
 
