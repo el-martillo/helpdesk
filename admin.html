@@ -287,7 +287,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       El Martillo I.T. Ticketing System
     </div>
     <div class="topbar-center">
-      <span class="badge-admin">Admin</span>
+      <span class="badge-admin" id="topbar-role-badge">Admin</span>
       <span id="topbar-user" style="color:var(--text3)"></span>
     </div>
     <div class="topbar-right">
@@ -422,6 +422,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
             </div>
             <select class="filter-sel" id="users-role-filter" onchange="renderUsersTable()">
               <option value="">All roles</option>
+              <option value="super_admin">Super Admin</option>
               <option value="admin">Admin</option>
               <option value="agent">Agent</option>
               <option value="client">Client</option>
@@ -591,6 +592,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           <option value="client">Client</option>
           <option value="agent">Agent</option>
           <option value="admin">Admin</option>
+          <option value="super_admin">Super Admin</option>
         </select>
       </div>
     </div>
@@ -635,6 +637,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <option value="client">Client</option>
         <option value="agent">Agent</option>
         <option value="admin">Admin</option>
+        <option value="super_admin">Super Admin</option>
       </select>
     </div>
 
@@ -673,7 +676,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
     <p style="font-size:13px;color:var(--text2);margin-bottom:16px">The agent will receive an email invitation to set their password.</p>
     <div class="fg"><label class="fl">Full name</label><input id="ia-name" class="fc" type="text" placeholder="Jane Smith"/></div>
     <div class="fg"><label class="fl">Email address</label><input id="ia-email" class="fc" type="email" placeholder="agent@support.com"/></div>
-    <div class="fg"><label class="fl">Role</label><select id="ia-role" class="fc"><option value="agent">Agent</option><option value="admin">Admin</option></select></div>
+    <div class="fg"><label class="fl">Role</label><select id="ia-role" class="fc"><option value="agent">Agent</option><option value="admin">Admin</option><option value="super_admin">Super Admin</option></select></div>
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-invite-agent')">Cancel</button>
       <button class="btn primary" onclick="inviteAgent()">Send invitation</button>
@@ -774,12 +777,13 @@ async function signIn() {
   currentUser = data.user;
   const prof = await ensureProfile(currentUser);
   currentProfile = prof;
-  if (prof?.role==='client') { document.getElementById('auth-err').textContent='Access denied. Client accounts must use the client portal.'; return; }
+  if (!prof?.role || prof?.role==='client') { document.getElementById('auth-err').textContent='Access denied. Client accounts must use the client portal.'; return; }
   document.getElementById('auth-screen').classList.remove('active');
   document.getElementById('app').style.display = 'flex';
   document.getElementById('db-dot').className = 'dot connected';
   document.getElementById('db-label').textContent = 'Supabase connected';
   document.getElementById('topbar-user').textContent = prof?.full_name||email;
+  const rb = document.getElementById('topbar-role-badge'); if(rb) rb.textContent = prof?.role==='super_admin'?'Super Admin':'Admin';
   document.getElementById('settings-url').value = localStorage.getItem('sb_url')||'';
   loadTickets(); loadProfiles();
 }
@@ -799,7 +803,7 @@ async function loadTickets() {
 }
 async function loadProfiles() {
   if (demoMode) { renderAgents(); return; }
-  const {data} = await sbClient.from('profiles').select('*').in('role',['agent','admin']);
+  const {data} = await sbClient.from('profiles').select('*').in('role',['agent','admin','super_admin']);
   if (data) profiles=data; renderAgents();
 }
 
@@ -878,7 +882,7 @@ async function openTicketDetail(id) {
   let comments=[];
   if (demoMode) { comments=DEMO_COMMENTS[id]||[]; }
   else { const {data}=await sbClient.from('comments').select('*,author:profiles(id,full_name,role)').eq('ticket_id',id).order('created_at'); comments=data||[]; }
-  const agentOpts = profiles.filter(p=>p.role==='agent'||p.role==='admin')
+  const agentOpts = profiles.filter(p=>p.role==='agent'||p.role==='admin'||p.role==='super_admin')
     .map(p=>`<option value="${p.id}" ${p.id===t.assignee_id?'selected':''}>${p.full_name}</option>`).join('');
   document.getElementById('detail-body').innerHTML=`
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
@@ -925,7 +929,7 @@ function renderComments(comments, showInternal=false) {
   if (!comments.length) return '<div style="color:var(--text3);font-size:13px;padding:8px 0">No comments yet.</div>';
   return comments.filter(c=>showInternal||!c.is_internal).map(c=>{
     const author=demoMode?profileById(c.author_id):(c.author||{});
-    const isAgent=author?.role==='agent'||author?.role==='admin';
+    const isAgent=author?.role==='agent'||author?.role==='admin'||author?.role==='super_admin';
     const cls=c.is_internal?'internal-bubble':(isAgent?'agent-bubble':'');
     return `<div class="comment-item"><div class="avatar ${avColor(author?.id)}" style="flex-shrink:0">${initials(author?.full_name||'?')}</div>
       <div class="comment-bubble ${cls}"><div class="comment-meta">${author?.full_name||'Unknown'} ${isAgent?'(agent)':''} ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${c.body}</div></div>`;
@@ -986,7 +990,7 @@ async function createTicket() {
 
 /* ── Agents ── */
 function renderAgents() {
-  const agents=profiles.filter(p=>p.role==='agent'||p.role==='admin');
+  const agents=profiles.filter(p=>p.role==='agent'||p.role==='admin'||p.role==='super_admin');
   const openByAgent={};
   tickets.forEach(t=>{if(t.assignee_id&&t.status!=='resolved'&&t.status!=='closed') openByAgent[t.assignee_id]=(openByAgent[t.assignee_id]||0)+1;});
   const ss={online:'s-open',away:'s-waiting',offline:'s-closed'};
@@ -994,7 +998,7 @@ function renderAgents() {
     <div class="table-card" style="display:flex;align-items:center;gap:14px;padding:16px">
       <div class="avatar ${avColor(p.id)}" style="width:42px;height:42px;font-size:15px">${initials(p.full_name)}</div>
       <div style="flex:1"><div style="font-size:14px;font-weight:600">${p.full_name}</div>
-      <div style="font-size:12px;color:var(--text2)">${p.role==='admin'?'Admin':'Support Agent'} · ${openByAgent[p.id]||0} open</div></div>
+      <div style="font-size:12px;color:var(--text2)">${p.role==='super_admin'?'Super Admin':p.role==='admin'?'Admin':'Support Agent'} · ${openByAgent[p.id]||0} open</div></div>
       <span class="sb ${ss[p.status]||'s-closed'}">${p.status||'offline'}</span>
     </div>`).join('');
 }
@@ -1090,9 +1094,10 @@ function renderUsersTable() {
   if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="3">No users found</td></tr>'; return; }
 
   const roleBadge = r => ({
-    admin:  '<span class="sb s-in_progress">Admin</span>',
-    agent:  '<span class="sb s-open">Agent</span>',
-    client: '<span class="sb s-closed">Client</span>',
+    super_admin: '<span class="sb" style="background:var(--danger-l);color:var(--danger)">Super Admin</span>',
+    admin:       '<span class="sb s-in_progress">Admin</span>',
+    agent:       '<span class="sb s-open">Agent</span>',
+    client:      '<span class="sb s-closed">Client</span>',
   }[r] || r);
   const renderRow = p => {
     const openCount = tickets.filter(t => t.requester_id === p.id && !['resolved','closed'].includes(t.status)).length;
@@ -1118,7 +1123,7 @@ function renderUsersTable() {
       </td>
     </tr>`;
 
-  const staff   = list.filter(p => p.role === 'admin' || p.role === 'agent');
+  const staff   = list.filter(p => p.role === 'super_admin' || p.role === 'admin' || p.role === 'agent');
   const clients = list.filter(p => p.role === 'client');
 
   let html = '';
