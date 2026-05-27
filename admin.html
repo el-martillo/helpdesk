@@ -321,7 +321,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       </div>
       <div class="nav-item" onclick="adminNav(this,'waiting')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-        Waiting
+        Waiting <span class="nav-badge warn" id="badge-waiting">—</span>
       </div>
       <div class="nav-item" onclick="adminNav(this,'resolved')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
@@ -357,11 +357,12 @@ textarea.fc { resize: vertical; min-height: 80px; }
             New ticket
           </button>
         </div>
-        <div class="stats-grid" style="margin-bottom:20px">
-          <div class="stat-card"><div class="label">Open</div><div class="value" id="dash-open" style="color:var(--accent)">—</div><div class="sub">Awaiting action</div></div>
-          <div class="stat-card"><div class="label">In progress</div><div class="value" id="dash-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to agents</div></div>
-          <div class="stat-card"><div class="label">Resolved</div><div class="value" id="dash-resolved" style="color:var(--success)">—</div><div class="sub">All time</div></div>
-          <div class="stat-card"><div class="label">Total</div><div class="value" id="dash-total">—</div><div class="sub">All tickets</div></div>
+        <div class="stats-grid" style="margin-bottom:20px;grid-template-columns:repeat(5,1fr)">
+          <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='all']'),'all')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'" onmouseout="this.style.boxShadow=''"><div class="label">Open</div><div class="value" id="dash-open" style="color:var(--accent)">—</div><div class="sub">Awaiting action</div></div>
+          <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='in_progress']'),'in_progress')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--purple)'" onmouseout="this.style.boxShadow=''"><div class="label">In progress</div><div class="value" id="dash-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to agents</div></div>
+          <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='waiting']'),'waiting')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--warn)'" onmouseout="this.style.boxShadow=''"><div class="label">Waiting</div><div class="value" id="dash-waiting" style="color:var(--warn)">—</div><div class="sub">Pending response</div></div>
+          <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='resolved']'),'resolved')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--success)'" onmouseout="this.style.boxShadow=''"><div class="label">Resolved</div><div class="value" id="dash-resolved" style="color:var(--success)">—</div><div class="sub">All time</div></div>
+          <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='all']'),'all')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--border2)'" onmouseout="this.style.boxShadow=''"><div class="label">Total</div><div class="value" id="dash-total">—</div><div class="sub">All tickets</div></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
           <div class="table-card" style="padding:18px">
@@ -377,6 +378,22 @@ textarea.fc { resize: vertical; min-height: 80px; }
           <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">Recent activity</div>
           <table><thead><tr><th>ID</th><th>Subject</th><th>Status</th><th>Priority</th><th>Requester</th><th>Updated</th><th></th></tr></thead>
           <tbody id="dash-recent-tbody"></tbody></table>
+        </div>
+
+        <div class="table-card" style="margin-top:16px">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              BBC Technology News
+            </div>
+            <button class="btn sm" onclick="loadBBCNews()">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+              Refresh
+            </button>
+          </div>
+          <div id="bbc-news-list" style="padding:8px 0">
+            <div style="text-align:center;padding:24px;color:var(--text3)"><div class="loader"></div></div>
+          </div>
         </div>
       </div>
 
@@ -888,6 +905,7 @@ function updateBadges() {
   document.getElementById('badge-all').textContent   = tickets.length;
   document.getElementById('badge-open').textContent  = tickets.filter(t=>t.status==='open').length;
   document.getElementById('badge-inprog').textContent= tickets.filter(t=>t.status==='in_progress').length;
+  document.getElementById('badge-waiting').textContent= tickets.filter(t=>t.status==='waiting').length;
 }
 
 /* ── Navigation ── */
@@ -1366,8 +1384,10 @@ function downloadJSON(data) {
 
 /* ── Dashboard ── */
 function renderDashboard() {
+  loadBBCNews();
   document.getElementById('dash-open').textContent    = tickets.filter(t=>t.status==='open').length;
   document.getElementById('dash-inprog').textContent  = tickets.filter(t=>t.status==='in_progress').length;
+  document.getElementById('dash-waiting').textContent = tickets.filter(t=>t.status==='waiting').length;
   document.getElementById('dash-resolved').textContent= tickets.filter(t=>t.status==='resolved').length;
   document.getElementById('dash-total').textContent   = tickets.length;
 
@@ -1380,7 +1400,7 @@ function renderDashboard() {
   document.getElementById('dash-status-bars').innerHTML=statuses.map(s=>{const c=tickets.filter(t=>t.status===s).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${sLabel(s)}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/max*100)}%;height:100%;background:${sc[s]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
   document.getElementById('dash-priority-bars').innerHTML=priorities.map(p=>{const c=tickets.filter(t=>t.priority===p).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${p}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/pmax*100)}%;height:100%;background:${pc[p]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
 
-  const recent = [...tickets].sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at)).slice(0,8);
+  const recent = [...tickets].filter(t=>t.status!=='resolved'&&t.status!=='closed').sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at)).slice(0,8);
   const tbody = document.getElementById('dash-recent-tbody');
   if (!tbody) return;
   tbody.innerHTML = recent.map(t => {
@@ -1395,6 +1415,30 @@ function renderDashboard() {
       <td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td>
     </tr>`;
   }).join('');
+}
+
+/* ── BBC News ── */
+async function loadBBCNews() {
+  const el = document.getElementById('bbc-news-list');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3)"><div class="loader"></div></div>';
+  try {
+    const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Ffeeds.bbci.co.uk%2Fnews%2Ftechnology%2Frss.xml&count=8');
+    const json = await res.json();
+    if (json.status !== 'ok' || !json.items?.length) throw new Error('Feed unavailable');
+    el.innerHTML = json.items.map((item, i) => {
+      const date = item.pubDate ? new Date(item.pubDate).toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+      return `<a href="${item.link}" target="_blank" rel="noopener" style="display:flex;align-items:flex-start;gap:12px;padding:11px 16px;text-decoration:none;color:inherit;border-bottom:${i<7?'1px solid var(--border)':'none'};transition:background .12s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500;line-height:1.45;color:var(--text1);margin-bottom:3px">${item.title}</div>
+          <div style="font-size:11px;color:var(--text3)">${date}</div>
+        </div>
+        <svg width="13" height="13" style="flex-shrink:0;margin-top:2px;color:var(--text3)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      </a>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="padding:20px 16px;font-size:13px;color:var(--text3)">Unable to load news feed. <button class="btn sm" onclick="loadBBCNews()" style="margin-left:8px">Try again</button></div>';
+  }
 }
 
 /* ── User count ── */
