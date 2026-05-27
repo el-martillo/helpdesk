@@ -516,7 +516,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <!-- Reports -->
       <div class="page" id="page-reports">
         <div class="page-header"><div><h1>Reports</h1><p>Support performance overview</p></div></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
           <div class="table-card" style="padding:18px">
             <div style="font-size:13px;font-weight:600;margin-bottom:14px">Tickets by status</div>
             <div id="report-status-bars"></div>
@@ -525,6 +525,20 @@ textarea.fc { resize: vertical; min-height: 80px; }
             <div style="font-size:13px;font-weight:600;margin-bottom:14px">Tickets by priority</div>
             <div id="report-priority-bars"></div>
           </div>
+        </div>
+        <div class="table-card" style="padding:18px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div style="font-size:13px;font-weight:600">Average time to resolution</div>
+            <div style="font-size:11px;color:var(--text3)">Based on resolved tickets</div>
+          </div>
+          <div id="report-resolution-time"></div>
+        </div>
+        <div class="table-card" style="padding:18px;margin-top:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div style="font-size:13px;font-weight:600">Agent performance</div>
+            <div style="font-size:11px;color:var(--text3)">Assigned tickets · resolutions · avg resolution time</div>
+          </div>
+          <div id="report-agent-performance"></div>
         </div>
       </div>
 
@@ -1091,6 +1105,117 @@ function renderReports() {
   const pc={critical:'#E24B4A',high:'#EF9F27',medium:'#378ADD',low:'#9e9a94'};
   document.getElementById('report-status-bars').innerHTML=statuses.map(s=>{const c=tickets.filter(t=>t.status===s).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${sLabel(s)}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/max*100)}%;height:100%;background:${sc[s]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
   document.getElementById('report-priority-bars').innerHTML=priorities.map(p=>{const c=tickets.filter(t=>t.priority===p).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${p}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/pmax*100)}%;height:100%;background:${pc[p]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
+
+  // Average resolution time by priority
+  const fmtDur = ms => {
+    const h = ms / 3600000;
+    if (h < 1)   return Math.round(h * 60) + ' min';
+    if (h < 24)  return h.toFixed(1) + ' hrs';
+    return (h / 24).toFixed(1) + ' days';
+  };
+  const resolved = tickets.filter(t => t.status === 'resolved' || t.status === 'closed');
+  const resEl = document.getElementById('report-resolution-time');
+  if (!resEl) return;
+  if (!resolved.length) {
+    resEl.innerHTML = '<div style="padding:20px 0;text-align:center;font-size:13px;color:var(--text3)">No resolved tickets yet.</div>';
+    return;
+  }
+  // Overall avg
+  const withTimes = resolved.filter(t => t.created_at && t.updated_at);
+  const overallAvg = withTimes.length
+    ? withTimes.reduce((sum, t) => sum + (new Date(t.updated_at) - new Date(t.created_at)), 0) / withTimes.length
+    : 0;
+  // By priority
+  const resByPri = priorities.map(p => {
+    const group = withTimes.filter(t => t.priority === p);
+    const avg   = group.length ? group.reduce((s,t) => s + (new Date(t.updated_at)-new Date(t.created_at)), 0) / group.length : null;
+    return { p, avg, count: group.length };
+  }).filter(x => x.avg !== null);
+  const maxAvg = Math.max(...resByPri.map(x => x.avg), 1);
+  resEl.innerHTML = `
+    <div style="display:flex;align-items:center;gap:16px;padding:14px 0 18px;border-bottom:1px solid var(--border);margin-bottom:18px">
+      <div style="text-align:center;padding:0 24px">
+        <div style="font-size:28px;font-weight:700;color:var(--success)">${fmtDur(overallAvg)}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Overall average · ${withTimes.length} ticket${withTimes.length!==1?'s':''}</div>
+      </div>
+      <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        ${priorities.map(p => {
+          const group = withTimes.filter(t => t.priority === p);
+          const avg   = group.length ? group.reduce((s,t)=>s+(new Date(t.updated_at)-new Date(t.created_at)),0)/group.length : null;
+          return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px;text-align:center">
+            <div style="font-size:16px;font-weight:600;color:${pc[p]}">${avg!==null?fmtDur(avg):'—'}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:3px;text-transform:capitalize">${p} · ${group.length}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:12px">By priority</div>
+    ${resByPri.map(({p, avg, count}) => `
+      <div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px">
+        <div style="width:70px;color:var(--text2);text-transform:capitalize">${p}</div>
+        <div style="flex:1;height:9px;background:var(--bg);border-radius:4px;overflow:hidden">
+          <div style="width:${Math.round(avg/maxAvg*100)}%;height:100%;background:${pc[p]};border-radius:4px;transition:width .4s"></div>
+        </div>
+        <div style="width:70px;text-align:right;font-weight:600">${fmtDur(avg)}</div>
+        <div style="width:40px;text-align:right;font-size:11px;color:var(--text3)">${count} ticket${count!==1?'s':''}</div>
+      </div>`).join('')}`;
+  // Agent performance
+  const agentPerf = document.getElementById('report-agent-performance');
+  if (!agentPerf) return;
+  const staff = profiles.filter(p => p.role === 'agent' || p.role === 'admin' || p.role === 'super_admin');
+  if (!staff.length) {
+    agentPerf.innerHTML = '<div style="padding:20px 0;text-align:center;font-size:13px;color:var(--text3)">No agents found.</div>';
+    return;
+  }
+  const agentData = staff.map(agent => {
+    const assigned  = tickets.filter(t => t.assignee_id === agent.id);
+    const open      = assigned.filter(t => !['resolved','closed'].includes(t.status)).length;
+    const resolved  = assigned.filter(t => t.status === 'resolved' || t.status === 'closed');
+    const withTimes = resolved.filter(t => t.created_at && t.updated_at);
+    const avgMs     = withTimes.length
+      ? withTimes.reduce((s,t) => s + (new Date(t.updated_at)-new Date(t.created_at)), 0) / withTimes.length
+      : null;
+    return { agent, total: assigned.length, open, resolved: resolved.length, avgMs };
+  }).sort((a,b) => b.resolved - a.resolved);
+  const maxTotal    = Math.max(...agentData.map(x => x.total), 1);
+  const maxResolved = Math.max(...agentData.map(x => x.resolved), 1);
+  if (!agentData.length) {
+    agentPerf.innerHTML = '<div style="padding:20px 0;text-align:center;font-size:13px;color:var(--text3)">No data yet.</div>';
+    return;
+  }
+  agentPerf.innerHTML = `
+    <div style="display:grid;grid-template-columns:180px 1fr 1fr 90px;gap:0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:0 0 10px;border-bottom:1px solid var(--border);margin-bottom:12px">
+      <div>Agent</div><div>Assigned</div><div>Resolved</div><div style="text-align:right">Avg time</div>
+    </div>
+    ${agentData.map(({agent, total, open, resolved, avgMs}) => `
+    <div style="display:grid;grid-template-columns:180px 1fr 1fr 90px;gap:0;align-items:center;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="avatar ${avColor(agent.id)}" style="width:26px;height:26px;font-size:10px;flex-shrink:0">${initials(agent.full_name)}</div>
+        <div>
+          <div style="font-size:12px;font-weight:500">${agent.full_name}</div>
+          <div style="font-size:10px;color:var(--text3)">${agent.role==='super_admin'?'Super Admin':agent.role==='admin'?'Admin':'Agent'}</div>
+        </div>
+      </div>
+      <div style="padding-right:20px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden">
+            <div style="width:${Math.round(total/maxTotal*100)}%;height:100%;background:var(--accent);border-radius:4px"></div>
+          </div>
+          <div style="font-size:12px;font-weight:600;width:24px;text-align:right">${total}</div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${open} open</div>
+      </div>
+      <div style="padding-right:20px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden">
+            <div style="width:${Math.round(resolved/maxResolved*100)}%;height:100%;background:var(--success);border-radius:4px"></div>
+          </div>
+          <div style="font-size:12px;font-weight:600;width:24px;text-align:right">${resolved}</div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${total?Math.round(resolved/total*100):0}% resolution rate</div>
+      </div>
+      <div style="text-align:right;font-size:12px;font-weight:600;color:${avgMs!==null?'var(--success)':'var(--text3)'}">${avgMs!==null?fmtDur(avgMs):'—'}</div>
+    </div>`).join('')}`;
 }
 
 /* ── Auto-restore session ── */
