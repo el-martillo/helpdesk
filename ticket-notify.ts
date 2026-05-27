@@ -1,0 +1,144 @@
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+// HTML-encode all user-supplied values before inserting into email bodies
+const h = (s: unknown): string =>
+  String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\//g, '&#x2F;')
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  try {
+    const { ticket_id, new_status, changed_by } = await req.json()
+
+    // Only send emails for resolved status
+    if (new_status !== 'resolved') {
+      return new Response(JSON.stringify({ skipped: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Use service role key to read ticket + profile data
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // Fetch ticket with requester profile
+    const { data: ticket, error: ticketError } = await supabase
+      .from('tickets')
+      .select('*, requester:profiles!requester_id(id, full_name, email)')
+      .eq('id', ticket_id)
+      .single()
+
+    if (ticketError || !ticket) {
+      console.error('Ticket fetch error:', ticketError)
+      return new Response(JSON.stringify({ error: 'Ticket not found' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    const clientEmail = ticket.requester?.email
+    const clientName  = ticket.requester?.full_name || 'Client'
+
+    if (!clientEmail) {
+      return new Response(JSON.stringify({ skipped: 'no email on profile' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Send email via Resend
+    const resendKey = Deno.env.get('RESEND_API_KEY')
+    if (!resendKey) throw new Error('RESEND_API_KEY not set')
+
+    const emailHtml = `
+      <div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;background:#fff">
+        <div style="margin-bottom:24px">
+          <img src="https://yourdomain.com/logo.png" alt="El Martillo I.T." style="height:36px"/>
+        </div>
+        <h2 style="font-size:20px;font-weight:600;color:#1a1917;margin:0 0 8px">
+          Your ticket has been resolved
+        </h2>
+        <p style="color:#6b6963;font-size:14px;margin:0 0 24px">
+          Hi ${h(clientName)}, your support request has been marked as resolved.
+        </p>
+        <div style="background:#f5f5f4;border-radius:8px;padding:16px;margin-bottom:24px">
+          <div style="font-size:12px;color:#9e9a94;margin-bottom:4px">Ticket #${h(ticket.ticket_number)}</div>
+          <div style="font-size:15px;font-weight:500;color:#1a1917;margin-bottom:8px">${h(ticket.subject)}</div>
+          <div style="font-size:12px;color:#6b6963">
+            Category: ${h(ticket.category || 'General')} &nbsp;·&nbsp;
+            Priority: ${h(ticket.priority)} &nbsp;·&nbsp;
+            Resolved by: ${h(changed_by || 'Support team')}
+          </div>
+        </div>
+        <p style="color:#6b6963;font-size:14px;margin:0 0 24px">
+          If you're still experiencing issues or have further questions, you can reopen your ticket 
+          by logging into the client portal.
+        </p>
+        <a href="https://yourdomain.com/index.html"
+           style="display:inline-block;background:#185FA5;color:#fff;text-decoration:none;
+                  padding:10px 20px;border-radius:6px;font-size:14px;font-weight:500">
+          View ticket in portal →
+        </a>
+        <hr style="border:none;border-top:1px solid #e8e6e1;margin:32px 0"/>
+        <p style="color:#9e9a94;font-size:12px;margin:0">
+          El Martillo I.T. · Gibraltar ·
+          <a href="mailto:helpdesk@el-martillo.com" style="color:#185FA5">helpdesk@el-martillo.com</a> ·
+          +350 200 50630
+        </p>
+      </div>
+    `
+
+    const emailRes = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'El Martillo I.T. <helpdesk@el-martillo.com>',
+        to: clientEmail,
+        subject: `Ticket resolved: #${h(ticket.ticket_number)} – ${h(ticket.subject)}`,
+        html: emailHtml
+      })
+    })
+
+    const emailResult = await emailRes.json()
+
+    if (!emailRes.ok) {
+      console.error('Resend error:', emailResult)
+      throw new Error(`Email send failed: ${JSON.stringify(emailResult)}`)
+    }
+
+    // Log to system_log
+    await supabase.from('system_log').insert({
+      actor_name: changed_by || 'System',
+      actor_role: 'admin',
+      action: 'email_sent',
+      details: `Resolution email sent to ${clientEmail} for ticket #${h(ticket.ticket_number)}`
+    })
+
+    return new Response(
+      JSON.stringify({ success: true, email_id: emailResult.id }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+
+  } catch (err) {
+    console.error('ticket-notify error:', err)
+    return new Response(
+      JSON.stringify({ error: err.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+})
