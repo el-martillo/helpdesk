@@ -352,6 +352,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
         Activity log
       </div>
+      <div class="nav-item" onclick="adminNav(this,'syslog');loadSysLog()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        System log
+      </div>
       <div class="nav-item" onclick="adminNav(this,'settings');loadBackupStats();loadVersion();renderOrgList()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
@@ -379,7 +383,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         </div>
         <div class="stats-grid" style="margin-bottom:20px;grid-template-columns:repeat(5,1fr)">
           <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='all']'),'all')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'" onmouseout="this.style.boxShadow=''"><div class="label">Open</div><div class="value" id="dash-open" style="color:var(--accent)">—</div><div class="sub">Awaiting action</div></div>
-          <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='in_progress']'),'in_progress')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--purple)'" onmouseout="this.style.boxShadow=''"><div class="label">In progress</div><div class="value" id="dash-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to agents</div></div>
+          <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='in_progress']'),'in_progress')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--purple)'" onmouseout="this.style.boxShadow=''"><div class="label">In progress</div><div class="value" id="dash-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to tech</div></div>
           <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='waiting']'),'waiting')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--warn)'" onmouseout="this.style.boxShadow=''"><div class="label">Waiting</div><div class="value" id="dash-waiting" style="color:var(--warn)">—</div><div class="sub">Pending response</div></div>
           <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='resolved']'),'resolved')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--success)'" onmouseout="this.style.boxShadow=''"><div class="label">Resolved</div><div class="value" id="dash-resolved" style="color:var(--success)">—</div><div class="sub">All time</div></div>
           <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='all']'),'all')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--border2)'" onmouseout="this.style.boxShadow=''"><div class="label">Total</div><div class="value" id="dash-total">—</div><div class="sub">All tickets</div></div>
@@ -428,7 +432,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         </div>
         <div class="stats-grid">
           <div class="stat-card"><div class="label">Open</div><div class="value" id="stat-open" style="color:var(--accent)">—</div><div class="sub"></div></div>
-          <div class="stat-card"><div class="label">In progress</div><div class="value" id="stat-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to agents</div></div>
+          <div class="stat-card"><div class="label">In progress</div><div class="value" id="stat-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to tech</div></div>
           <div class="stat-card"><div class="label">Resolved</div><div class="value" id="stat-resolved" style="color:var(--success)">—</div><div class="sub"></div></div>
           <div class="stat-card"><div class="label">Total</div><div class="value" id="stat-total">—</div><div class="sub">All time</div></div>
         </div>
@@ -458,7 +462,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
               Refresh
             </button>
           </div>
-          <table><thead><tr><th>ID</th><th>Client</th><th>Organisation</th><th>Subject</th><th>Status</th><th>Priority</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
+          <table><thead><tr><th>ID</th><th>Client</th><th>Organisation</th><th>Subject</th><th>Status</th><th>Priority</th><th>Tech assigned</th><th>Updated</th><th></th></tr></thead>
           <tbody id="admin-tbody"></tbody></table>
         </div>
       </div>
@@ -544,7 +548,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <div class="table-card" style="padding:18px;margin-top:16px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
             <div style="font-size:13px;font-weight:600">Agent performance</div>
-            <div style="font-size:11px;color:var(--text3)">Assigned tickets · resolutions · avg resolution time</div>
+            <div style="font-size:11px;color:var(--text3)">Tech assigned · resolutions · avg resolution time</div>
           </div>
           <div id="report-agent-performance"></div>
         </div>
@@ -584,6 +588,44 @@ textarea.fc { resize: vertical; min-height: 80px; }
           <table>
             <thead><tr><th>Time</th><th>User</th><th>Email</th><th>Action</th><th>Status</th><th>Details</th></tr></thead>
             <tbody id="activity-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- System Log -->
+      <div class="page" id="page-syslog">
+        <div class="page-header">
+          <div><h1>System log</h1><p id="syslog-count-sub">Admin &amp; agent actions across the system</p></div>
+          <div style="display:flex;gap:8px">
+            <select class="filter-sel" id="syslog-action-filter" onchange="renderSysLogTable()">
+              <option value="">All actions</option>
+              <option value="ticket_created">Ticket created</option>
+              <option value="ticket_status">Status changed</option>
+              <option value="ticket_assigned">Tech assigned</option>
+              <option value="user_created">User created</option>
+              <option value="user_updated">User updated</option>
+              <option value="user_deleted">User deleted</option>
+              <option value="agent_invited">Agent invited</option>
+              <option value="version_updated">Version updated</option>
+              <option value="orgs_updated">Organisations updated</option>
+              <option value="backup_created">Backup created</option>
+            </select>
+            <button class="btn sm" onclick="loadSysLog()">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <div class="search-wrap">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" id="syslog-search" placeholder="Search by user or details…" oninput="renderSysLogTable()"/>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Time</th><th>Admin / Agent</th><th>Action</th><th>Details</th></tr></thead>
+            <tbody id="syslog-tbody"></tbody>
           </table>
         </div>
       </div>
@@ -1015,7 +1057,7 @@ function adminNav(el, page) {
   if (['open','in_progress','waiting','resolved'].includes(page)) {
     const filtered = tickets.filter(t=>t.status===page);
     pg.innerHTML = `<div class="page-header"><div><h1>${sLabel(page)} tickets</h1><p>${filtered.length} tickets</p></div></div>
-    <div class="table-card"><table><thead><tr><th>ID</th><th>Client</th><th>Organisation</th><th>Subject</th><th>Priority</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
+    <div class="table-card"><table><thead><tr><th>ID</th><th>Client</th><th>Organisation</th><th>Subject</th><th>Priority</th><th>Tech assigned</th><th>Updated</th><th></th></tr></thead>
     <tbody>${filtered.length ? filtered.map(t=>{
       const req=demoMode?profileById(t.requester_id):(t.requester||{});
       const asgn=demoMode?profileById(t.assignee_id):(t.assignee||{});
@@ -1055,7 +1097,7 @@ async function openTicketDetail(id) {
     </div>
     <div class="detail-meta-grid">
       <div class="dmi"><div class="key">Client</div><div class="val flex-c"><div class="avatar ${avColor(req?.id)}" style="width:22px;height:22px;font-size:9px">${initials(req?.full_name||'?')}</div>${req?.full_name||'—'}</div></div>
-      <div class="dmi"><div class="key">Assignee</div><div class="val">${asgn?.full_name||'Unassigned'}</div></div>
+      <div class="dmi"><div class="key">Tech assigned</div><div class="val">${asgn?.full_name||'Unassigned'}</div></div>
       <div class="dmi"><div class="key">Created</div><div class="val">${timeAgo(t.created_at||t.updated_at)}</div></div>
       <div class="dmi"><div class="key">Category</div><div class="val">${t.category||'General'}</div></div>
       ${t.contact_email?`<div class="dmi"><div class="key">Email</div><div class="val"><a href="mailto:${t.contact_email}" style="color:var(--accent)">${t.contact_email}</a></div></div>`:''}
@@ -1105,10 +1147,12 @@ async function addComment(ticketId) {
 async function updateStatus(id, status) {
   if (demoMode) { const t=tickets.find(x=>x.id===id); if(t){t.status=status;t.updated_at=new Date().toISOString();} updateStats();updateBadges();renderTable();toast('Status updated');return; }
   await sbClient.from('tickets').update({status}).eq('id',id); loadTickets(); toast('Status updated');
+  const t=tickets.find(x=>x.id===id); logSystemEvent('ticket_status',`Ticket #${t?.ticket_number||id} → ${status}`);
 }
 async function updateAssignee(id, assigneeId) {
-  if (demoMode) { const t=tickets.find(x=>x.id===id); if(t) t.assignee_id=assigneeId||null; renderTable();toast('Assignee updated');return; }
-  await sbClient.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id); loadTickets(); toast('Assignee updated');
+  if (demoMode) { const t=tickets.find(x=>x.id===id); if(t) t.assignee_id=assigneeId||null; renderTable();toast('Tech assigned updated');return; }
+  await sbClient.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id); loadTickets(); toast('Tech assigned updated');
+  const ta=tickets.find(x=>x.id===id); const ag=profiles.find(p=>p.id===assigneeId); logSystemEvent('ticket_assigned',`Ticket #${ta?.ticket_number||id} → ${ag?.full_name||'Unassigned'}`);
 }
 
 /* ── Create ticket ── */
@@ -1139,6 +1183,7 @@ async function createTicket() {
   const {error}=await sbClient.from('tickets').insert({...payload,requester_id:currentUser.id});
   if (error){toast('Error: '+error.message);return;}
   closeModal('modal-new-ticket');clearForm();loadTickets();toast('Ticket created');
+  logSystemEvent('ticket_created',`Subject: ${payload.subject}`);
 }
 
 /* ── Agents ── */
@@ -1162,6 +1207,7 @@ async function inviteAgent() {
   const {error}=await sbClient.auth.admin.inviteUserByEmail(email,{data:{full_name:name,role:document.getElementById('ia-role').value}});
   if (error){toast('Error: '+error.message);return;}
   closeModal('modal-invite-agent');toast('Invitation sent!');
+  logSystemEvent('agent_invited',`${name} (${email})`);
 }
 
 /* ── Reports ── */
@@ -1254,7 +1300,7 @@ function renderReports() {
   }
   agentPerf.innerHTML = `
     <div style="display:grid;grid-template-columns:180px 1fr 1fr 90px;gap:0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:0 0 10px;border-bottom:1px solid var(--border);margin-bottom:12px">
-      <div>Agent</div><div>Assigned</div><div>Resolved</div><div style="text-align:right">Avg time</div>
+      <div>Agent</div><div>Tech assigned</div><div>Resolved</div><div style="text-align:right">Avg time</div>
     </div>
     ${agentData.map(({agent, total, open, resolved, avgMs}) => `
     <div style="display:grid;grid-template-columns:180px 1fr 1fr 90px;gap:0;align-items:center;margin-bottom:14px">
@@ -1453,6 +1499,7 @@ async function saveUser() {
   if (error) { toast('Error: ' + error.message); return; }
   closeModal('modal-edit-user');
   loadAllProfiles(); loadProfiles(); loadCompanies(); toast('User updated');
+  logSystemEvent('user_updated',`User: ${document.getElementById('eu-email').value||id}`);
 }
 
 async function deleteUser(id) {
@@ -1475,6 +1522,7 @@ async function deleteUser(id) {
     }
   } else {
     toast('User permanently deleted');
+  logSystemEvent('user_deleted',`User ID: ${id}`);
   }
   closeModal('modal-edit-user');
   loadAllProfiles(); loadProfiles();
@@ -1507,6 +1555,7 @@ async function addUser() {
   if (error) { toast('Error: ' + error.message); return; }
   closeModal('modal-add-user'); clearForm();
   loadAllProfiles(); loadCompanies(); toast('User profile created. To grant login access, invite them via Supabase Auth.');
+  logSystemEvent('user_created',`User: ${payload.email||payload.full_name}`);
 }
 
 /* ── Backup ── */
@@ -1592,6 +1641,7 @@ async function runBackup() {
     document.getElementById('backup-last').textContent = 'Last backup: ' + now;
     toast('Backup downloaded successfully');
     loadBackupStats();
+    logSystemEvent('backup_created',`${ticketData.length} tickets, ${profileData.length} profiles, ${commentData.length} comments`);
 
   } catch(e) {
     toast('Backup failed: ' + (e.message || JSON.stringify(e)));
@@ -1843,7 +1893,7 @@ async function persistOrgs() {
   const { error } = await sbClient.from('app_settings')
     .upsert({ key: 'organisations', value: JSON.stringify(companiesList) }, { onConflict: 'key' });
   if (error) toast('Error saving organisations: ' + error.message);
-  else toast('Organisations saved');
+  else { toast('Organisations saved'); logSystemEvent('orgs_updated',`${companiesList.length} organisations`); }
 }
 
 function populateCompanySelects() {
@@ -1856,6 +1906,92 @@ function populateCompanySelects() {
     el.innerHTML = opts;
     if (current) el.value = current;
   });
+}
+
+/* ── System Log ── */
+let sysLog = [];
+
+async function logSystemEvent(action, details) {
+  if (demoMode) return;
+  if (!sbClient || !currentProfile) return;
+  try {
+    await sbClient.from('system_log').insert({
+      actor_id:    currentProfile.id,
+      actor_name:  currentProfile.full_name || currentProfile.email || 'Unknown',
+      actor_role:  currentProfile.role,
+      action,
+      details: details || null,
+    });
+  } catch(e) { /* never block the UI */ }
+}
+
+async function loadSysLog() {
+  const tbody = document.getElementById('syslog-tbody');
+  if (tbody) tbody.innerHTML = '<tr class="loading-row"><td colspan="4"><div class="loader"></div></td></tr>';
+  if (demoMode) {
+    sysLog = [
+      {id:'s1', actor_name:'Dev Kumar',   actor_role:'admin',       action:'ticket_status',  details:'Ticket #11 → resolved',         created_at: new Date(Date.now()-5*60000).toISOString()},
+      {id:'s2', actor_name:'Sarah Johnson',actor_role:'agent',      action:'ticket_assigned',details:'Ticket #12 tech assigned to Sarah',   created_at: new Date(Date.now()-15*60000).toISOString()},
+      {id:'s3', actor_name:'Dev Kumar',   actor_role:'admin',       action:'user_created',   details:'User: jane@client.com',          created_at: new Date(Date.now()-2*3600000).toISOString()},
+      {id:'s4', actor_name:'Dev Kumar',   actor_role:'admin',       action:'version_updated',details:'Version set to v1.2.0',          created_at: new Date(Date.now()-5*3600000).toISOString()},
+      {id:'s5', actor_name:'Dev Kumar',   actor_role:'super_admin', action:'user_deleted',   details:'User: old@client.com',           created_at: new Date(Date.now()-24*3600000).toISOString()},
+      {id:'s6', actor_name:'Dev Kumar',   actor_role:'admin',       action:'backup_created', details:'Backup: 24 tickets, 6 profiles', created_at: new Date(Date.now()-2*24*3600000).toISOString()},
+    ];
+    renderSysLogTable(); return;
+  }
+  if (!sbClient) return;
+  const { data, error } = await sbClient
+    .from('system_log')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (error) { toast('Error loading system log: ' + error.message); return; }
+  sysLog = data || [];
+  const sub = document.getElementById('syslog-count-sub');
+  if (sub) sub.textContent = sysLog.length + ' events (last 500)';
+  renderSysLogTable();
+}
+
+function renderSysLogTable() {
+  const q  = (document.getElementById('syslog-search')?.value || '').toLowerCase();
+  const af = document.getElementById('syslog-action-filter')?.value || '';
+  let list = sysLog;
+  if (af) list = list.filter(a => a.action === af);
+  if (q)  list = list.filter(a =>
+    (a.actor_name||'').toLowerCase().includes(q) ||
+    (a.action||'').toLowerCase().includes(q) ||
+    (a.details||'').toLowerCase().includes(q)
+  );
+  const tbody = document.getElementById('syslog-tbody');
+  if (!tbody) return;
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No events found</td></tr>'; return; }
+
+  const actionBadge = a => ({
+    ticket_created:  '<span class="sb s-open">Ticket created</span>',
+    ticket_status:   '<span class="sb s-in_progress">Status changed</span>',
+    ticket_assigned: '<span class="sb s-in_progress">Tech assigned</span>',
+    user_created:    '<span class="sb s-resolved">User created</span>',
+    user_updated:    '<span class="sb s-resolved">User updated</span>',
+    user_deleted:    '<span class="sb" style="background:var(--danger-l);color:var(--danger)">User deleted</span>',
+    agent_invited:   '<span class="sb s-resolved">Agent invited</span>',
+    version_updated: '<span class="sb s-closed">Version updated</span>',
+    orgs_updated:    '<span class="sb s-closed">Orgs updated</span>',
+    backup_created:  '<span class="sb s-closed">Backup created</span>',
+  }[a] || `<span class="sb s-closed">${a}</span>`);
+
+  const rolePill = r => ({
+    super_admin: '<span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;background:var(--danger-l);color:var(--danger)">Super Admin</span>',
+    admin:       '<span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;background:var(--purple-l);color:var(--purple)">Admin</span>',
+    agent:       '<span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;background:var(--accent-l);color:var(--accent)">Agent</span>',
+  }[r] || '');
+
+  tbody.innerHTML = list.map(a => `
+    <tr>
+      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${timeAgo(a.created_at)}<div style="font-size:10px;margin-top:1px">${a.created_at ? new Date(a.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</div></td>
+      <td><div style="font-size:13px;font-weight:500">${a.actor_name||'—'}</div><div style="margin-top:3px">${rolePill(a.actor_role)}</div></td>
+      <td>${actionBadge(a.action)}</td>
+      <td style="font-size:12px;color:var(--text2)">${a.details||'—'}</td>
+    </tr>`).join('');
 }
 
 /* ── Activity Log ── */
@@ -1959,6 +2095,7 @@ async function saveVersion() {
   if (error) { toast('Error saving version: ' + error.message); return; }
   applyVersion(v);
   toast('Version updated to v' + v);
+  logSystemEvent('version_updated','Version set to v' + v);
 }
 
 document.addEventListener('DOMContentLoaded', initSupabase);
