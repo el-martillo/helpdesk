@@ -1024,7 +1024,7 @@ async function openTicketDetail(id) {
     <div class="activity">
       <div class="activity-label">Conversation (${comments.length})</div>
       <div id="comments-list">${renderComments(comments)}</div>
-      ${t.status!=='closed'&&t.status!=='resolved'?`
+      ${t.status!=='resolved'?`
       <div class="reply-box">
         <textarea id="reply-text" class="fc" placeholder="Reply to this ticket…" style="min-height:70px;resize:none"></textarea>
         <div style="display:flex;justify-content:flex-end;margin-top:8px">
