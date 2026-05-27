@@ -91,6 +91,13 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
 .nav-badge.warn { background: var(--warn); }
 .sep { height: 1px; background: var(--border); margin: 4px 8px; }
 .content { flex: 1; overflow-y: auto; padding: 24px; background: var(--bg); }
+th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+th.sortable:hover { color: var(--text1); background: var(--surface); }
+th.sort-asc::after  { content: ' ↑'; color: var(--accent); font-size: 10px; }
+th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .settings-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .settings-grid { grid-template-columns: 1fr; } .content { padding: 16px; } }
 .page { display: none; }
 .page.active { display: block; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; gap: 12px; }
@@ -400,7 +407,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         </div>
         <div class="table-card">
           <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">Recent activity</div>
-          <table><thead><tr><th>ID</th><th>Client</th><th>Organisation</th><th>Subject</th><th>Status</th><th>Priority</th><th>Updated</th><th></th></tr></thead>
+          <table><thead><tr><th class="sortable" data-sort="ticket_number" onclick="setSort('ticket_number')">ID</th><th class="sortable" data-sort="client" onclick="setSort('client')">Client</th><th class="sortable" data-sort="company" onclick="setSort('company')">Organisation</th><th class="sortable" data-sort="subject" onclick="setSort('subject')">Subject</th><th class="sortable" data-sort="status" onclick="setSort('status')">Status</th><th class="sortable" data-sort="priority" onclick="setSort('priority')">Priority</th><th class="sortable sort-desc" data-sort="updated_at" onclick="setSort('updated_at')">Updated</th><th></th></tr></thead>
           <tbody id="dash-recent-tbody"></tbody></table>
         </div>
 
@@ -462,7 +469,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
               Refresh
             </button>
           </div>
-          <table><thead><tr><th>ID</th><th>Client</th><th>Organisation</th><th>Subject</th><th>Status</th><th>Priority</th><th>Tech assigned</th><th>Updated</th><th></th></tr></thead>
+          <table><thead><tr><th class="sortable" data-sort="ticket_number" onclick="setSort('ticket_number')">ID</th><th class="sortable" data-sort="client" onclick="setSort('client')">Client</th><th class="sortable" data-sort="company" onclick="setSort('company')">Organisation</th><th class="sortable" data-sort="subject" onclick="setSort('subject')">Subject</th><th class="sortable" data-sort="status" onclick="setSort('status')">Status</th><th class="sortable" data-sort="priority" onclick="setSort('priority')">Priority</th><th class="sortable" data-sort="assignee" onclick="setSort('assignee')">Tech assigned</th><th class="sortable sort-desc" data-sort="updated_at" onclick="setSort('updated_at')">Updated</th><th></th></tr></thead>
           <tbody id="admin-tbody"></tbody></table>
         </div>
       </div>
@@ -629,7 +636,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <!-- Settings -->
       <div class="page" id="page-settings">
         <div class="page-header"><div><h1>Settings</h1><p>System configuration</p></div></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:start">
+        <div class="settings-grid">
 
           <!-- Col 1: General + Version -->
           <div style="display:flex;flex-direction:column;gap:16px">
@@ -909,6 +916,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 /* ── State ── */
 let sbClient = null, currentUser = null, currentProfile = null;
 let tickets = [], profiles = [];
+let sortKey = 'updated_at', sortDir = 'desc';
 let demoMode = false;
 const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
 
@@ -1027,6 +1035,41 @@ async function loadProfiles() {
 }
 
 /* ── Render table ── */
+const PRIORITY_ORDER = {critical:0,high:1,medium:2,low:3};
+function sortTickets(list) {
+  return [...list].sort((a, b) => {
+    let av, bv;
+    const req_a = demoMode ? profileById(a.requester_id) : (a.requester||{});
+    const req_b = demoMode ? profileById(b.requester_id) : (b.requester||{});
+    const asgn_a = demoMode ? profileById(a.assignee_id) : (a.assignee||{});
+    const asgn_b = demoMode ? profileById(b.assignee_id) : (b.assignee||{});
+    switch(sortKey) {
+      case 'ticket_number': av = a.ticket_number||0;          bv = b.ticket_number||0; break;
+      case 'subject':       av = (a.subject||'').toLowerCase(); bv = (b.subject||'').toLowerCase(); break;
+      case 'client':        av = (req_a?.full_name||'').toLowerCase(); bv = (req_b?.full_name||'').toLowerCase(); break;
+      case 'company':       av = (req_a?.company||'').toLowerCase(); bv = (req_b?.company||'').toLowerCase(); break;
+      case 'status':        av = a.status||'';                bv = b.status||''; break;
+      case 'priority':      av = PRIORITY_ORDER[a.priority]??9; bv = PRIORITY_ORDER[b.priority]??9; break;
+      case 'assignee':      av = (asgn_a?.full_name||'').toLowerCase(); bv = (asgn_b?.full_name||'').toLowerCase(); break;
+      default:              av = new Date(a.updated_at||0);   bv = new Date(b.updated_at||0);
+    }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1;
+    if (av > bv) return sortDir === 'asc' ?  1 : -1;
+    return 0;
+  });
+}
+function setSort(key) {
+  if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortKey = key; sortDir = key === 'updated_at' ? 'desc' : 'asc'; }
+  renderTable();
+  updateSortHeaders();
+}
+function updateSortHeaders() {
+  document.querySelectorAll('th.sortable').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    if (th.dataset.sort === sortKey) th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+  });
+}
 function renderTable(statusFilter) {
   const q  = (document.getElementById('search-input')?.value||'').toLowerCase();
   const sf = statusFilter||document.getElementById('filter-status')?.value||'';
@@ -1035,9 +1078,10 @@ function renderTable(statusFilter) {
   if (sf) list=list.filter(t=>t.status===sf);
   if (pf) list=list.filter(t=>t.priority===pf);
   if (q)  list=list.filter(t=>t.subject.toLowerCase().includes(q)||(t.ticket_number+'').includes(q)||getReqName(t).toLowerCase().includes(q));
+  list = sortTickets(list);
   const tbody = document.getElementById('admin-tbody');
   if (!tbody) return;
-  if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="8">No tickets found</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="9">No tickets found</td></tr>'; return; }
   tbody.innerHTML = list.map(t => {
     const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
     const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
@@ -1081,7 +1125,7 @@ function adminNav(el, page) {
   if (!pg) return;
   pg.classList.add('active');
   if (['open','in_progress','waiting','resolved'].includes(page)) {
-    const filtered = tickets.filter(t=>t.status===page);
+    const filtered = sortTickets(tickets.filter(t=>t.status===page));
     pg.innerHTML = `<div class="page-header"><div><h1>${sLabel(page)} tickets</h1><p>${filtered.length} tickets</p></div></div>
     <div class="table-card"><table><thead><tr><th>ID</th><th>Client</th><th>Organisation</th><th>Subject</th><th>Priority</th><th>Tech assigned</th><th>Updated</th><th></th></tr></thead>
     <tbody>${filtered.length ? filtered.map(t=>{
