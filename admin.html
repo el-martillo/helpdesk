@@ -344,7 +344,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="4" height="11"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="3" width="4" height="18"/></svg>
         Reports
       </div>
-      <div class="nav-item" onclick="adminNav(this,'settings');loadBackupStats();loadVersion()">
+      <div class="nav-item" onclick="adminNav(this,'settings');loadBackupStats();loadVersion();renderCompaniesList()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </div>
@@ -579,6 +579,26 @@ textarea.fc { resize: vertical; min-height: 80px; }
             <button class="btn primary" onclick="saveVersion()">Save version</button>
           </div>
 
+          <!-- Companies section -->
+          <div class="table-card" style="padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Companies</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+              Manage the list of companies available in dropdowns across the system.
+            </div>
+            <div id="companies-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input class="fc" id="new-company-input" type="text" placeholder="Add company name…" style="max-width:260px" onkeydown="if(event.key==='Enter')addCompanyItem()"/>
+              <button class="btn primary" onclick="addCompanyItem()">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                Add
+              </button>
+              <button class="btn" onclick="saveCompanies()">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save
+              </button>
+            </div>
+          </div>
+
           <!-- Backup section -->
           <div class="table-card" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Database backup</div>
@@ -646,6 +666,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <select id="nt-category" class="fc"><option value="Billing">Billing</option><option value="Technical">Technical</option><option value="Account">Account</option><option value="General">General</option></select>
       </div>
     </div>
+    <div class="fg"><label class="fl">Company</label><select id="nt-company" class="fc"><option value="">— Select company —</option></select></div>
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-new-ticket')">Cancel</button>
       <button class="btn primary" onclick="createTicket()">Create ticket</button>
@@ -666,7 +687,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Phone</label><input id="au-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
-      <div class="fg"><label class="fl">Company / Organisation</label><input id="au-company" class="fc" type="text" placeholder="Acme Ltd"/></div>
+      <div class="fg"><label class="fl">Company / Organisation</label><select id="au-company" class="fc"><option value="">— Select company —</option></select></div>
     </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Role</label>
@@ -707,7 +728,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Phone</label><input id="eu-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
-      <div class="fg"><label class="fl">Company / Organisation</label><input id="eu-company" class="fc" type="text" placeholder="Acme Ltd"/></div>
+      <div class="fg"><label class="fl">Company / Organisation</label><select id="eu-company" class="fc"><option value="">— Select company —</option></select></div>
     </div>
 
     <div style="height:1px;background:var(--border);margin:14px 0"></div>
@@ -837,7 +858,7 @@ function loadDemo() {
   document.getElementById('auth-screen').classList.remove('active');
   document.getElementById('app').style.display = 'flex';
   document.getElementById('topbar-user').textContent = 'Dev Kumar';
-  loadTickets(); renderAgents(); renderReports(); loadAllProfiles(); loadUserCount();
+  loadTickets(); renderAgents(); renderReports(); loadAllProfiles(); loadUserCount(); loadCompanies();
 }
 async function ensureProfile(user) {
   const {data:existing} = await sbClient.from('profiles').select('*').eq('id', user.id).single();
@@ -867,7 +888,7 @@ async function signIn() {
   document.getElementById('topbar-user').textContent = prof?.full_name||email;
   const rb = document.getElementById('topbar-role-badge'); if(rb) rb.textContent = prof?.role==='super_admin'?'Super Admin':'Admin';
   document.getElementById('settings-url').value = localStorage.getItem('sb_url')||'';
-  loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount();
+  loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies();
 }
 async function signOut() { if(sbClient) await sbClient.auth.signOut(); location.reload(); }
 function clearCreds() { localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key'); location.reload(); }
@@ -1247,7 +1268,7 @@ async function initSupabase() {
       const tu = document.getElementById('topbar-user');
       if (tu) tu.textContent = prof?.full_name || currentUser.email;
       document.getElementById('app').style.display = 'flex';
-      loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount();
+      loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies();
     } else {
       document.getElementById('cfg-screen').classList.remove('active');
       document.getElementById('auth-screen').classList.add('active');
@@ -1344,9 +1365,10 @@ function openEditUser(id) {
   document.getElementById('eu-name').value    = p.full_name  || '';
   document.getElementById('eu-email').value   = p.email      || '';
   document.getElementById('eu-phone').value   = p.phone      || '';
-  document.getElementById('eu-company').value = p.company    || '';
   document.getElementById('eu-role').value    = p.role       || 'client';
   document.getElementById('eu-notes').value   = p.notes      || '';
+  populateCompanySelects();
+  document.getElementById('eu-company').value = p.company    || '';
   openModal('modal-edit-user');
 }
 
@@ -1642,6 +1664,77 @@ async function loadUserCount() {
   const { count } = await sbClient.from('profiles').select('*', { count: 'exact', head: true });
   const fuc = document.getElementById('footer-user-count');
   if (fuc && count !== null) fuc.textContent = count;
+}
+
+/* ── Companies ── */
+let companiesList = [];
+
+async function loadCompanies() {
+  if (demoMode) {
+    companiesList = ['Acme Ltd', 'Global Corp'];
+    renderCompaniesList();
+    populateCompanySelects();
+    return;
+  }
+  if (!sbClient) return;
+  try {
+    const { data, error } = await sbClient.from('app_settings').select('value').eq('key','companies').single();
+    companiesList = (error || !data) ? [] : JSON.parse(data.value);
+  } catch(e) { companiesList = []; }
+  renderCompaniesList();
+  populateCompanySelects();
+}
+
+function renderCompaniesList() {
+  const el = document.getElementById('companies-list');
+  if (!el) return;
+  if (!companiesList.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:4px 0">No companies yet. Add one below.</div>';
+    return;
+  }
+  el.innerHTML = companiesList.map((c, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
+      <span style="flex:1;font-size:13px">${c}</span>
+      <button class="btn sm" onclick="removeCompanyItem(${i})" style="color:var(--danger);border-color:var(--danger-l);background:var(--danger-l);padding:3px 8px">✕</button>
+    </div>`).join('');
+}
+
+function addCompanyItem() {
+  const input = document.getElementById('new-company-input');
+  const val = (input?.value || '').trim();
+  if (!val) return;
+  if (companiesList.includes(val)) { toast('Company already exists'); return; }
+  companiesList.push(val);
+  companiesList.sort((a,b) => a.localeCompare(b));
+  renderCompaniesList();
+  populateCompanySelects();
+  input.value = '';
+}
+
+function removeCompanyItem(i) {
+  companiesList.splice(i, 1);
+  renderCompaniesList();
+  populateCompanySelects();
+}
+
+async function saveCompanies() {
+  if (demoMode) { toast('Companies saved (demo)'); return; }
+  const { error } = await sbClient.from('app_settings')
+    .upsert({ key: 'companies', value: JSON.stringify(companiesList) }, { onConflict: 'key' });
+  if (error) { toast('Error saving companies: ' + error.message); return; }
+  toast('Companies saved');
+}
+
+function populateCompanySelects() {
+  const opts = '<option value="">— Select company —</option>' +
+    companiesList.map(c => `<option value="${c}">${c}</option>`).join('');
+  ['au-company','eu-company','nt-company'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const current = el.value;
+    el.innerHTML = opts;
+    if (current) el.value = current;
+  });
 }
 
 /* ── Version ── */
