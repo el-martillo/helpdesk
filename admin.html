@@ -794,7 +794,7 @@ function loadDemo() {
   document.getElementById('auth-screen').classList.remove('active');
   document.getElementById('app').style.display = 'flex';
   document.getElementById('topbar-user').textContent = 'Dev Kumar';
-  loadTickets(); renderAgents(); renderReports(); renderDashboard();
+  loadTickets(); renderAgents(); renderReports(); loadUserCount();
 }
 async function ensureProfile(user) {
   const {data:existing} = await sbClient.from('profiles').select('*').eq('id', user.id).single();
@@ -831,13 +831,13 @@ function clearCreds() { localStorage.removeItem('sb_url'); localStorage.removeIt
 
 /* ── Data ── */
 async function loadTickets() {
-  if (demoMode) { renderTable(); updateStats(); updateBadges(); return; }
+  if (demoMode) { renderTable(); updateStats(); updateBadges(); renderDashboard(); return; }
   document.getElementById('admin-tbody').innerHTML='<tr class="loading-row"><td colspan="8"><div class="loader"></div></td></tr>';
   const {data,error} = await sbClient.from('tickets')
     .select('*, requester:profiles!requester_id(id,full_name), assignee:profiles!assignee_id(id,full_name)')
     .order('updated_at',{ascending:false});
   if (error) { toast('Error: '+error.message); return; }
-  tickets = data||[]; renderTable(); updateStats(); updateBadges();
+  tickets = data||[]; renderTable(); updateStats(); updateBadges(); renderDashboard();
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
 }
 async function loadProfiles() {
@@ -1120,6 +1120,7 @@ async function loadAllProfiles() {
   allProfiles = data || [];
   renderUsersTable();
   document.getElementById('users-count-sub').textContent = allProfiles.length + ' registered profiles';
+  const fuc = document.getElementById('footer-user-count'); if(fuc) fuc.textContent = allProfiles.length;
 }
 
 function renderUsersTable() {
@@ -1396,6 +1397,19 @@ function renderDashboard() {
   }).join('');
 }
 
+/* ── User count ── */
+async function loadUserCount() {
+  if (demoMode) {
+    const fuc = document.getElementById('footer-user-count');
+    if (fuc) fuc.textContent = profiles.length;
+    return;
+  }
+  if (!sbClient) return;
+  const { count } = await sbClient.from('profiles').select('*', { count: 'exact', head: true });
+  const fuc = document.getElementById('footer-user-count');
+  if (fuc && count !== null) fuc.textContent = count;
+}
+
 /* ── Version ── */
 function applyVersion(v) {
   const footerEl = document.getElementById('footer-version');
@@ -1459,6 +1473,8 @@ document.addEventListener('DOMContentLoaded', initSupabase);
   <span>Email: <a href="mailto:helpdesk@el-martillo.com">helpdesk@el-martillo.com</a></span>
   <span class="footer-sep">|</span>
   <span>Tickets: <span class="footer-tickets" id="footer-ticket-count">—</span></span>
+  <span class="footer-sep">|</span>
+  <span>Users: <span class="footer-tickets" id="footer-user-count">—</span></span>
   <span class="footer-sep">|</span>
   <span id="footer-version">v1.0.0</span>
 </div>
