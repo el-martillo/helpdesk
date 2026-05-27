@@ -1266,9 +1266,19 @@ async function initSupabase() {
       currentUser = session.user;
       const { data: prof } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).single();
       currentProfile = prof;
+      // Block client accounts from accessing admin
+      if (!prof?.role || prof?.role === 'client') {
+        await sbClient.auth.signOut();
+        document.getElementById('cfg-screen').classList.remove('active');
+        document.getElementById('auth-screen').classList.add('active');
+        document.getElementById('auth-err').textContent = 'Access denied. Client accounts must use the client portal.';
+        return;
+      }
       document.getElementById('cfg-screen').classList.remove('active');
       const tu = document.getElementById('topbar-user');
       if (tu) tu.textContent = prof?.full_name || currentUser.email;
+      const rb = document.getElementById('topbar-role-badge');
+      if (rb) rb.textContent = prof?.role === 'super_admin' ? 'Super Admin' : 'Admin';
       document.getElementById('app').style.display = 'flex';
       loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies();
     } else {

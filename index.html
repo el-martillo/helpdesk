@@ -808,6 +808,15 @@ async function signUp() {
     return;
   }
 
+  // Supabase silently "succeeds" for already-registered emails but returns
+  // a user with an empty identities array and no session — catch that here
+  if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    errEl.style.color='var(--danger)';
+    errEl.textContent='An account with this email already exists. Please sign in instead.';
+    try { await sbClient.from('user_activity').insert({ user_email: email, user_name: name, action:'signup_attempt', status:'blocked', details:'Email already registered in Auth' }); } catch{}
+    return;
+  }
+
   // Email confirmation required
   if (!data.session) {
     try { await sbClient.from('user_activity').insert({ user_email: email, user_name: name, action:'signup_attempt', status:'success', details:'Awaiting email confirmation' }); } catch{}
