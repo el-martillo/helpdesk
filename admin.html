@@ -344,7 +344,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="4" height="11"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="3" width="4" height="18"/></svg>
         Reports
       </div>
-      <div class="nav-item" onclick="adminNav(this,'settings');loadBackupStats();loadVersion()">
+      <div class="nav-item" onclick="adminNav(this,'settings');loadBackupStats();loadVersion();renderOrgList()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </div>
@@ -577,6 +577,24 @@ textarea.fc { resize: vertical; min-height: 80px; }
               <input class="fc" id="settings-version" type="text" placeholder="e.g. 1.0.0" style="max-width:220px"/>
             </div>
             <button class="btn primary" onclick="saveVersion()">Save version</button>
+          </div>
+
+          <!-- Organisations section -->
+          <div class="table-card" style="padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Organisations</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+              Manage the list of organisations available in dropdowns across the system. Changes are saved to the database immediately.
+            </div>
+            <div id="org-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+              <div style="text-align:center;padding:16px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input class="fc" id="new-org-input" type="text" placeholder="Add organisation…" style="max-width:260px" onkeydown="if(event.key==='Enter')addOrg()"/>
+              <button class="btn primary" onclick="addOrg()">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                Add
+              </button>
+            </div>
           </div>
 
           <!-- Backup section -->
@@ -1652,21 +1670,70 @@ let companiesList = [];
 async function loadCompanies() {
   if (demoMode) {
     companiesList = [...new Set(DEMO_PROFILES.map(p => p.company).filter(Boolean))].sort();
+    renderOrgList();
     populateCompanySelects();
     return;
   }
   if (!sbClient) return;
   try {
-    const { data, error } = await sbClient.from('profiles').select('company').not('company','is',null).neq('company','');
+    const { data, error } = await sbClient.from('app_settings').select('value').eq('key','organisations').single();
     if (!error && data) {
-      companiesList = [...new Set(data.map(r => r.company).filter(Boolean))].sort((a,b) => a.localeCompare(b));
+      companiesList = JSON.parse(data.value);
+    } else {
+      // seed from existing profile company values if no saved list yet
+      const { data: pd } = await sbClient.from('profiles').select('company').not('company','is',null).neq('company','');
+      companiesList = pd ? [...new Set(pd.map(r => r.company).filter(Boolean))].sort((a,b) => a.localeCompare(b)) : [];
     }
   } catch(e) { companiesList = []; }
+  renderOrgList();
   populateCompanySelects();
 }
 
+function renderOrgList() {
+  const el = document.getElementById('org-list');
+  if (!el) return;
+  if (!companiesList.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:4px 0">No organisations yet. Add one below.</div>';
+    return;
+  }
+  el.innerHTML = companiesList.map((c, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
+      <span style="flex:1;font-size:13px">${c}</span>
+      <button class="btn sm" onclick="removeOrg(${i})" style="color:var(--danger);border-color:var(--danger-l);background:var(--danger-l);padding:3px 8px" title="Remove">✕</button>
+    </div>`).join('');
+}
+
+async function addOrg() {
+  const input = document.getElementById('new-org-input');
+  const val = (input?.value || '').trim();
+  if (!val) return;
+  if (companiesList.map(c=>c.toLowerCase()).includes(val.toLowerCase())) { toast('Organisation already exists'); return; }
+  companiesList.push(val);
+  companiesList.sort((a,b) => a.localeCompare(b));
+  renderOrgList();
+  populateCompanySelects();
+  input.value = '';
+  await persistOrgs();
+}
+
+async function removeOrg(i) {
+  if (!confirm(`Remove "${companiesList[i]}"?`)) return;
+  companiesList.splice(i, 1);
+  renderOrgList();
+  populateCompanySelects();
+  await persistOrgs();
+}
+
+async function persistOrgs() {
+  if (demoMode) return;
+  const { error } = await sbClient.from('app_settings')
+    .upsert({ key: 'organisations', value: JSON.stringify(companiesList) }, { onConflict: 'key' });
+  if (error) toast('Error saving organisations: ' + error.message);
+  else toast('Organisations saved');
+}
+
 function populateCompanySelects() {
-  const opts = '<option value="">— Select company —</option>' +
+  const opts = '<option value="">— Select organisation —</option>' +
     companiesList.map(c => `<option value="${c}">${c}</option>`).join('');
   ['au-company','eu-company','nt-company'].forEach(id => {
     const el = document.getElementById(id);
