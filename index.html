@@ -668,6 +668,7 @@ const DEMO_COMMENTS = {
 };
 
 /* ── Helpers ── */
+const esc = s => { const d=document.createElement('div'); d.textContent=String(s??''); return d.innerHTML; };
 const initials = n => n ? n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '?';
 const avColor  = id => AV_COLORS[(id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0)%AV_COLORS.length];
 const timeAgo  = iso => { if(!iso) return '—'; const m=Math.floor((Date.now()-new Date(iso))/60000); if(m<1) return 'just now'; if(m<60) return m+'m ago'; const h=Math.floor(m/60); if(h<24) return h+'h ago'; return Math.floor(h/24)+'d ago'; };
@@ -975,8 +976,8 @@ function renderTickets() {
     return `<div class="ticket-card" onclick="openTicketDetail('${t.id}')">
       <div class="ticket-card-left">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
-          <h4 style="margin-bottom:0">${t.subject}</h4>
-          <span class="cat-badge ${catClass}">${t.category||'General'}</span>
+          <h4 style="margin-bottom:0">${esc(t.subject)}</h4>
+          <span class="cat-badge ${catClass}">${esc(t.category||'General')}</span>
         </div>
         <p><span class="tid">#${t.ticket_number}</span> · Updated ${timeAgo(t.updated_at)}${asgn?' · '+asgn.full_name:''}</p>
       </div>
@@ -993,7 +994,7 @@ async function openTicketDetail(id) {
   const t=myTickets.find(x=>x.id===id); if (!t) return;
   const asgn=demoMode?profileById(t.assignee_id):(t.assignee||null);
   document.getElementById('detail-title').textContent=t.subject;
-  document.getElementById('detail-sub').textContent=`#${t.ticket_number} · ${t.category||'General'}`;
+  document.getElementById('detail-sub').textContent=`#${t.ticket_number} · ${esc(t.category||'General')}`;
   let comments=[];
   if (demoMode){comments=(DEMO_COMMENTS[id]||[]).filter(c=>!c.is_internal);}
   else {
@@ -1005,7 +1006,7 @@ async function openTicketDetail(id) {
   document.getElementById('detail-body').innerHTML=`
     <div class="detail-chips">
       <span class="sb s-${t.status}">${sLabel(t.status)}</span>
-      <span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}">${t.category||'General'}</span>
+      <span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}">${esc(t.category||'General')}</span>
       <span class="chip"><span class="pdot ${t.priority}"></span>${t.priority} priority</span>
       <span class="chip">
         <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
@@ -1014,13 +1015,13 @@ async function openTicketDetail(id) {
     </div>
     <div class="detail-meta">
       <div class="dmi"><div class="key">Ticket ID</div><div class="val tid">#${t.ticket_number}</div></div>
-      <div class="dmi"><div class="key">Category</div><div class="val">${t.category||'General'}</div></div>
+      <div class="dmi"><div class="key">Category</div><div class="val">${esc(t.category||'General')}</div></div>
       <div class="dmi"><div class="key">Opened</div><div class="val">${timeAgo(t.created_at||t.updated_at)}</div></div>
       <div class="dmi"><div class="key">Last updated</div><div class="val">${timeAgo(t.updated_at)}</div></div>
-      ${t.contact_email?`<div class="dmi"><div class="key">Email</div><div class="val"><a href="mailto:${t.contact_email}" style="color:var(--accent)">${t.contact_email}</a></div></div>`:''}
-      ${t.contact_phone?`<div class="dmi"><div class="key">Telephone</div><div class="val"><a href="tel:${t.contact_phone}" style="color:var(--accent)">${t.contact_phone}</a></div></div>`:''}
+      ${t.contact_email?`<div class="dmi"><div class="key">Email</div><div class="val"><a href="mailto:${esc(t.contact_email)}" style="color:var(--accent)">${esc(t.contact_email)}</a></div></div>`:''}
+      ${t.contact_phone?`<div class="dmi"><div class="key">Telephone</div><div class="val"><a href="tel:${esc(t.contact_phone)}" style="color:var(--accent)">${esc(t.contact_phone)}</a></div></div>`:''}
     </div>
-    <div class="desc-box">${t.description||'<em style="color:var(--text3)">No description provided.</em>'}</div>
+    <div class="desc-box">${esc(t.description||'<em style="color:var(--text3)">No description provided.</em>')}</div>
     <div class="activity">
       <div class="activity-label">Conversation (${comments.length})</div>
       <div id="comments-list">${renderComments(comments)}</div>
@@ -1049,7 +1050,7 @@ function renderComments(comments) {
       <div class="avatar ${avColor(author?.id)}" style="flex-shrink:0">${initials(author?.full_name||'?')}</div>
       <div class="comment-bubble ${cls}">
         <div class="comment-meta">${isMine?'You':author?.full_name||'Support'} ${isAgent?'· Support team':''} · ${timeAgo(c.created_at)}</div>
-        ${c.body}
+        ${esc(c.body)}
       </div>
     </div>`;
   }).join('');
@@ -1246,7 +1247,7 @@ async function submitTicket() {
   if (error){toast('Error: '+error.message);return;}
   trackUserActivity('ticket_created', 'success', `Subject: ${subject}`);
   closeModal('modal-new-ticket'); clearForm();
-  loadVersion(); loadClientTickets(); toast('Request submitted! We\'ll be in touch soon.');
+  loadVersion(); await loadClientTickets(); toast('Request submitted! We\'ll be in touch soon.');
 }
 
 /* ── Auto-restore ── */

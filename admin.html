@@ -950,6 +950,7 @@ const DEMO_COMMENTS = {
 };
 
 /* ── Helpers ── */
+const esc = s => { const d=document.createElement('div'); d.textContent=String(s??''); return d.innerHTML; };
 const initials = n => n ? n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '?';
 const avColor  = id => AV_COLORS[(id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0) % AV_COLORS.length];
 const timeAgo  = iso => { if(!iso) return '—'; const m=Math.floor((Date.now()-new Date(iso))/60000); if(m<1) return 'just now'; if(m<60) return m+'m ago'; const h=Math.floor(m/60); if(h<24) return h+'h ago'; return Math.floor(h/24)+'d ago'; };
@@ -1011,9 +1012,9 @@ async function signIn() {
   document.getElementById('topbar-user').textContent = prof?.full_name||email;
   const rb = document.getElementById('topbar-role-badge'); if(rb) rb.textContent = prof?.role==='super_admin'?'Super Admin':'Admin';
   document.getElementById('settings-url').value = localStorage.getItem('sb_url')||'';
-  loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies();
+  loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime();
 }
-async function signOut() { if(sbClient) await sbClient.auth.signOut(); location.reload(); }
+async function signOut() { if(realtimeChannel && sbClient) sbClient.removeChannel(realtimeChannel); if(sbClient) await sbClient.auth.signOut(); location.reload(); }
 function clearCreds() { localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key'); location.reload(); }
 
 /* ── Data ── */
@@ -1086,12 +1087,12 @@ function renderTable(statusFilter) {
     const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
     return `<tr onclick="openTicketDetail('${t.id}')">
       <td><span class="tid">#${t.ticket_number}</span></td>
-      <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${req?.full_name||'—'}</span></div></td>
-      <td style="font-size:12px;color:var(--text2);white-space:nowrap">${req?.company||'—'}</td>
-      <td style="max-width:200px"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</div><span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}" style="margin-top:3px">${t.category||'General'}</span></td>
+      <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${esc(req?.full_name)||'—'}</span></div></td>
+      <td style="font-size:12px;color:var(--text2);white-space:nowrap">${esc(req?.company)||'—'}</td>
+      <td style="max-width:200px"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.subject)}</div><span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}" style="margin-top:3px">${esc(t.category||'General')}</span></td>
       <td><span class="sb s-${t.status}">${sLabel(t.status)}</span></td>
       <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
-      <td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${esc(asgn?.full_name)||'—'}</td>
       <td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td>
       <td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td>
     </tr>`;
@@ -1146,7 +1147,7 @@ function adminNav(el, page) {
     <tbody>${filtered.length ? filtered.map(t=>{
       const req=demoMode?profileById(t.requester_id):(t.requester||{});
       const asgn=demoMode?profileById(t.assignee_id):(t.assignee||{});
-      return `<tr onclick="openTicketDetail('${t.id}')"><td><span class="tid">#${t.ticket_number}</span></td><td style="font-size:12px">${req?.full_name||'—'}</td><td style="font-size:12px;color:var(--text2);white-space:nowrap">${req?.company||'—'}</td><td style="font-weight:500;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</td><td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td><td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td><td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td><td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td></tr>`;
+      return `<tr onclick="openTicketDetail('${t.id}')"><td><span class="tid">#${t.ticket_number}</span></td><td style="font-size:12px">${esc(req?.full_name)||'—'}</td><td style="font-size:12px;color:var(--text2);white-space:nowrap">${esc(req?.company)||'—'}</td><td style="font-weight:500;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.subject)}</td><td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td><td style="font-size:12px;color:var(--text2)">${esc(asgn?.full_name)||'—'}</td><td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td><td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td></tr>`;
     }).join('') : '<tr class="empty-row"><td colspan="7">No tickets in this status</td></tr>'}</tbody></table></div>`;
   }
   if (page==='reports') renderReports();
@@ -1158,7 +1159,7 @@ async function openTicketDetail(id) {
   const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
   const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
   document.getElementById('detail-title').textContent = t.subject;
-  document.getElementById('detail-sub').textContent   = `#${t.ticket_number} · ${t.category||'General'} · ${timeAgo(t.updated_at)}`;
+  document.getElementById('detail-sub').textContent   = `#${t.ticket_number} · ${esc(t.category||'General')} · ${timeAgo(t.updated_at)}`;
   let comments=[];
   if (demoMode) { comments=DEMO_COMMENTS[id]||[]; }
   else { const {data}=await sbClient.from('comments').select('*,author:profiles(id,full_name,role)').eq('ticket_id',id).order('created_at'); comments=data||[]; }
@@ -1167,7 +1168,7 @@ async function openTicketDetail(id) {
   document.getElementById('detail-body').innerHTML=`
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
       <span class="sb s-${t.status}">${sLabel(t.status)}</span>
-      <span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}">${t.category||'General'}</span>
+      <span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}">${esc(t.category||'General')}</span>
       <span style="font-size:12px;color:var(--text2)"><span class="pdot ${t.priority}"></span>${t.priority} priority</span>
       <select class="filter-sel" style="margin-left:auto" onchange="updateStatus('${t.id}',this.value)">
         <option value="open" ${t.status==='open'?'selected':''}>Open</option>
@@ -1180,14 +1181,14 @@ async function openTicketDetail(id) {
       </select>
     </div>
     <div class="detail-meta-grid">
-      <div class="dmi"><div class="key">Client</div><div class="val flex-c"><div class="avatar ${avColor(req?.id)}" style="width:22px;height:22px;font-size:9px">${initials(req?.full_name||'?')}</div>${req?.full_name||'—'}</div></div>
-      <div class="dmi"><div class="key">Tech assigned</div><div class="val">${asgn?.full_name||'Unassigned'}</div></div>
+      <div class="dmi"><div class="key">Client</div><div class="val flex-c"><div class="avatar ${avColor(req?.id)}" style="width:22px;height:22px;font-size:9px">${initials(req?.full_name||'?')}</div>${esc(req?.full_name)||'—'}</div></div>
+      <div class="dmi"><div class="key">Tech assigned</div><div class="val">${esc(asgn?.full_name)||'Unassigned'}</div></div>
       <div class="dmi"><div class="key">Created</div><div class="val">${timeAgo(t.created_at||t.updated_at)}</div></div>
-      <div class="dmi"><div class="key">Category</div><div class="val">${t.category||'General'}</div></div>
-      ${t.contact_email?`<div class="dmi"><div class="key">Email</div><div class="val"><a href="mailto:${t.contact_email}" style="color:var(--accent)">${t.contact_email}</a></div></div>`:''}
-      ${t.contact_phone?`<div class="dmi"><div class="key">Telephone</div><div class="val"><a href="tel:${t.contact_phone}" style="color:var(--accent)">${t.contact_phone}</a></div></div>`:''}
+      <div class="dmi"><div class="key">Category</div><div class="val">${esc(t.category||'General')}</div></div>
+      ${t.contact_email?`<div class="dmi"><div class="key">Email</div><div class="val"><a href="mailto:${esc(t.contact_email)}" style="color:var(--accent)">${esc(t.contact_email)}</a></div></div>`:''}
+      ${t.contact_phone?`<div class="dmi"><div class="key">Telephone</div><div class="val"><a href="tel:${esc(t.contact_phone)}" style="color:var(--accent)">${esc(t.contact_phone)}</a></div></div>`:''}
     </div>
-    <div class="desc-box">${t.description||'<em style="color:var(--text3)">No description provided.</em>'}</div>
+    <div class="desc-box">${esc(t.description||'<em style="color:var(--text3)">No description provided.</em>')}</div>
     <div class="activity">
       <div class="activity-label">Activity (${comments.length} comments)</div>
       <div id="comments-list">${renderComments(comments,true)}</div>
@@ -1211,7 +1212,7 @@ function renderComments(comments, showInternal=false) {
     const isAgent=author?.role==='admin'||author?.role==='super_admin';
     const cls=c.is_internal?'internal-bubble':(isAgent?'agent-bubble':'');
     return `<div class="comment-item"><div class="avatar ${avColor(author?.id)}" style="flex-shrink:0">${initials(author?.full_name||'?')}</div>
-      <div class="comment-bubble ${cls}"><div class="comment-meta">${author?.full_name||'Unknown'}  ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${c.body}</div></div>`;
+      <div class="comment-bubble ${cls}"><div class="comment-meta">${esc(author?.full_name)||'Unknown'}  ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${esc(c.body)}</div></div>`;
   }).join('');
 }
 async function addComment(ticketId) {
@@ -1235,6 +1236,16 @@ async function updateStatus(id, status) {
   refreshCurrentPage();
   toast('Status updated');
   const t=tickets.find(x=>x.id===id); logSystemEvent('ticket_status',`#${t?.ticket_number||id} "${t?.subject||''}" | ${t?.status||'?'} → ${sLabel(status)} | Priority: ${t?.priority||'?'}`);
+  // Trigger notification edge function for resolved status
+  if (status === 'resolved') {
+    try {
+      await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticket_id: id, new_status: status, changed_by: currentProfile?.full_name || 'Support team' })
+      });
+    } catch(e) { console.warn('Notification failed:', e.message); }
+  }
 }
 async function updateAssignee(id, assigneeId) {
   if (demoMode) { const t=tickets.find(x=>x.id===id); if(t) t.assignee_id=assigneeId||null; refreshCurrentPage();toast('Tech assigned updated');return; }
@@ -1454,7 +1465,7 @@ async function initSupabase() {
       const rb = document.getElementById('topbar-role-badge');
       if (rb) rb.textContent = prof?.role === 'super_admin' ? 'Super Admin' : 'Admin';
       document.getElementById('app').style.display = 'flex';
-      loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies();
+      loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime();
     } else {
       document.getElementById('cfg-screen').classList.remove('active');
       document.getElementById('auth-screen').classList.add('active');
@@ -1510,8 +1521,8 @@ function renderUsersTable() {
         <div class="flex-c">
           <div class="avatar ${avColor(p.id)}" style="width:30px;height:30px;font-size:11px">${initials(p.full_name||'?')}</div>
           <div>
-            <div style="font-weight:500;font-size:13px">${p.full_name||'—'}</div>
-            <div style="font-size:11px;margin-top:2px">${p.email ? `<a href="mailto:${p.email}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${p.email}</a>` : `<span style="color:var(--text3);font-family:var(--mono)">${p.id.slice(0,8)}…</span>`}</div>
+            <div style="font-weight:500;font-size:13px">${esc(p.full_name)||'—'}</div>
+            <div style="font-size:11px;margin-top:2px">${p.email ? `<a href="mailto:${esc(p.email)}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${esc(p.email)}</a>` : `<span style="color:var(--text3);font-family:var(--mono)">${p.id.slice(0,8)}…</span>`}</div>
           </div>
         </div>
       </td>
@@ -1773,9 +1784,9 @@ function renderDashboard() {
     const req = demoMode ? profileById(t.requester_id) : (t.requester||{});
     return `<tr onclick="openTicketDetail('${t.id}')">
       <td><span class="tid">#${t.ticket_number}</span></td>
-      <td style="font-size:12px">${req?.full_name||'—'}</td>
-      <td style="font-size:12px;color:var(--text2);white-space:nowrap">${req?.company||'—'}</td>
-      <td style="max-width:180px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</td>
+      <td style="font-size:12px">${esc(req?.full_name)||'—'}</td>
+      <td style="font-size:12px;color:var(--text2);white-space:nowrap">${esc(req?.company)||'—'}</td>
+      <td style="max-width:180px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.subject)}</td>
       <td><span class="sb s-${t.status}">${sLabel(t.status)}</span></td>
       <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
       <td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td>
@@ -1843,10 +1854,10 @@ async function loadBBCNews() {
       const imgHtml = img
         ? `<img src="${img}" alt="" onerror="this.style.display='none'" style="width:72px;height:52px;object-fit:cover;border-radius:6px;flex-shrink:0;background:var(--surface2)">`
         : `<div style="width:72px;height:52px;border-radius:6px;flex-shrink:0;background:var(--surface2);display:flex;align-items:center;justify-content:center"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="color:var(--text3)"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
-      return `<a href="${link}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;padding:11px 16px;text-decoration:none;color:inherit;border-bottom:${i<items.length-1?'1px solid var(--border)':'none'};transition:background .12s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
+      return `<a href="${link.startsWith('http')?link:'#'}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;padding:11px 16px;text-decoration:none;color:inherit;border-bottom:${i<items.length-1?'1px solid var(--border)':'none'};transition:background .12s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
         ${imgHtml}
         <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:500;line-height:1.45;color:var(--text1);margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${title}</div>
+          <div style="font-size:13px;font-weight:500;line-height:1.45;color:var(--text1);margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(title)}</div>
           <div style="font-size:11px;color:var(--text3)">${date}</div>
         </div>
         <svg width="13" height="13" style="flex-shrink:0;color:var(--text3)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
@@ -1905,7 +1916,7 @@ function renderOrgList() {
   el.innerHTML = companiesList.map((c, i) => `
     <div style="display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)" id="org-row-${i}">
       <span class="org-label" id="org-label-${i}" style="flex:1;font-size:13px">${c}</span>
-      <input class="fc org-input" id="org-input-${i}" type="text" value="${c}" style="flex:1;display:none;padding:4px 8px;font-size:13px" onkeydown="if(event.key==='Enter')saveOrgEdit(${i});if(event.key==='Escape')cancelOrgEdit(${i})"/>
+      <input class="fc org-input" id="org-input-${i}" type="text" value="${esc(c)}" style="flex:1;display:none;padding:4px 8px;font-size:13px" onkeydown="if(event.key==='Enter')saveOrgEdit(${i});if(event.key==='Escape')cancelOrgEdit(${i})"/>
       <button class="btn sm" id="org-edit-btn-${i}" onclick="startOrgEdit(${i})" title="Edit" style="padding:3px 8px">
         <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>
@@ -1981,7 +1992,7 @@ async function persistOrgs() {
 
 function populateCompanySelects() {
   const opts = '<option value="">— Select organisation —</option>' +
-    companiesList.map(c => `<option value="${c}">${c}</option>`).join('');
+    companiesList.map(c => `<option value="${esc(c)}">${c}</option>`).join('');
   ['au-company','eu-company','nt-company'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -2070,9 +2081,9 @@ function renderSysLogTable() {
   tbody.innerHTML = list.map(a => `
     <tr>
       <td style="font-size:12px;color:var(--text3);white-space:nowrap">${timeAgo(a.created_at)}<div style="font-size:10px;margin-top:1px">${a.created_at ? new Date(a.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</div></td>
-      <td><div style="font-size:13px;font-weight:500">${a.actor_name||'—'}</div><div style="margin-top:3px">${rolePill(a.actor_role)}</div></td>
+      <td><div style="font-size:13px;font-weight:500">${esc(a.actor_name)||'—'}</div><div style="margin-top:3px">${rolePill(a.actor_role)}</div></td>
       <td>${actionBadge(a.action)}</td>
-      <td style="font-size:12px;color:var(--text2)">${a.details||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${esc(a.details)||'—'}</td>
     </tr>`).join('');
 }
 
@@ -2140,11 +2151,11 @@ function renderActivityTable() {
   tbody.innerHTML = list.map(a => `
     <tr>
       <td style="font-size:12px;color:var(--text3);white-space:nowrap">${timeAgo(a.created_at)}<div style="font-size:10px;margin-top:1px">${a.created_at ? new Date(a.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</div></td>
-      <td><div style="font-size:13px;font-weight:500">${a.user_name||'—'}</div></td>
-      <td style="font-size:12px;color:var(--text2)">${a.user_email ? `<a href="mailto:${a.user_email}" style="color:var(--accent);text-decoration:none">${a.user_email}</a>` : '—'}</td>
+      <td><div style="font-size:13px;font-weight:500">${esc(a.user_name)||'—'}</div></td>
+      <td style="font-size:12px;color:var(--text2)">${a.user_email ? `<a href="mailto:${esc(a.user_email)}" style="color:var(--accent);text-decoration:none">${esc(a.user_email)}</a>` : '—'}</td>
       <td>${actionLabel(a.action)}</td>
       <td>${statusLabel(a.status)}</td>
-      <td style="font-size:12px;color:var(--text2);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.details||'—'}</td>
+      <td style="font-size:12px;color:var(--text2);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.details)||'—'}</td>
     </tr>`).join('');
 }
 
@@ -2184,6 +2195,38 @@ async function downloadSysLog() {
   downloadJSON({ exported_at: new Date().toISOString(), total: data.length, events: data }, `system-log-${date}.json`);
   toast('System log downloaded');
   logSystemEvent('backup_created', `System log exported: ${data.length} events`);
+}
+
+/* ── Realtime ── */
+let realtimeChannel = null;
+
+function startRealtime() {
+  if (demoMode || !sbClient) return;
+  // Unsubscribe from any existing channel first
+  if (realtimeChannel) { sbClient.removeChannel(realtimeChannel); realtimeChannel = null; }
+
+  realtimeChannel = sbClient
+    .channel('tickets-realtime')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tickets' }, payload => {
+      // New ticket submitted by client — reload and notify
+      loadTickets();
+      const t = payload.new;
+      toast(`New ticket #${t.ticket_number}: ${t.subject?.slice(0,40) || 'New ticket received'}`);
+    })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tickets' }, payload => {
+      // Ticket updated (e.g. client reopened) — silently reload
+      loadTickets();
+    })
+    .subscribe((status) => {
+      const dot   = document.getElementById('db-dot');
+      const label = document.getElementById('db-label');
+      if (status === 'SUBSCRIBED') {
+        if (dot)   dot.className = 'dot connected';
+        if (label) label.textContent = 'Supabase live';
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        if (label) label.textContent = 'Supabase connected';
+      }
+    });
 }
 
 /* ── Version ── */
