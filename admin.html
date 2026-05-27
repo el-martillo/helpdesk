@@ -1414,15 +1414,28 @@ async function saveUser() {
 }
 
 async function deleteUser(id) {
-  if (!confirm('Delete this profile? This cannot be undone.')) return;
+  if (!confirm('Permanently delete this user? Their tickets will be reassigned to a Deleted User placeholder. This cannot be undone.')) return;
   if (demoMode) {
     allProfiles = allProfiles.filter(x => x.id !== id);
     closeModal('modal-edit-user'); renderUsersTable(); toast('User deleted'); return;
   }
-  const { error } = await sbClient.from('profiles').delete().eq('id', id);
-  if (error) { toast('Error: ' + error.message); return; }
+  // Call the database function that hard-deletes from both profiles and auth.users
+  const { error } = await sbClient.rpc('delete_user_hard', { user_id: id });
+  if (error) {
+    // Fallback: delete profile only if RPC not available
+    if (error.message.includes('function') || error.code === '42883') {
+      const { error: pe } = await sbClient.from('profiles').delete().eq('id', id);
+      if (pe) { toast('Error: ' + pe.message); return; }
+      toast('Profile deleted (auth record may remain — run SQL function for full deletion)');
+    } else {
+      toast('Error: ' + error.message);
+      return;
+    }
+  } else {
+    toast('User permanently deleted');
+  }
   closeModal('modal-edit-user');
-  loadAllProfiles(); loadProfiles(); toast('User deleted');
+  loadAllProfiles(); loadProfiles();
 }
 
 async function addUser() {
