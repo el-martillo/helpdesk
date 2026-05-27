@@ -1194,12 +1194,7 @@ function renderAgents() {
       <span class="sb ${ss[p.status]||'s-closed'}">${p.status||'offline'}</span>
     </div>`).join('');
 }
-  if (demoMode){profiles.push({id:'p'+Date.now(),full_name:name,email,role:document.getElementById('ia-role').value,status:'offline'});renderAgents();closeModal('modal-invite-agent');toast('Agent invited (demo)');return;}
-  const {error}=await sbClient.auth.admin.inviteUserByEmail(email,{data:{full_name:name,role:document.getElementById('ia-role').value}});
-  if (error){toast('Error: '+error.message);return;}
-  closeModal('modal-invite-agent');toast('Invitation sent!');
-  logSystemEvent('agent_invited',`${name} (${email})`);
-}
+
 
 /* ── Reports ── */
 function renderReports() {
