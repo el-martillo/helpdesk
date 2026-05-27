@@ -854,6 +854,7 @@ async function loadOrgsFromSupabase() {
     const { data, error } = await sbClient.from('app_settings').select('value').eq('key','organisations').single();
     if (!error && data?.value) {
       orgsList = JSON.parse(data.value);
+      populateAllOrgSelects();
       return;
     }
   } catch { /* app_settings not yet populated */ }
@@ -868,6 +869,14 @@ async function loadOrgsFromSupabase() {
       orgsList = [...new Set(profiles.map(p => p.company).filter(Boolean))].sort((a,b) => a.localeCompare(b));
     }
   } catch { /* profiles table issue */ }
+  populateAllOrgSelects();
+}
+
+function populateAllOrgSelects() {
+  ['su-company', 'nt-company', 'mp-company'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) fillOrgSelect(el);
+  });
 }
 
 function getOrgs() { return orgsList; }
