@@ -419,6 +419,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <input id="su-password" class="fc" type="password" placeholder="••••••••"/>
         <div class="pw-rules">Minimum 8 characters</div>
       </div>
+      <div class="fg">
+        <label class="fl">Repeat password *</label>
+        <input id="su-password2" class="fc" type="password" placeholder="••••••••"/>
+      </div>
       <button class="btn primary" style="width:100%;justify-content:center" onclick="signUp()">Create account</button>
       <div class="err" id="su-err"></div>
     </div>
@@ -769,8 +773,10 @@ async function signUp() {
   const pass    = document.getElementById('su-password').value;
   const errEl   = document.getElementById('su-err');
 
+  const pass2   = document.getElementById('su-password2').value;
   if (!name||!email||!pass){errEl.textContent='Name, email and password are required.';return;}
   if (pass.length<8){errEl.textContent='Password must be at least 8 characters.';return;}
+  if (pass !== pass2){errEl.textContent='Passwords do not match.';errEl.style.color='var(--danger)';return;}
 
   errEl.style.color='var(--text3)';
   errEl.textContent='Creating account…';
@@ -850,16 +856,13 @@ let orgsList = [];
 async function loadOrgsFromSupabase() {
   if (!sbClient) return;
   try {
-    // Read from app_settings table, key = organisations (JSON array — same as admin.html)
     const { data, error } = await sbClient.from('app_settings').select('value').eq('key','organisations').single();
     if (!error && data?.value) {
       orgsList = JSON.parse(data.value);
       populateAllOrgSelects();
       return;
     }
-  } catch { /* app_settings not yet populated */ }
-  try {
-    // Fallback: distinct company values from profiles
+    // RLS may block anon reads — try profiles fallback
     const { data: profiles } = await sbClient
       .from('profiles')
       .select('company')
@@ -868,7 +871,7 @@ async function loadOrgsFromSupabase() {
     if (profiles?.length) {
       orgsList = [...new Set(profiles.map(p => p.company).filter(Boolean))].sort((a,b) => a.localeCompare(b));
     }
-  } catch { /* profiles table issue */ }
+  } catch(e) { console.warn('loadOrgsFromSupabase error:', e.message); }
   populateAllOrgSelects();
 }
 
@@ -1252,6 +1255,7 @@ async function initSupabase() {
   sbClient = window.supabase.createClient(url, key);
   try { await loadOrgsFromSupabase(); } catch(e) { console.warn('Could not load orgs:', e.message); }
   try { await loadCategoriesFromSupabase(); } catch(e) { console.warn('Could not load categories:', e.message); }
+  loadVersion();
 
   // Handle email confirmation / magic link token in URL hash
   const hash = window.location.hash;
@@ -1302,6 +1306,7 @@ async function initSupabase() {
     } else {
       document.getElementById('cfg-screen').classList.remove('active');
       document.getElementById('auth-screen').classList.add('active');
+      populateAllOrgSelects();
     }
   } catch(e) {
     console.error('Session restore error:', e);
