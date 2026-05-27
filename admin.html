@@ -388,7 +388,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         </div>
         <div class="table-card">
           <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">Recent activity</div>
-          <table><thead><tr><th>ID</th><th>Client</th><th>Company</th><th>Subject</th><th>Status</th><th>Priority</th><th>Updated</th><th></th></tr></thead>
+          <table><thead><tr><th>ID</th><th>Client</th><th>Organisation</th><th>Subject</th><th>Status</th><th>Priority</th><th>Updated</th><th></th></tr></thead>
           <tbody id="dash-recent-tbody"></tbody></table>
         </div>
 
@@ -450,7 +450,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
               Refresh
             </button>
           </div>
-          <table><thead><tr><th>ID</th><th>Client</th><th>Company</th><th>Subject</th><th>Status</th><th>Priority</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
+          <table><thead><tr><th>ID</th><th>Client</th><th>Organisation</th><th>Subject</th><th>Status</th><th>Priority</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
           <tbody id="admin-tbody"></tbody></table>
         </div>
       </div>
@@ -664,7 +664,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <select id="nt-category" class="fc"><option value="Billing">Billing</option><option value="Technical">Technical</option><option value="Account">Account</option><option value="General">General</option></select>
       </div>
     </div>
-    <div class="fg"><label class="fl">Company</label><select id="nt-company" class="fc"><option value="">— Select company —</option></select></div>
+    <div class="fg"><label class="fl">Organisation</label><select id="nt-company" class="fc"><option value="">— Select company —</option></select></div>
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-new-ticket')">Cancel</button>
       <button class="btn primary" onclick="createTicket()">Create ticket</button>
@@ -685,7 +685,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Phone</label><input id="au-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
-      <div class="fg"><label class="fl">Company / Organisation</label><select id="au-company" class="fc"><option value="">— Select company —</option></select></div>
+      <div class="fg"><label class="fl">Organisation</label><select id="au-company" class="fc"><option value="">— Select company —</option></select></div>
     </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Role</label>
@@ -726,7 +726,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Phone</label><input id="eu-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
-      <div class="fg"><label class="fl">Company / Organisation</label><select id="eu-company" class="fc"><option value="">— Select company —</option></select></div>
+      <div class="fg"><label class="fl">Organisation</label><select id="eu-company" class="fc"><option value="">— Select company —</option></select></div>
     </div>
 
     <div style="height:1px;background:var(--border);margin:14px 0"></div>
@@ -965,7 +965,7 @@ function adminNav(el, page) {
   if (['open','in_progress','waiting','resolved'].includes(page)) {
     const filtered = tickets.filter(t=>t.status===page);
     pg.innerHTML = `<div class="page-header"><div><h1>${sLabel(page)} tickets</h1><p>${filtered.length} tickets</p></div></div>
-    <div class="table-card"><table><thead><tr><th>ID</th><th>Client</th><th>Company</th><th>Subject</th><th>Priority</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
+    <div class="table-card"><table><thead><tr><th>ID</th><th>Client</th><th>Organisation</th><th>Subject</th><th>Priority</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
     <tbody>${filtered.length ? filtered.map(t=>{
       const req=demoMode?profileById(t.requester_id):(t.requester||{});
       const asgn=demoMode?profileById(t.assignee_id):(t.assignee||{});

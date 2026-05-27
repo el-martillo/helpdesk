@@ -845,34 +845,32 @@ async function signUp() {
   showApp();
 }
 
+let orgsList = [];
+
 async function loadOrgsFromSupabase() {
   if (!sbClient) return;
   try {
-    // Try settings table first (most reliable, requires add_settings_table.sql to be run)
-    const { data } = await sbClient.from('settings').select('value').eq('key','organisations').single();
-    if (data?.value) {
-      localStorage.setItem('app_orgs', data.value);
+    // Read from app_settings table, key = organisations (JSON array — same as admin.html)
+    const { data, error } = await sbClient.from('app_settings').select('value').eq('key','organisations').single();
+    if (!error && data?.value) {
+      orgsList = JSON.parse(data.value);
       return;
     }
-  } catch { /* settings table not created yet */ }
-
+  } catch { /* app_settings not yet populated */ }
   try {
-    // Fallback: extract distinct company values from profiles table
+    // Fallback: distinct company values from profiles
     const { data: profiles } = await sbClient
       .from('profiles')
       .select('company')
       .not('company', 'is', null)
       .neq('company', '');
     if (profiles?.length) {
-      const unique = [...new Set(profiles.map(p => p.company).filter(Boolean))].sort();
-      localStorage.setItem('app_orgs', unique.join('\n'));
+      orgsList = [...new Set(profiles.map(p => p.company).filter(Boolean))].sort((a,b) => a.localeCompare(b));
     }
   } catch { /* profiles table issue */ }
 }
 
-function getOrgs() {
-  return (localStorage.getItem('app_orgs') || '').split('\n').map(s => s.trim()).filter(Boolean);
-}
+function getOrgs() { return orgsList; }
 
 async function fillOrgSelect(sel) {
   if (!sel) return;
@@ -884,7 +882,6 @@ async function fillOrgSelect(sel) {
     opt.value = o; opt.textContent = o;
     sel.appendChild(opt);
   });
-  // Restore previously selected value if still in list
   if (current && orgs.includes(current)) sel.value = current;
 }
 
