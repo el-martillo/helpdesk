@@ -16,8 +16,23 @@ const h = (s: unknown): string =>
     .replace(/'/g, '&#39;')
     .replace(/\//g, '&#x2F;')
 
+// ── Environment variables ────────────────────────────────────────────────
+// Set these in Supabase Dashboard → Edge Functions → Manage secrets:
+//   RESEND_API_KEY      — your Resend API key
+//   SITE_URL            — e.g. https://yourdomain.com
+//   SUPPORT_EMAIL       — e.g. helpdesk@el-martillo.com
+//   SUPPORT_PHONE       — e.g. +350 200 50630
+//   SUPPORT_NAME        — e.g. El Martillo I.T.
+// SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are injected automatically.
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  // Read config from environment
+  const SITE_URL      = Deno.env.get('SITE_URL')      ?? 'https://yourdomain.com'
+  const SUPPORT_EMAIL = Deno.env.get('SUPPORT_EMAIL') ?? 'helpdesk@el-martillo.com'
+  const SUPPORT_PHONE = Deno.env.get('SUPPORT_PHONE') ?? '+350 200 50630'
+  const SUPPORT_NAME  = Deno.env.get('SUPPORT_NAME')  ?? 'El Martillo I.T.'
 
   try {
     const { ticket_id, new_status, changed_by } = await req.json()
@@ -65,7 +80,7 @@ serve(async (req) => {
     const emailHtml = `
       <div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;background:#fff">
         <div style="margin-bottom:24px">
-          <img src="https://yourdomain.com/logo.png" alt="El Martillo I.T." style="height:36px"/>
+          <img src="${SITE_URL}/logo.png" alt="${h(SUPPORT_NAME)}" style="height:36px"/>
         </div>
         <h2 style="font-size:20px;font-weight:600;color:#1a1917;margin:0 0 8px">
           Your ticket has been resolved
@@ -86,16 +101,16 @@ serve(async (req) => {
           If you're still experiencing issues or have further questions, you can reopen your ticket 
           by logging into the client portal.
         </p>
-        <a href="https://yourdomain.com/index.html"
+        <a href="${SITE_URL}/index.html"
            style="display:inline-block;background:#185FA5;color:#fff;text-decoration:none;
                   padding:10px 20px;border-radius:6px;font-size:14px;font-weight:500">
           View ticket in portal →
         </a>
         <hr style="border:none;border-top:1px solid #e8e6e1;margin:32px 0"/>
         <p style="color:#9e9a94;font-size:12px;margin:0">
-          El Martillo I.T. · Gibraltar ·
-          <a href="mailto:helpdesk@el-martillo.com" style="color:#185FA5">helpdesk@el-martillo.com</a> ·
-          +350 200 50630
+          ${h(SUPPORT_NAME)} · Gibraltar ·
+          <a href="mailto:${h(SUPPORT_EMAIL)}" style="color:#185FA5">${h(SUPPORT_EMAIL)}</a> ·
+          ${h(SUPPORT_PHONE)}
         </p>
       </div>
     `
@@ -107,7 +122,7 @@ serve(async (req) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'El Martillo I.T. <helpdesk@el-martillo.com>',
+        from: `${SUPPORT_NAME} <${SUPPORT_EMAIL}>`,
         to: clientEmail,
         subject: `Ticket resolved: #${h(ticket.ticket_number)} – ${h(ticket.subject)}`,
         html: emailHtml

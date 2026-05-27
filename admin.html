@@ -1427,6 +1427,15 @@ function renderReports() {
 }
 
 /* ── Auto-restore session ── */
+/* ── Supabase client configuration ──────────────────────────────────────────
+   These credentials are intentionally client-side and are designed to be
+   public. The anon key grants only the access permitted by Row-Level Security
+   (RLS) policies on the database. Real access control is enforced server-side
+   via RLS — not by keeping these values secret.
+   
+   If you rotate the anon key, update both values here.
+   The project ref (gtcrmqbmlvtlyiwnshma) is not a secret.
+   ──────────────────────────────────────────────────────────────────────────── */
 const SB_URL = 'https://gtcrmqbmlvtlyiwnshma.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
 
