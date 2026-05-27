@@ -811,7 +811,7 @@ function loadDemo() {
   document.getElementById('auth-screen').classList.remove('active');
   document.getElementById('app').style.display = 'flex';
   document.getElementById('topbar-user').textContent = 'Dev Kumar';
-  loadTickets(); renderAgents(); renderReports(); loadUserCount();
+  loadTickets(); renderAgents(); renderReports(); loadAllProfiles(); loadUserCount();
 }
 async function ensureProfile(user) {
   const {data:existing} = await sbClient.from('profiles').select('*').eq('id', user.id).single();
@@ -1128,17 +1128,19 @@ let allProfiles = [];
 
 async function loadAllProfiles() {
   const tbody = document.getElementById('users-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '<tr class="loading-row"><td colspan="5"><div class="loader"></div></td></tr>';
+  if (tbody) tbody.innerHTML = '<tr class="loading-row"><td colspan="5"><div class="loader"></div></td></tr>';
   if (demoMode) {
     allProfiles = [...DEMO_PROFILES];
-    renderUsersTable(); return;
+    renderUsersTable();
+    const fuc = document.getElementById('footer-user-count'); if(fuc) fuc.textContent = allProfiles.length;
+    return;
   }
+  if (!sbClient) return;
   const { data, error } = await sbClient.from('profiles').select('*').order('full_name');
   if (error) { toast('Error loading users: ' + error.message); return; }
   allProfiles = data || [];
   renderUsersTable();
-  document.getElementById('users-count-sub').textContent = allProfiles.length + ' registered profiles';
+  const sub = document.getElementById('users-count-sub'); if(sub) sub.textContent = allProfiles.length + ' registered profiles';
   const fuc = document.getElementById('footer-user-count'); if(fuc) fuc.textContent = allProfiles.length;
 }
 
@@ -1424,22 +1426,44 @@ async function loadBBCNews() {
   const el = document.getElementById('bbc-news-list');
   if (!el) return;
   el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3)"><div class="loader"></div></div>';
+  const FEEDS = [
+    'https://corsproxy.io/?url=https://feeds.bbci.co.uk/news/technology/rss.xml',
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://feeds.bbci.co.uk/news/technology/rss.xml'),
+    'https://rss.app/feeds/bbctechnology.xml',
+  ];
+  let xml = null;
+  for (const url of FEEDS) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const text = await res.text();
+      if (text.includes('<item>') || text.includes('<entry>')) { xml = text; break; }
+    } catch(e) { continue; }
+  }
+  if (!xml) {
+    el.innerHTML = '<div style="padding:20px 16px;font-size:13px;color:var(--text3)">Unable to load news feed. <button class="btn sm" onclick="loadBBCNews()" style="margin-left:8px">Try again</button></div>';
+    return;
+  }
   try {
-    const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Ffeeds.bbci.co.uk%2Fnews%2Ftechnology%2Frss.xml&count=8');
-    const json = await res.json();
-    if (json.status !== 'ok' || !json.items?.length) throw new Error('Feed unavailable');
-    el.innerHTML = json.items.map((item, i) => {
-      const date = item.pubDate ? new Date(item.pubDate).toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
-      return `<a href="${item.link}" target="_blank" rel="noopener" style="display:flex;align-items:flex-start;gap:12px;padding:11px 16px;text-decoration:none;color:inherit;border-bottom:${i<7?'1px solid var(--border)':'none'};transition:background .12s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xml, 'text/xml');
+    const items = [...doc.querySelectorAll('item')].slice(0, 8);
+    if (!items.length) throw new Error('No items');
+    el.innerHTML = items.map((item, i) => {
+      const title = item.querySelector('title')?.textContent || '';
+      const link  = item.querySelector('link')?.textContent || item.querySelector('link')?.getAttribute('href') || '#';
+      const pub   = item.querySelector('pubDate')?.textContent || '';
+      const date  = pub ? new Date(pub).toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+      return `<a href="${link}" target="_blank" rel="noopener" style="display:flex;align-items:flex-start;gap:12px;padding:11px 16px;text-decoration:none;color:inherit;border-bottom:${i<items.length-1?'1px solid var(--border)':'none'};transition:background .12s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
         <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:500;line-height:1.45;color:var(--text1);margin-bottom:3px">${item.title}</div>
+          <div style="font-size:13px;font-weight:500;line-height:1.45;color:var(--text1);margin-bottom:3px">${title}</div>
           <div style="font-size:11px;color:var(--text3)">${date}</div>
         </div>
         <svg width="13" height="13" style="flex-shrink:0;margin-top:2px;color:var(--text3)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
       </a>`;
     }).join('');
   } catch(e) {
-    el.innerHTML = '<div style="padding:20px 16px;font-size:13px;color:var(--text3)">Unable to load news feed. <button class="btn sm" onclick="loadBBCNews()" style="margin-left:8px">Try again</button></div>';
+    el.innerHTML = '<div style="padding:20px 16px;font-size:13px;color:var(--text3)">Unable to parse news feed. <button class="btn sm" onclick="loadBBCNews()" style="margin-left:8px">Try again</button></div>';
   }
 }
 
