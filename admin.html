@@ -455,7 +455,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
               <option value="in_progress">In progress</option>
               <option value="waiting">Waiting</option>
               <option value="resolved">Resolved</option>
-              <option value="closed">Closed</option>
             </select>
             <select class="filter-sel" id="filter-priority" onchange="renderTable()">
               <option value="">All priorities</option>
@@ -954,7 +953,7 @@ const DEMO_COMMENTS = {
 const initials = n => n ? n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '?';
 const avColor  = id => AV_COLORS[(id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0) % AV_COLORS.length];
 const timeAgo  = iso => { if(!iso) return '—'; const m=Math.floor((Date.now()-new Date(iso))/60000); if(m<1) return 'just now'; if(m<60) return m+'m ago'; const h=Math.floor(m/60); if(h<24) return h+'h ago'; return Math.floor(h/24)+'d ago'; };
-const sLabel   = s => ({open:'Open',in_progress:'In progress',waiting:'Waiting',resolved:'Resolved',closed:'Closed'}[s]||s);
+const sLabel   = s => ({open:'Open',in_progress:'In progress',waiting:'Waiting',resolved:'Resolved'}[s]||s);
 const profileById = id => profiles.find(p=>p.id===id);
 function toast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 function openModal(id){document.getElementById(id).classList.add('open');}
@@ -1100,6 +1099,22 @@ function renderTable(statusFilter) {
 }
 const getReqName = t => { const p = demoMode ? profileById(t.requester_id) : t.requester; return p?.full_name||''; };
 
+function refreshCurrentPage() {
+  // Find which page is currently active and re-render it
+  const activePage = document.querySelector('.page.active');
+  if (!activePage) return;
+  const id = activePage.id;
+  if (id === 'page-all') {
+    renderTable();
+  } else if (['page-open','page-in_progress','page-waiting','page-resolved'].includes(id)) {
+    const status = id.replace('page-','');
+    const navEl = document.querySelector(`.nav-item.active`);
+    if (navEl) adminNav(navEl, status);
+  } else if (id === 'page-dashboard') {
+    renderDashboard();
+  }
+}
+
 function updateStats() {
   document.getElementById('stat-open').textContent    = tickets.filter(t=>t.status==='open').length;
   document.getElementById('stat-inprog').textContent  = tickets.filter(t=>t.status==='in_progress').length;
@@ -1159,7 +1174,6 @@ async function openTicketDetail(id) {
         <option value="in_progress" ${t.status==='in_progress'?'selected':''}>In progress</option>
         <option value="waiting" ${t.status==='waiting'?'selected':''}>Waiting</option>
         <option value="resolved" ${t.status==='resolved'?'selected':''}>Resolved</option>
-        <option value="closed" ${t.status==='closed'?'selected':''}>Closed</option>
       </select>
       <select class="filter-sel" onchange="updateAssignee('${t.id}',this.value)">
         <option value="">Unassigned</option>${agentOpts}
@@ -1215,13 +1229,19 @@ async function addComment(ticketId) {
   document.getElementById('reply-text').value=''; toast('Reply sent'); openTicketDetail(ticketId);
 }
 async function updateStatus(id, status) {
-  if (demoMode) { const t=tickets.find(x=>x.id===id); if(t){t.status=status;t.updated_at=new Date().toISOString();} updateStats();updateBadges();renderTable();toast('Status updated');return; }
-  await sbClient.from('tickets').update({status}).eq('id',id); loadTickets(); toast('Status updated');
+  if (demoMode) { const t=tickets.find(x=>x.id===id); if(t){t.status=status;t.updated_at=new Date().toISOString();} updateStats();updateBadges();refreshCurrentPage();toast('Status updated');return; }
+  await sbClient.from('tickets').update({status}).eq('id',id);
+  await loadTickets();
+  refreshCurrentPage();
+  toast('Status updated');
   const t=tickets.find(x=>x.id===id); logSystemEvent('ticket_status',`#${t?.ticket_number||id} "${t?.subject||''}" | ${t?.status||'?'} → ${sLabel(status)} | Priority: ${t?.priority||'?'}`);
 }
 async function updateAssignee(id, assigneeId) {
-  if (demoMode) { const t=tickets.find(x=>x.id===id); if(t) t.assignee_id=assigneeId||null; renderTable();toast('Tech assigned updated');return; }
-  await sbClient.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id); loadTickets(); toast('Tech assigned updated');
+  if (demoMode) { const t=tickets.find(x=>x.id===id); if(t) t.assignee_id=assigneeId||null; refreshCurrentPage();toast('Tech assigned updated');return; }
+  await sbClient.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id);
+  await loadTickets();
+  refreshCurrentPage();
+  toast('Tech assigned updated');
   const ta=tickets.find(x=>x.id===id); const ag=profiles.find(p=>p.id===assigneeId); const prevAg=profiles.find(p=>p.id===ta?.assignee_id); logSystemEvent('ticket_assigned',`#${ta?.ticket_number||id} "${ta?.subject||''}" | From: ${prevAg?.full_name||'Unassigned'} → To: ${ag?.full_name||'Unassigned'} | Status: ${ta?.status||'?'}`);
 }
 
@@ -1248,11 +1268,11 @@ async function createTicket() {
   }
   if (demoMode) {
     tickets.unshift({id:'t'+Date.now(),ticket_number:tickets.length+1,...payload,requester_id:'p4',assignee_id:null,updated_at:new Date().toISOString(),created_at:new Date().toISOString()});
-    renderTable();updateStats();updateBadges();closeModal('modal-new-ticket');clearForm();toast('Ticket created');return;
+    refreshCurrentPage();updateStats();updateBadges();closeModal('modal-new-ticket');clearForm();toast('Ticket created');return;
   }
   const {error}=await sbClient.from('tickets').insert({...payload,requester_id:currentUser.id});
   if (error){toast('Error: '+error.message);return;}
-  closeModal('modal-new-ticket');clearForm();loadTickets();toast('Ticket created');
+  closeModal('modal-new-ticket');clearForm();await loadTickets();refreshCurrentPage();toast('Ticket created');
   logSystemEvent('ticket_created',`"${payload.subject}" | Priority: ${payload.priority} | Category: ${payload.category} | Contact: ${payload.contact_email}`);
 }
 
@@ -1260,7 +1280,7 @@ async function createTicket() {
 function renderAgents() {
   const agents=profiles.filter(p=>p.role==='admin'||p.role==='super_admin');
   const openByAgent={};
-  tickets.forEach(t=>{if(t.assignee_id&&t.status!=='resolved'&&t.status!=='closed') openByAgent[t.assignee_id]=(openByAgent[t.assignee_id]||0)+1;});
+  tickets.forEach(t=>{if(t.assignee_id&&t.status!=='resolved') openByAgent[t.assignee_id]=(openByAgent[t.assignee_id]||0)+1;});
   const ss={online:'s-open',away:'s-waiting',offline:'s-closed'};
   document.getElementById('agents-grid').innerHTML=agents.map(p=>`
     <div class="table-card" style="display:flex;align-items:center;gap:14px;padding:16px">
@@ -1274,11 +1294,11 @@ function renderAgents() {
 
 /* ── Reports ── */
 function renderReports() {
-  const statuses=['open','in_progress','waiting','resolved','closed'];
+  const statuses=['open','in_progress','waiting','resolved'];
   const priorities=['critical','high','medium','low'];
   const max=Math.max(...statuses.map(s=>tickets.filter(t=>t.status===s).length),1);
   const pmax=Math.max(...priorities.map(p=>tickets.filter(t=>t.priority===p).length),1);
-  const sc={open:'var(--accent)',in_progress:'var(--purple)',waiting:'var(--warn)',resolved:'var(--success)',closed:'var(--text3)'};
+  const sc={open:'var(--accent)',in_progress:'var(--purple)',waiting:'var(--warn)',resolved:'var(--success)'};
   const pc={critical:'#E24B4A',high:'#EF9F27',medium:'#378ADD',low:'#9e9a94'};
   document.getElementById('report-status-bars').innerHTML=statuses.map(s=>{const c=tickets.filter(t=>t.status===s).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${sLabel(s)}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/max*100)}%;height:100%;background:${sc[s]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
   document.getElementById('report-priority-bars').innerHTML=priorities.map(p=>{const c=tickets.filter(t=>t.priority===p).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${p}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/pmax*100)}%;height:100%;background:${pc[p]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
@@ -1290,7 +1310,7 @@ function renderReports() {
     if (h < 24)  return h.toFixed(1) + ' hrs';
     return (h / 24).toFixed(1) + ' days';
   };
-  const resolved = tickets.filter(t => t.status === 'resolved' || t.status === 'closed');
+  const resolved = tickets.filter(t => t.status === 'resolved');
   const resEl = document.getElementById('report-resolution-time');
   if (!resEl) return;
   if (!resolved.length) {
@@ -1346,8 +1366,8 @@ function renderReports() {
   }
   const agentData = staff.map(agent => {
     const assigned  = tickets.filter(t => t.assignee_id === agent.id);
-    const open      = assigned.filter(t => !['resolved','closed'].includes(t.status)).length;
-    const resolved  = assigned.filter(t => t.status === 'resolved' || t.status === 'closed');
+    const open      = assigned.filter(t => t.status !== 'resolved').length;
+    const resolved  = assigned.filter(t => t.status === 'resolved');
     const withTimes = resolved.filter(t => t.created_at && t.updated_at);
     const avgMs     = withTimes.length
       ? withTimes.reduce((s,t) => s + (new Date(t.updated_at)-new Date(t.created_at)), 0) / withTimes.length
@@ -1484,7 +1504,7 @@ function renderUsersTable() {
     client:      '<span class="sb s-closed">Client</span>',
   }[r] || r);
   const renderRow = p => {
-    const openCount = tickets.filter(t => t.requester_id === p.id && !['resolved','closed'].includes(t.status)).length;
+    const openCount = tickets.filter(t => t.requester_id === p.id && t.status !== 'resolved').length;
     return `<tr onclick="openEditUser('${p.id}')" style="cursor:pointer">
       <td>
         <div class="flex-c">
@@ -1737,16 +1757,16 @@ function renderDashboard() {
   document.getElementById('dash-resolved').textContent= tickets.filter(t=>t.status==='resolved').length;
   document.getElementById('dash-total').textContent   = tickets.length;
 
-  const statuses=['open','in_progress','waiting','resolved','closed'];
+  const statuses=['open','in_progress','waiting','resolved'];
   const priorities=['critical','high','medium','low'];
   const max=Math.max(...statuses.map(s=>tickets.filter(t=>t.status===s).length),1);
   const pmax=Math.max(...priorities.map(p=>tickets.filter(t=>t.priority===p).length),1);
-  const sc={open:'var(--accent)',in_progress:'var(--purple)',waiting:'var(--warn)',resolved:'var(--success)',closed:'var(--text3)'};
+  const sc={open:'var(--accent)',in_progress:'var(--purple)',waiting:'var(--warn)',resolved:'var(--success)'};
   const pc={critical:'#E24B4A',high:'#EF9F27',medium:'#378ADD',low:'#9e9a94'};
   document.getElementById('dash-status-bars').innerHTML=statuses.map(s=>{const c=tickets.filter(t=>t.status===s).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${sLabel(s)}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/max*100)}%;height:100%;background:${sc[s]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
   document.getElementById('dash-priority-bars').innerHTML=priorities.map(p=>{const c=tickets.filter(t=>t.priority===p).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${p}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/pmax*100)}%;height:100%;background:${pc[p]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
 
-  const recent = [...tickets].filter(t=>t.status!=='resolved'&&t.status!=='closed').sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at)).slice(0,8);
+  const recent = [...tickets].filter(t=>t.status!=='resolved').sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at)).slice(0,8);
   const tbody = document.getElementById('dash-recent-tbody');
   if (!tbody) return;
   tbody.innerHTML = recent.map(t => {
