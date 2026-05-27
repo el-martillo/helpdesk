@@ -127,6 +127,8 @@ th { padding: 10px 16px; text-align: left; font-size: 10px; font-weight: 600; co
 td { padding: 11px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 tr:last-child td { border-bottom: none; }
 tbody tr:hover td { background: var(--bg); cursor: pointer; }
+tbody tr:nth-child(even) td { background: var(--surface2); }
+tbody tr:nth-child(even):hover td { background: var(--bg); }
 .empty-row td { text-align: center; padding: 40px; color: var(--text3); }
 .loading-row td { text-align: center; padding: 32px; }
 
