@@ -1490,7 +1490,7 @@ async function saveUser() {
   closeModal('modal-edit-user');
   loadAllProfiles(); loadProfiles(); loadCompanies(); toast('User updated');
   const euName=document.getElementById('eu-name').value; const euEmail=document.getElementById('eu-email').value; const euRole=document.getElementById('eu-role').value; const euCompany=document.getElementById('eu-company').value;
-  logSystemEvent('user_updated',`${euName} <${euEmail}> | Role: ${euRole}${euCompany?' | Org: '+euCompany:''}`);
+  logSystemEvent('user_updated',`${euName} (${euEmail}) | Role: ${euRole}${euCompany?' | Org: '+euCompany:''}`);
 
 }
 
@@ -1514,7 +1514,7 @@ async function deleteUser(id) {
     }
   } else {
     const delP=allProfiles.find(x=>x.id===id); toast('User permanently deleted');
-  logSystemEvent('user_deleted',`${delP?.full_name||'Unknown'} <${delP?.email||id}> | Role: ${delP?.role||'?'}${delP?.company?' | Org: '+delP.company:''}`);
+  logSystemEvent('user_deleted',`${delP?.full_name||'Unknown'} (${delP?.email||id}) | Role: ${delP?.role||'?'}${delP?.company?' | Org: '+delP.company:''}`);
   }
   closeModal('modal-edit-user');
   loadAllProfiles(); loadProfiles();
@@ -1547,7 +1547,7 @@ async function addUser() {
   if (error) { toast('Error: ' + error.message); return; }
   closeModal('modal-add-user'); clearForm();
   loadAllProfiles(); loadCompanies(); toast('User profile created. To grant login access, invite them via Supabase Auth.');
-  logSystemEvent('user_created',`${payload.full_name} <${payload.email}> | Role: ${payload.role}${payload.company?' | Org: '+payload.company:''}`);
+  logSystemEvent('user_created',`${payload.full_name} (${payload.email}) | Role: ${payload.role}${payload.company?' | Org: '+payload.company:''}`);
 }
 
 /* ── Backup ── */
