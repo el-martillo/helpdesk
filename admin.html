@@ -376,7 +376,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         </div>
         <div class="table-card">
           <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">Recent activity</div>
-          <table><thead><tr><th>ID</th><th>Subject</th><th>Status</th><th>Priority</th><th>Requester</th><th>Updated</th><th></th></tr></thead>
+          <table><thead><tr><th>ID</th><th>Client</th><th>Company</th><th>Subject</th><th>Status</th><th>Priority</th><th>Updated</th><th></th></tr></thead>
           <tbody id="dash-recent-tbody"></tbody></table>
         </div>
 
@@ -438,7 +438,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
               Refresh
             </button>
           </div>
-          <table><thead><tr><th>ID</th><th>Subject</th><th>Status</th><th>Priority</th><th>Requester</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
+          <table><thead><tr><th>ID</th><th>Client</th><th>Company</th><th>Subject</th><th>Status</th><th>Priority</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
           <tbody id="admin-tbody"></tbody></table>
         </div>
       </div>
@@ -755,8 +755,8 @@ const DEMO_PROFILES = [
   {id:'p2',full_name:'Marcus Reid',   email:'marcus@support.com',role:'agent', status:'online'},
   {id:'p3',full_name:'Aiko Lim',      email:'aiko@support.com',  role:'agent', status:'away'},
   {id:'p4',full_name:'Dev Kumar',     email:'dev@support.com',   role:'admin', status:'online'},
-  {id:'p5',full_name:'Jane Doe',      email:'jane@client.com',   role:'client',status:'online'},
-  {id:'p6',full_name:'Robert Chen',   email:'robert@client.com', role:'client',status:'offline'},
+  {id:'p5',full_name:'Jane Doe',      email:'jane@client.com',   role:'client',status:'online',  company:'Acme Ltd'},
+  {id:'p6',full_name:'Robert Chen',   email:'robert@client.com', role:'client',status:'offline', company:'Global Corp'},
 ];
 const DEMO_TICKETS = [
   {id:'t1',ticket_number:12,subject:'Cannot export invoices to PDF',description:'When clicking Export PDF the page just spins. Happens on Chrome and Firefox.',status:'open',priority:'high',category:'Billing',requester_id:'p5',assignee_id:'p1',updated_at:new Date(Date.now()-2*60000).toISOString(),created_at:new Date(Date.now()-30*60000).toISOString()},
@@ -851,7 +851,7 @@ async function loadTickets() {
   if (demoMode) { renderTable(); updateStats(); updateBadges(); renderDashboard(); return; }
   document.getElementById('admin-tbody').innerHTML='<tr class="loading-row"><td colspan="8"><div class="loader"></div></td></tr>';
   const {data,error} = await sbClient.from('tickets')
-    .select('*, requester:profiles!requester_id(id,full_name), assignee:profiles!assignee_id(id,full_name)')
+    .select('*, requester:profiles!requester_id(id,full_name,company), assignee:profiles!assignee_id(id,full_name,company)')
     .order('updated_at',{ascending:false});
   if (error) { toast('Error: '+error.message); return; }
   tickets = data||[]; renderTable(); updateStats(); updateBadges(); renderDashboard();
@@ -880,10 +880,11 @@ function renderTable(statusFilter) {
     const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
     return `<tr onclick="openTicketDetail('${t.id}')">
       <td><span class="tid">#${t.ticket_number}</span></td>
-      <td style="max-width:240px"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</div><span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}" style="margin-top:3px">${t.category||'General'}</span></td>
+      <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${req?.full_name||'—'}</span></div></td>
+      <td style="font-size:12px;color:var(--text2);white-space:nowrap">${req?.company||'—'}</td>
+      <td style="max-width:200px"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</div><span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}" style="margin-top:3px">${t.category||'General'}</span></td>
       <td><span class="sb s-${t.status}">${sLabel(t.status)}</span></td>
       <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
-      <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${req?.full_name||'—'}</span></div></td>
       <td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td>
       <td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td>
       <td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td>
@@ -919,11 +920,11 @@ function adminNav(el, page) {
   if (['open','in_progress','waiting','resolved'].includes(page)) {
     const filtered = tickets.filter(t=>t.status===page);
     pg.innerHTML = `<div class="page-header"><div><h1>${sLabel(page)} tickets</h1><p>${filtered.length} tickets</p></div></div>
-    <div class="table-card"><table><thead><tr><th>ID</th><th>Subject</th><th>Priority</th><th>Requester</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
+    <div class="table-card"><table><thead><tr><th>ID</th><th>Client</th><th>Company</th><th>Subject</th><th>Priority</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
     <tbody>${filtered.length ? filtered.map(t=>{
       const req=demoMode?profileById(t.requester_id):(t.requester||{});
       const asgn=demoMode?profileById(t.assignee_id):(t.assignee||{});
-      return `<tr onclick="openTicketDetail('${t.id}')"><td><span class="tid">#${t.ticket_number}</span></td><td style="font-weight:500;max-width:260px">${t.subject}</td><td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td><td style="font-size:12px">${req?.full_name||'—'}</td><td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td><td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td><td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td></tr>`;
+      return `<tr onclick="openTicketDetail('${t.id}')"><td><span class="tid">#${t.ticket_number}</span></td><td style="font-size:12px">${req?.full_name||'—'}</td><td style="font-size:12px;color:var(--text2);white-space:nowrap">${req?.company||'—'}</td><td style="font-weight:500;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</td><td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td><td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td><td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td><td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td></tr>`;
     }).join('') : '<tr class="empty-row"><td colspan="7">No tickets in this status</td></tr>'}</tbody></table></div>`;
   }
   if (page==='reports') renderReports();
@@ -958,7 +959,7 @@ async function openTicketDetail(id) {
       </select>
     </div>
     <div class="detail-meta-grid">
-      <div class="dmi"><div class="key">Requester</div><div class="val flex-c"><div class="avatar ${avColor(req?.id)}" style="width:22px;height:22px;font-size:9px">${initials(req?.full_name||'?')}</div>${req?.full_name||'—'}</div></div>
+      <div class="dmi"><div class="key">Client</div><div class="val flex-c"><div class="avatar ${avColor(req?.id)}" style="width:22px;height:22px;font-size:9px">${initials(req?.full_name||'?')}</div>${req?.full_name||'—'}</div></div>
       <div class="dmi"><div class="key">Assignee</div><div class="val">${asgn?.full_name||'Unassigned'}</div></div>
       <div class="dmi"><div class="key">Created</div><div class="val">${timeAgo(t.created_at||t.updated_at)}</div></div>
       <div class="dmi"><div class="key">Category</div><div class="val">${t.category||'General'}</div></div>
@@ -1407,10 +1408,11 @@ function renderDashboard() {
     const req = demoMode ? profileById(t.requester_id) : (t.requester||{});
     return `<tr onclick="openTicketDetail('${t.id}')">
       <td><span class="tid">#${t.ticket_number}</span></td>
-      <td style="max-width:220px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</td>
+      <td style="font-size:12px">${req?.full_name||'—'}</td>
+      <td style="font-size:12px;color:var(--text2);white-space:nowrap">${req?.company||'—'}</td>
+      <td style="max-width:180px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</td>
       <td><span class="sb s-${t.status}">${sLabel(t.status)}</span></td>
       <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
-      <td style="font-size:12px">${req?.full_name||'—'}</td>
       <td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td>
       <td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td>
     </tr>`;
