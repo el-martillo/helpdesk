@@ -276,7 +276,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       </svg>
     </div>
     <h2>Admin sign in</h2>
-    <p class="desc">Sign in with your admin or agent account.</p>
+    <p class="desc">Sign in with your admin account.</p>
     <div class="fg"><label class="fl">Email</label><input id="auth-email" class="fc" type="email" placeholder="admin@example.com"/></div>
     <div class="fg"><label class="fl">Password</label><input id="auth-password" class="fc" type="password" placeholder="••••••••"/></div>
     <button class="btn primary" style="width:100%;justify-content:center" onclick="signIn()">Sign in</button>
@@ -338,7 +338,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <div class="sidebar-label">Manage</div>
       <div class="nav-item" onclick="adminNav(this,'agents')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        Agents
+        Team
       </div>
       <div class="nav-item" onclick="adminNav(this,'users');loadAllProfiles()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -476,11 +476,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <!-- Agents -->
       <div class="page" id="page-agents">
         <div class="page-header">
-          <div><h1>Agents</h1><p>Support team members</p></div>
-          <button class="btn primary" onclick="openModal('modal-invite-agent')">
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-            Invite agent
-          </button>
+          <div><h1>Team</h1><p>Admin team members</p></div>
+
         </div>
         <div id="agents-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
       </div>
@@ -504,7 +501,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
               <option value="">All roles</option>
               <option value="super_admin">Super Admin</option>
               <option value="admin">Admin</option>
-              <option value="agent">Agent</option>
               <option value="client">Client</option>
             </select>
             <button class="btn sm" onclick="loadAllProfiles()">
@@ -595,7 +591,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <!-- System Log -->
       <div class="page" id="page-syslog">
         <div class="page-header">
-          <div><h1>System log</h1><p id="syslog-count-sub">Admin &amp; agent actions across the system</p></div>
+          <div><h1>System log</h1><p id="syslog-count-sub">Admin &amp; super admin actions across the system</p></div>
           <div style="display:flex;gap:8px">
             <select class="filter-sel" id="syslog-action-filter" onchange="renderSysLogTable()">
               <option value="">All actions</option>
@@ -783,7 +779,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <div class="fg"><label class="fl">Role</label>
         <select id="au-role" class="fc">
           <option value="client">Client</option>
-          <option value="agent">Agent</option>
           <option value="admin">Admin</option>
           <option value="super_admin">Super Admin</option>
         </select>
@@ -828,7 +823,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
     <div class="fg"><label class="fl">Role</label>
       <select id="eu-role" class="fc">
         <option value="client">Client</option>
-        <option value="agent">Agent</option>
         <option value="admin">Admin</option>
         <option value="super_admin">Super Admin</option>
       </select>
@@ -862,14 +856,14 @@ textarea.fc { resize: vertical; min-height: 80px; }
   </div>
 </div>
 
-<!-- Invite agent modal -->
+<!-- Invite tech modal -->
 <div class="overlay" id="modal-invite-agent">
   <div class="modal">
-    <div class="modal-head"><div class="modal-title">Invite agent</div><button class="close-x" onclick="closeModal('modal-invite-agent')">✕</button></div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">The agent will receive an email invitation to set their password.</p>
+    <div class="modal-head"><div class="modal-title">Invite tech</div><button class="close-x" onclick="closeModal('modal-invite-agent')">✕</button></div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">The tech user will receive an email invitation to set their password.</p>
     <div class="fg"><label class="fl">Full name</label><input id="ia-name" class="fc" type="text" placeholder="Jane Smith"/></div>
     <div class="fg"><label class="fl">Email address</label><input id="ia-email" class="fc" type="email" placeholder="agent@support.com"/></div>
-    <div class="fg"><label class="fl">Role</label><select id="ia-role" class="fc"><option value="agent">Agent</option><option value="admin">Admin</option><option value="super_admin">Super Admin</option></select></div>
+    <div class="fg"><label class="fl">Role</label><select id="ia-role" class="fc"><option value="admin">Admin</option><option value="super_admin">Super Admin</option></select></div>
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-invite-agent')">Cancel</button>
       <button class="btn primary" onclick="inviteAgent()">Send invitation</button>
@@ -888,9 +882,9 @@ const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
 
 /* ── Demo data ── */
 const DEMO_PROFILES = [
-  {id:'p1',full_name:'Sarah Johnson', email:'sarah@support.com', role:'agent', status:'online'},
-  {id:'p2',full_name:'Marcus Reid',   email:'marcus@support.com',role:'agent', status:'online'},
-  {id:'p3',full_name:'Aiko Lim',      email:'aiko@support.com',  role:'agent', status:'away'},
+  {id:'p1',full_name:'Sarah Johnson', email:'sarah@support.com', role:'admin', status:'online'},
+  {id:'p2',full_name:'Marcus Reid',   email:'marcus@support.com',role:'admin', status:'online'},
+  {id:'p3',full_name:'Aiko Lim',      email:'aiko@support.com',  role:'admin', status:'away'},
   {id:'p4',full_name:'Dev Kumar',     email:'dev@support.com',   role:'admin', status:'online'},
   {id:'p5',full_name:'Jane Doe',      email:'jane@client.com',   role:'client',status:'online',  company:'Acme Ltd'},
   {id:'p6',full_name:'Robert Chen',   email:'robert@client.com', role:'client',status:'offline', company:'Global Corp'},
@@ -996,7 +990,7 @@ async function loadTickets() {
 }
 async function loadProfiles() {
   if (demoMode) { renderAgents(); return; }
-  const {data} = await sbClient.from('profiles').select('*').in('role',['agent','admin','super_admin']);
+  const {data} = await sbClient.from('profiles').select('*').in('role',['admin','super_admin']);
   if (data) profiles=data; renderAgents();
 }
 
@@ -1077,7 +1071,7 @@ async function openTicketDetail(id) {
   let comments=[];
   if (demoMode) { comments=DEMO_COMMENTS[id]||[]; }
   else { const {data}=await sbClient.from('comments').select('*,author:profiles(id,full_name,role)').eq('ticket_id',id).order('created_at'); comments=data||[]; }
-  const agentOpts = profiles.filter(p=>p.role==='agent'||p.role==='admin'||p.role==='super_admin')
+  const agentOpts = profiles.filter(p=>p.role==='admin'||p.role==='super_admin')
     .map(p=>`<option value="${p.id}" ${p.id===t.assignee_id?'selected':''}>${p.full_name}</option>`).join('');
   document.getElementById('detail-body').innerHTML=`
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
@@ -1124,10 +1118,10 @@ function renderComments(comments, showInternal=false) {
   if (!comments.length) return '<div style="color:var(--text3);font-size:13px;padding:8px 0">No comments yet.</div>';
   return comments.filter(c=>showInternal||!c.is_internal).map(c=>{
     const author=demoMode?profileById(c.author_id):(c.author||{});
-    const isAgent=author?.role==='agent'||author?.role==='admin'||author?.role==='super_admin';
+    const isAgent=author?.role==='admin'||author?.role==='super_admin';
     const cls=c.is_internal?'internal-bubble':(isAgent?'agent-bubble':'');
     return `<div class="comment-item"><div class="avatar ${avColor(author?.id)}" style="flex-shrink:0">${initials(author?.full_name||'?')}</div>
-      <div class="comment-bubble ${cls}"><div class="comment-meta">${author?.full_name||'Unknown'} ${isAgent?'(agent)':''} ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${c.body}</div></div>`;
+      <div class="comment-bubble ${cls}"><div class="comment-meta">${author?.full_name||'Unknown'}  ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${c.body}</div></div>`;
   }).join('');
 }
 async function addComment(ticketId) {
@@ -1147,12 +1141,12 @@ async function addComment(ticketId) {
 async function updateStatus(id, status) {
   if (demoMode) { const t=tickets.find(x=>x.id===id); if(t){t.status=status;t.updated_at=new Date().toISOString();} updateStats();updateBadges();renderTable();toast('Status updated');return; }
   await sbClient.from('tickets').update({status}).eq('id',id); loadTickets(); toast('Status updated');
-  const t=tickets.find(x=>x.id===id); logSystemEvent('ticket_status',`Ticket #${t?.ticket_number||id} → ${status}`);
+  const t=tickets.find(x=>x.id===id); logSystemEvent('ticket_status',`#${t?.ticket_number||id} "${t?.subject||''}" | ${t?.status||'?'} → ${sLabel(status)} | Priority: ${t?.priority||'?'}`);
 }
 async function updateAssignee(id, assigneeId) {
   if (demoMode) { const t=tickets.find(x=>x.id===id); if(t) t.assignee_id=assigneeId||null; renderTable();toast('Tech assigned updated');return; }
   await sbClient.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id); loadTickets(); toast('Tech assigned updated');
-  const ta=tickets.find(x=>x.id===id); const ag=profiles.find(p=>p.id===assigneeId); logSystemEvent('ticket_assigned',`Ticket #${ta?.ticket_number||id} → ${ag?.full_name||'Unassigned'}`);
+  const ta=tickets.find(x=>x.id===id); const ag=profiles.find(p=>p.id===assigneeId); const prevAg=profiles.find(p=>p.id===ta?.assignee_id); logSystemEvent('ticket_assigned',`#${ta?.ticket_number||id} "${ta?.subject||''}" | From: ${prevAg?.full_name||'Unassigned'} → To: ${ag?.full_name||'Unassigned'} | Status: ${ta?.status||'?'}`);
 }
 
 /* ── Create ticket ── */
@@ -1183,12 +1177,12 @@ async function createTicket() {
   const {error}=await sbClient.from('tickets').insert({...payload,requester_id:currentUser.id});
   if (error){toast('Error: '+error.message);return;}
   closeModal('modal-new-ticket');clearForm();loadTickets();toast('Ticket created');
-  logSystemEvent('ticket_created',`Subject: ${payload.subject}`);
+  logSystemEvent('ticket_created',`"${payload.subject}" | Priority: ${payload.priority} | Category: ${payload.category} | Contact: ${payload.contact_email}`);
 }
 
 /* ── Agents ── */
 function renderAgents() {
-  const agents=profiles.filter(p=>p.role==='agent'||p.role==='admin'||p.role==='super_admin');
+  const agents=profiles.filter(p=>p.role==='admin'||p.role==='super_admin');
   const openByAgent={};
   tickets.forEach(t=>{if(t.assignee_id&&t.status!=='resolved'&&t.status!=='closed') openByAgent[t.assignee_id]=(openByAgent[t.assignee_id]||0)+1;});
   const ss={online:'s-open',away:'s-waiting',offline:'s-closed'};
@@ -1196,13 +1190,10 @@ function renderAgents() {
     <div class="table-card" style="display:flex;align-items:center;gap:14px;padding:16px">
       <div class="avatar ${avColor(p.id)}" style="width:42px;height:42px;font-size:15px">${initials(p.full_name)}</div>
       <div style="flex:1"><div style="font-size:14px;font-weight:600">${p.full_name}</div>
-      <div style="font-size:12px;color:var(--text2)">${p.role==='super_admin'?'Super Admin':p.role==='admin'?'Admin':'Support Agent'} · ${openByAgent[p.id]||0} open</div></div>
+      <div style="font-size:12px;color:var(--text2)">${p.role==='super_admin'?'Super Admin':'Admin'} · ${openByAgent[p.id]||0} open</div></div>
       <span class="sb ${ss[p.status]||'s-closed'}">${p.status||'offline'}</span>
     </div>`).join('');
 }
-async function inviteAgent() {
-  const name=document.getElementById('ia-name').value.trim(),email=document.getElementById('ia-email').value.trim();
-  if (!name||!email){toast('Name and email required');return;}
   if (demoMode){profiles.push({id:'p'+Date.now(),full_name:name,email,role:document.getElementById('ia-role').value,status:'offline'});renderAgents();closeModal('modal-invite-agent');toast('Agent invited (demo)');return;}
   const {error}=await sbClient.auth.admin.inviteUserByEmail(email,{data:{full_name:name,role:document.getElementById('ia-role').value}});
   if (error){toast('Error: '+error.message);return;}
@@ -1277,7 +1268,7 @@ function renderReports() {
   // Agent performance
   const agentPerf = document.getElementById('report-agent-performance');
   if (!agentPerf) return;
-  const staff = profiles.filter(p => p.role === 'agent' || p.role === 'admin' || p.role === 'super_admin');
+  const staff = profiles.filter(p => p.role === 'admin' || p.role === 'super_admin');
   if (!staff.length) {
     agentPerf.innerHTML = '<div style="padding:20px 0;text-align:center;font-size:13px;color:var(--text3)">No agents found.</div>';
     return;
@@ -1308,7 +1299,7 @@ function renderReports() {
         <div class="avatar ${avColor(agent.id)}" style="width:26px;height:26px;font-size:10px;flex-shrink:0">${initials(agent.full_name)}</div>
         <div>
           <div style="font-size:12px;font-weight:500">${agent.full_name}</div>
-          <div style="font-size:10px;color:var(--text3)">${agent.role==='super_admin'?'Super Admin':agent.role==='admin'?'Admin':'Agent'}</div>
+          <div style="font-size:10px;color:var(--text3)">${agent.role==='super_admin'?'Super Admin':'Admin'}</div>
         </div>
       </div>
       <div style="padding-right:20px">
@@ -1419,7 +1410,6 @@ function renderUsersTable() {
   const roleBadge = r => ({
     super_admin: '<span class="sb" style="background:var(--danger-l);color:var(--danger)">Super Admin</span>',
     admin:       '<span class="sb s-in_progress">Admin</span>',
-    agent:       '<span class="sb s-open">Agent</span>',
     client:      '<span class="sb s-closed">Client</span>',
   }[r] || r);
   const renderRow = p => {
@@ -1446,7 +1436,7 @@ function renderUsersTable() {
       </td>
     </tr>`;
 
-  const staff   = list.filter(p => p.role === 'super_admin' || p.role === 'admin' || p.role === 'agent');
+  const staff   = list.filter(p => p.role === 'super_admin' || p.role === 'admin');
   const clients = list.filter(p => p.role === 'client');
 
   let html = '';
@@ -1499,7 +1489,9 @@ async function saveUser() {
   if (error) { toast('Error: ' + error.message); return; }
   closeModal('modal-edit-user');
   loadAllProfiles(); loadProfiles(); loadCompanies(); toast('User updated');
-  logSystemEvent('user_updated',`User: ${document.getElementById('eu-email').value||id}`);
+  const euName=document.getElementById('eu-name').value; const euEmail=document.getElementById('eu-email').value; const euRole=document.getElementById('eu-role').value; const euCompany=document.getElementById('eu-company').value;
+  logSystemEvent('user_updated',`${euName} <${euEmail}> | Role: ${euRole}${euCompany?' | Org: '+euCompany:''}`);
+
 }
 
 async function deleteUser(id) {
@@ -1521,8 +1513,8 @@ async function deleteUser(id) {
       return;
     }
   } else {
-    toast('User permanently deleted');
-  logSystemEvent('user_deleted',`User ID: ${id}`);
+    const delP=allProfiles.find(x=>x.id===id); toast('User permanently deleted');
+  logSystemEvent('user_deleted',`${delP?.full_name||'Unknown'} <${delP?.email||id}> | Role: ${delP?.role||'?'}${delP?.company?' | Org: '+delP.company:''}`);
   }
   closeModal('modal-edit-user');
   loadAllProfiles(); loadProfiles();
@@ -1555,7 +1547,7 @@ async function addUser() {
   if (error) { toast('Error: ' + error.message); return; }
   closeModal('modal-add-user'); clearForm();
   loadAllProfiles(); loadCompanies(); toast('User profile created. To grant login access, invite them via Supabase Auth.');
-  logSystemEvent('user_created',`User: ${payload.email||payload.full_name}`);
+  logSystemEvent('user_created',`${payload.full_name} <${payload.email}> | Role: ${payload.role}${payload.company?' | Org: '+payload.company:''}`);
 }
 
 /* ── Backup ── */
@@ -1641,7 +1633,7 @@ async function runBackup() {
     document.getElementById('backup-last').textContent = 'Last backup: ' + now;
     toast('Backup downloaded successfully');
     loadBackupStats();
-    logSystemEvent('backup_created',`${ticketData.length} tickets, ${profileData.length} profiles, ${commentData.length} comments`);
+    logSystemEvent('backup_created',`${ticketData.length} tickets · ${commentData.length} comments · ${profileData.length} profiles · ${settingsData.length} settings rows`);
 
   } catch(e) {
     toast('Backup failed: ' + (e.message || JSON.stringify(e)));
@@ -1893,7 +1885,7 @@ async function persistOrgs() {
   const { error } = await sbClient.from('app_settings')
     .upsert({ key: 'organisations', value: JSON.stringify(companiesList) }, { onConflict: 'key' });
   if (error) toast('Error saving organisations: ' + error.message);
-  else { toast('Organisations saved'); logSystemEvent('orgs_updated',`${companiesList.length} organisations`); }
+  else { toast('Organisations saved'); logSystemEvent('orgs_updated',`${companiesList.length} organisations: ${companiesList.join(', ')}`); }
 }
 
 function populateCompanySelects() {
@@ -1931,7 +1923,7 @@ async function loadSysLog() {
   if (demoMode) {
     sysLog = [
       {id:'s1', actor_name:'Dev Kumar',   actor_role:'admin',       action:'ticket_status',  details:'Ticket #11 → resolved',         created_at: new Date(Date.now()-5*60000).toISOString()},
-      {id:'s2', actor_name:'Sarah Johnson',actor_role:'agent',      action:'ticket_assigned',details:'Ticket #12 tech assigned to Sarah',   created_at: new Date(Date.now()-15*60000).toISOString()},
+      {id:'s2', actor_name:'Sarah Johnson',actor_role:'admin',     action:'ticket_assigned',details:'Ticket #12 assigned to Sarah',   created_at: new Date(Date.now()-15*60000).toISOString()},
       {id:'s3', actor_name:'Dev Kumar',   actor_role:'admin',       action:'user_created',   details:'User: jane@client.com',          created_at: new Date(Date.now()-2*3600000).toISOString()},
       {id:'s4', actor_name:'Dev Kumar',   actor_role:'admin',       action:'version_updated',details:'Version set to v1.2.0',          created_at: new Date(Date.now()-5*3600000).toISOString()},
       {id:'s5', actor_name:'Dev Kumar',   actor_role:'super_admin', action:'user_deleted',   details:'User: old@client.com',           created_at: new Date(Date.now()-24*3600000).toISOString()},
@@ -1982,7 +1974,6 @@ function renderSysLogTable() {
   const rolePill = r => ({
     super_admin: '<span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;background:var(--danger-l);color:var(--danger)">Super Admin</span>',
     admin:       '<span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;background:var(--purple-l);color:var(--purple)">Admin</span>',
-    agent:       '<span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;background:var(--accent-l);color:var(--accent)">Agent</span>',
   }[r] || '');
 
   tbody.innerHTML = list.map(a => `
@@ -2095,7 +2086,7 @@ async function saveVersion() {
   if (error) { toast('Error saving version: ' + error.message); return; }
   applyVersion(v);
   toast('Version updated to v' + v);
-  logSystemEvent('version_updated','Version set to v' + v);
+  const prevV=document.getElementById('footer-version')?.textContent||'unknown'; logSystemEvent('version_updated',`${prevV} → v${v}`);
 }
 
 document.addEventListener('DOMContentLoaded', initSupabase);

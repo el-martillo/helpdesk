@@ -646,8 +646,8 @@ const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
 
 /* ── Demo data ── */
 const DEMO_PROFILES = [
-  {id:'p1',full_name:'Sarah Johnson',role:'agent',status:'online'},
-  {id:'p2',full_name:'Marcus Reid',role:'agent',status:'online'},
+  {id:'p1',full_name:'Sarah Johnson',role:'admin',status:'online'},
+  {id:'p2',full_name:'Marcus Reid',role:'admin',status:'online'},
   {id:'p5',full_name:'Jane Doe',email:'jane@client.com',role:'client',status:'online'},
   {id:'p6',full_name:'Robert Chen',email:'robert@client.com',role:'client',status:'offline'},
 ];
@@ -927,10 +927,10 @@ function updateUserHeader() {
   document.getElementById('user-name').textContent = name;
   document.getElementById('user-avatar').textContent = initials(name);
   document.getElementById('user-avatar').className = 'avatar ' + avColor(currentProfile?.id||'');
-  // Only show Admin link for admin/agent roles
+  // Only show Admin link for admin/super_admin roles
   const adminLink = document.getElementById('admin-nav-link');
   if (adminLink) {
-    const isAdmin = currentProfile?.role === 'super_admin' || currentProfile?.role === 'admin' || currentProfile?.role === 'agent';
+    const isAdmin = currentProfile?.role === 'super_admin' || currentProfile?.role === 'admin';
     adminLink.style.display = isAdmin ? 'inline' : 'none';
   const mobileAdminLink = document.getElementById('mobile-admin-link');
   if (mobileAdminLink) mobileAdminLink.style.display = isAdmin ? 'flex' : 'none';
@@ -1042,7 +1042,7 @@ function renderComments(comments) {
   if (!comments.length) return '<div style="color:var(--text3);font-size:13px;padding:8px 0">No replies yet. Our team will respond shortly.</div>';
   return comments.map(c=>{
     const author=demoMode?profileById(c.author_id):(c.author||{});
-    const isAgent=author?.role==='agent'||author?.role==='admin'||author?.role==='super_admin';
+    const isAgent=author?.role==='admin'||author?.role==='super_admin';
     const isMine=demoMode?(c.author_id===currentProfile?.id):(c.author_id===currentUser?.id);
     const cls=isAgent?'agent-bubble':'';
     return `<div class="comment-item">
