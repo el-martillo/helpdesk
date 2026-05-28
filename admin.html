@@ -363,7 +363,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         System log
       </div>
-      <div class="nav-item" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList()">
+      <div class="nav-item" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList();loadRateLimits()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </div>
@@ -776,6 +776,51 @@ textarea.fc { resize: vertical; min-height: 80px; }
                 <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
                 Refresh counts
               </button>
+            </div>
+          </div>
+
+
+          <!-- Rate limits section -->
+          <div class="table-card" style="padding:20px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <div style="font-size:13px;font-weight:600">Rate limiting</div>
+              <span class="sb s-open" style="font-size:10px" id="rl-status-badge">—</span>
+            </div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:18px;line-height:1.6">
+              Maximum requests per IP per hour, enforced by the Edge Function. Saved to <code style="font-family:var(--mono);background:var(--border);padding:1px 4px;border-radius:3px">app_settings</code>.
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+              <div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
+                <div><div style="font-size:13px;font-weight:500">Ticket submission</div><div style="font-size:11px;color:var(--text3);margin-top:2px">Logged-in clients submitting tickets</div></div>
+                <div style="display:flex;align-items:center;gap:6px"><input id="rl-ticket_submit-max" type="number" min="1" max="1000" class="fc" style="width:68px;text-align:center" value="10"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">/ hour</span></div>
+                <div style="display:flex;align-items:center;gap:6px"><input id="rl-ticket_submit-window" type="number" min="1" max="1440" class="fc" style="width:68px;text-align:center" value="60"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">min window</span></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
+                <div><div style="font-size:13px;font-weight:500">Sign in</div><div style="font-size:11px;color:var(--text3);margin-top:2px">Login attempts on the client portal</div></div>
+                <div style="display:flex;align-items:center;gap:6px"><input id="rl-sign_in-max" type="number" min="1" max="1000" class="fc" style="width:68px;text-align:center" value="15"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">/ hour</span></div>
+                <div style="display:flex;align-items:center;gap:6px"><input id="rl-sign_in-window" type="number" min="1" max="1440" class="fc" style="width:68px;text-align:center" value="60"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">min window</span></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
+                <div><div style="font-size:13px;font-weight:500">Sign up</div><div style="font-size:11px;color:var(--text3);margin-top:2px">New account registrations</div></div>
+                <div style="display:flex;align-items:center;gap:6px"><input id="rl-sign_up-max" type="number" min="1" max="1000" class="fc" style="width:68px;text-align:center" value="5"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">/ hour</span></div>
+                <div style="display:flex;align-items:center;gap:6px"><input id="rl-sign_up-window" type="number" min="1" max="1440" class="fc" style="width:68px;text-align:center" value="60"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">min window</span></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
+                <div><div style="font-size:13px;font-weight:500">Admin sign in</div><div style="font-size:11px;color:var(--text3);margin-top:2px">Login attempts on this admin panel</div></div>
+                <div style="display:flex;align-items:center;gap:6px"><input id="rl-admin_sign_in-max" type="number" min="1" max="1000" class="fc" style="width:68px;text-align:center" value="10"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">/ hour</span></div>
+                <div style="display:flex;align-items:center;gap:6px"><input id="rl-admin_sign_in-window" type="number" min="1" max="1440" class="fc" style="width:68px;text-align:center" value="60"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">min window</span></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn primary" onclick="saveRateLimits()">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save rate limits
+              </button>
+              <button class="btn" onclick="loadRateLimits()">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+                Refresh
+              </button>
+              <span style="font-size:11px;color:var(--text3)" id="rl-saved-msg"></span>
             </div>
           </div>
 
@@ -1672,6 +1717,68 @@ async function addUser() {
   closeModal('modal-add-user'); clearForm();
   loadAllProfiles(); loadCompanies(); toast('User profile created. To grant login access, invite them via Supabase Auth.');
   logSystemEvent('user_created',`${payload.full_name} (${payload.email}) | Role: ${payload.role}${payload.company?' | Org: '+payload.company:''}`);
+}
+
+/* ── Rate Limits ── */
+const RL_ACTIONS = ['ticket_submit', 'sign_in', 'sign_up', 'admin_sign_in'];
+const RL_KEY = 'rl_limits';
+
+async function loadRateLimits() {
+  const badge = document.getElementById('rl-status-badge');
+  if (badge) { badge.textContent = 'Loading…'; badge.className = 'sb s-waiting'; }
+  const defaults = {
+    ticket_submit: { max: 10, windowSeconds: 3600 },
+    sign_in:       { max: 15, windowSeconds: 3600 },
+    sign_up:       { max:  5, windowSeconds: 3600 },
+    admin_sign_in: { max: 10, windowSeconds: 3600 },
+  };
+  if (demoMode) { applyRateLimitFields(defaults); if (badge) { badge.textContent = 'Demo mode'; badge.className = 'sb s-closed'; } return; }
+  try {
+    const { data, error } = await sbClient.from('app_settings').select('value').eq('key', RL_KEY).maybeSingle();
+    const limits = (!error && data?.value) ? JSON.parse(data.value) : defaults;
+    applyRateLimitFields({ ...defaults, ...limits });
+    if (badge) { badge.textContent = data?.value ? 'Loaded from DB' : 'Using defaults'; badge.className = 'sb s-resolved'; }
+  } catch(e) {
+    applyRateLimitFields(defaults);
+    if (badge) { badge.textContent = 'Using defaults'; badge.className = 'sb s-waiting'; }
+  }
+}
+
+function applyRateLimitFields(limits) {
+  RL_ACTIONS.forEach(action => {
+    const cfg = limits[action] || {};
+    const maxEl = document.getElementById(`rl-${action}-max`);
+    const winEl = document.getElementById(`rl-${action}-window`);
+    if (maxEl) maxEl.value = cfg.max ?? '';
+    if (winEl) winEl.value = cfg.windowSeconds ? Math.round(cfg.windowSeconds / 60) : 60;
+  });
+}
+
+async function saveRateLimits() {
+  const msg   = document.getElementById('rl-saved-msg');
+  const badge = document.getElementById('rl-status-badge');
+  const limits = {};
+  for (const action of RL_ACTIONS) {
+    const maxVal = parseInt(document.getElementById(`rl-${action}-max`)?.value);
+    const winVal = parseInt(document.getElementById(`rl-${action}-window`)?.value);
+    if (isNaN(maxVal) || maxVal < 1) { toast(`Invalid max for ${action}`); return; }
+    if (isNaN(winVal) || winVal < 1) { toast(`Invalid window for ${action}`); return; }
+    limits[action] = { max: maxVal, windowSeconds: winVal * 60 };
+  }
+  if (demoMode) {
+    if (msg)   msg.textContent = '✓ Saved (demo only)';
+    if (badge) { badge.textContent = 'Saved'; badge.className = 'sb s-resolved'; }
+    toast('Rate limits saved (demo)');
+    setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
+    return;
+  }
+  const { error } = await sbClient.from('app_settings')
+    .upsert({ key: RL_KEY, value: JSON.stringify(limits) }, { onConflict: 'key' });
+  if (error) { toast('Error saving: ' + error.message); if (badge) { badge.textContent = 'Save failed'; badge.className = 'sb s-closed'; } return; }
+  if (msg) { msg.textContent = '✓ Saved at ' + new Date().toLocaleTimeString(); }
+  if (badge) { badge.textContent = 'Saved'; badge.className = 'sb s-resolved'; }
+  toast('Rate limits saved');
+  setTimeout(() => { if (msg) msg.textContent = ''; }, 4000);
 }
 
 /* ── Backup ── */
