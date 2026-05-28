@@ -642,6 +642,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 let sbClient = null, currentUser = null, currentProfile = null;
 let myTickets = [], allDemoTickets = [];
 let demoMode = false, activeFilter = '';
+let realtimeChannel = null;
 const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
 
 /* ── Demo data ── */
@@ -909,7 +910,35 @@ async function fillOrgSelect(sel) {
 
 async function populateSignupCompany() { await fillOrgSelect(document.getElementById('su-company')); }
 
+function startRealtime() {
+  if (demoMode || !sbClient) return;
+  if (realtimeChannel) { sbClient.removeChannel(realtimeChannel); realtimeChannel = null; }
+
+  realtimeChannel = sbClient
+    .channel('client-tickets-realtime')
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'tickets',
+      filter: `requester_id=eq.${currentUser?.id}`
+    }, payload => {
+      const t = payload.new;
+      const oldStatus = payload.old?.status;
+      const newStatus = t?.status;
+      // Reload the ticket list
+      loadClientTickets();
+      // Toast only if status actually changed
+      if (oldStatus && newStatus && oldStatus !== newStatus) {
+        const labels = { open:'Open', in_progress:'In Progress', waiting:'Waiting for info', resolved:'Resolved' };
+        const label = labels[newStatus] || newStatus;
+        toast(`Ticket #${t.ticket_number} updated: ${label}`);
+      }
+    })
+    .subscribe();
+}
+
 async function signOut() {
+  if (realtimeChannel && sbClient) sbClient.removeChannel(realtimeChannel);
   if (sbClient) {
     await trackUserActivity('logout', 'success', '');
     await sbClient.auth.signOut();
@@ -922,6 +951,7 @@ function showApp() {
   document.getElementById('app').style.display='flex';
   updateUserHeader();
   loadClientTickets();
+  startRealtime();
 }
 function updateUserHeader() {
   const name = currentProfile?.full_name || 'User';
