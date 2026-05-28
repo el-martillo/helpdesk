@@ -1,256 +1,251 @@
-// =============================================================
-// DeskFlow — send-ticket-email Edge Function
-// Triggered by a Supabase Database Webhook on INSERT to tickets
-// Sends confirmation to the requester and helpdesk@el-martillo.com
-//
-// Setup:
-//   1. Deploy: supabase functions deploy send-ticket-email
-//   2. Set secrets:
-//        supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxx
-//        supabase secrets set SUPABASE_URL=https://gtcrmqbmlvtlyiwnshma.supabase.co
-//        supabase secrets set SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-//   3. Create webhook in Supabase Dashboard:
-//        Database → Webhooks → Create webhook
-//        Table: tickets  |  Events: INSERT
-//        URL: https://gtcrmqbmlvtlyiwnshma.supabase.co/functions/v1/send-ticket-email
-// =============================================================
+/**
+ * El Martillo I.T. — Ticket Notify Edge Function
+ * ────────────────────────────────────────────────
+ * Endpoint: POST /functions/v1/ticket-notify
+ *
+ *   new_status = "resolved"  → email client that ticket was resolved
+ *   new_status = "reopened"  → email helpdesk that client reopened a ticket
+ *
+ * Required secrets:
+ *   HELPDESK_EMAIL   e.g. helpdesk@el-martillo.com
+ *   RESEND_API_KEY   from resend.com
+ */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const HELPDESK_EMAIL = 'helpdesk@el-martillo.com'
-const COMPANY_NAME   = 'El Martillo I.T.'
-const RESEND_API     = 'https://api.resend.com/emails'
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin":  "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey",
+};
 
+/* ── Handler ─────────────────────────────────────────────────────────────── */
 Deno.serve(async (req: Request) => {
-  try {
-    const payload = await req.json()
-    const ticket  = payload.record   // the newly inserted ticket row
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
+  if (req.method !== "POST")    return json({ error: "Method not allowed" }, 405);
 
-    if (!ticket) {
-      return new Response('No record in payload', { status: 400 })
-    }
+  let body: Record<string, string>;
+  try { body = await req.json(); }
+  catch { return json({ error: "Invalid JSON" }, 400); }
 
-    // ── Fetch requester profile to get their email ──────────
-    const supabase = createClient(
-      Deno.env.get('SB_URL')!,
-      Deno.env.get('SB_SERVICE_ROLE_KEY')!
-    )
+  const { ticket_id, new_status, changed_by, changed_by_email } = body;
+  if (!ticket_id || !new_status) return json({ error: "ticket_id and new_status are required" }, 400);
 
-    let requesterEmail: string | null = ticket.contact_email || null
-    let requesterName  = 'Customer'
+  const supabaseUrl   = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const helpdeskEmail = Deno.env.get("HELPDESK_EMAIL") || "helpdesk@el-martillo.com";
+  const resendKey     = Deno.env.get("RESEND_API_KEY");
 
-    if (ticket.requester_id) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, email')
-        .eq('id', ticket.requester_id)
-        .single()
+  const sb = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
-      if (profile) {
-        requesterName  = profile.full_name || requesterName
-        requesterEmail = requesterEmail || profile.email
-      }
-    }
+  /* ── Fetch ticket ── */
+  const { data: ticket, error: ticketErr } = await sb
+    .from("tickets")
+    .select("*, requester:profiles!requester_id(id, full_name, email)")
+    .eq("id", ticket_id)
+    .single();
 
-    const ticketUrl = `https://gtcrmqbmlvtlyiwnshma.supabase.co` // update with your domain
-
-    // ── Email templates ──────────────────────────────────────
-    const priorityColour: Record<string, string> = {
-      critical: '#E24B4A',
-      high:     '#EF9F27',
-      medium:   '#378ADD',
-      low:      '#9e9a94',
-    }
-    const pColour = priorityColour[ticket.priority] || '#378ADD'
-
-    // Client confirmation email
-    const clientHtml = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"/></head>
-<body style="margin:0;padding:0;background:#f5f5f4;font-family:Inter,Arial,sans-serif">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f4;padding:32px 16px">
-    <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid rgba(0,0,0,0.08)">
-
-        <!-- Header -->
-        <tr><td style="background:#1A3A7A;padding:24px 32px;text-align:center">
-          <p style="margin:0;color:#ffffff;font-size:18px;font-weight:600">${COMPANY_NAME}</p>
-          <p style="margin:6px 0 0;color:rgba(255,255,255,0.7);font-size:13px">Support Ticket Confirmation</p>
-        </td></tr>
-
-        <!-- Body -->
-        <tr><td style="padding:32px">
-          <p style="margin:0 0 16px;font-size:14px;color:#1a1917">Hi <strong>${requesterName}</strong>,</p>
-          <p style="margin:0 0 20px;font-size:14px;color:#6b6963;line-height:1.6">
-            Thank you for contacting us. Your support ticket has been received and our team will get back to you as soon as possible.
-          </p>
-
-          <!-- Ticket card -->
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f4;border-radius:8px;border:1px solid rgba(0,0,0,0.08);margin-bottom:24px">
-            <tr><td style="padding:16px 20px">
-              <p style="margin:0 0 12px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#9e9a94">Ticket details</p>
-              <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td style="padding:4px 0;font-size:12px;color:#9e9a94;width:100px">Ticket #</td>
-                  <td style="padding:4px 0;font-size:13px;font-weight:600;color:#1a1917;font-family:monospace">#${ticket.ticket_number}</td>
-                </tr>
-                <tr>
-                  <td style="padding:4px 0;font-size:12px;color:#9e9a94">Subject</td>
-                  <td style="padding:4px 0;font-size:13px;font-weight:500;color:#1a1917">${ticket.subject}</td>
-                </tr>
-                <tr>
-                  <td style="padding:4px 0;font-size:12px;color:#9e9a94">Category</td>
-                  <td style="padding:4px 0;font-size:13px;color:#1a1917">${ticket.category || 'General'}</td>
-                </tr>
-                <tr>
-                  <td style="padding:4px 0;font-size:12px;color:#9e9a94">Priority</td>
-                  <td style="padding:4px 0">
-                    <span style="display:inline-block;background:${pColour}22;color:${pColour};font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px">${ticket.priority}</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:4px 0;font-size:12px;color:#9e9a94">Status</td>
-                  <td style="padding:4px 0">
-                    <span style="display:inline-block;background:#E6F1FB;color:#185FA5;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px">Open</span>
-                  </td>
-                </tr>
-                ${ticket.description ? `
-                <tr>
-                  <td colspan="2" style="padding:12px 0 0">
-                    <p style="margin:0 0 4px;font-size:12px;color:#9e9a94">Description</p>
-                    <p style="margin:0;font-size:13px;color:#6b6963;line-height:1.6">${ticket.description}</p>
-                  </td>
-                </tr>` : ''}
-              </table>
-            </td></tr>
-          </table>
-
-          <p style="margin:0 0 8px;font-size:13px;color:#6b6963;line-height:1.6">
-            We aim to respond within <strong>4 hours</strong> during business hours. You'll receive an email when we update your ticket.
-          </p>
-          <p style="margin:0;font-size:13px;color:#6b6963">
-            If you have additional information to add, simply reply to this email.
-          </p>
-        </td></tr>
-
-        <!-- Footer -->
-        <tr><td style="background:#f9f9f8;padding:20px 32px;border-top:1px solid rgba(0,0,0,0.08);text-align:center">
-          <p style="margin:0;font-size:12px;color:#9e9a94">${COMPANY_NAME} · <a href="mailto:${HELPDESK_EMAIL}" style="color:#185FA5;text-decoration:none">${HELPDESK_EMAIL}</a></p>
-          <p style="margin:6px 0 0;font-size:11px;color:#9e9a94">Tel: +350 200 50630</p>
-        </td></tr>
-
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`
-
-    // Internal helpdesk notification email
-    const helpdeskHtml = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"/></head>
-<body style="margin:0;padding:0;background:#f5f5f4;font-family:Inter,Arial,sans-serif">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f4;padding:32px 16px">
-    <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid rgba(0,0,0,0.08)">
-
-        <tr><td style="background:#1A3A7A;padding:20px 32px">
-          <p style="margin:0;color:#ffffff;font-size:16px;font-weight:600">🎫 New ticket received</p>
-          <p style="margin:4px 0 0;color:rgba(255,255,255,0.7);font-size:12px">Ticket #${ticket.ticket_number} · ${ticket.priority?.toUpperCase()} priority</p>
-        </td></tr>
-
-        <tr><td style="padding:24px 32px">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f4;border-radius:8px;border:1px solid rgba(0,0,0,0.08);margin-bottom:20px">
-            <tr><td style="padding:16px 20px">
-              <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td style="padding:4px 0;font-size:12px;color:#9e9a94;width:120px">Ticket #</td>
-                  <td style="padding:4px 0;font-size:13px;font-weight:600;font-family:monospace">#${ticket.ticket_number}</td>
-                </tr>
-                <tr>
-                  <td style="padding:4px 0;font-size:12px;color:#9e9a94">Subject</td>
-                  <td style="padding:4px 0;font-size:13px;font-weight:500">${ticket.subject}</td>
-                </tr>
-                <tr>
-                  <td style="padding:4px 0;font-size:12px;color:#9e9a94">From</td>
-                  <td style="padding:4px 0;font-size:13px">${requesterName}${requesterEmail ? ` &lt;${requesterEmail}&gt;` : ''}</td>
-                </tr>
-                <tr>
-                  <td style="padding:4px 0;font-size:12px;color:#9e9a94">Category</td>
-                  <td style="padding:4px 0;font-size:13px">${ticket.category || 'General'}</td>
-                </tr>
-                <tr>
-                  <td style="padding:4px 0;font-size:12px;color:#9e9a94">Priority</td>
-                  <td style="padding:4px 0">
-                    <span style="display:inline-block;background:${pColour}22;color:${pColour};font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px">${ticket.priority?.toUpperCase()}</span>
-                  </td>
-                </tr>
-                ${ticket.contact_email ? `<tr><td style="padding:4px 0;font-size:12px;color:#9e9a94">Email</td><td style="padding:4px 0;font-size:13px"><a href="mailto:${ticket.contact_email}" style="color:#185FA5">${ticket.contact_email}</a></td></tr>` : ''}
-                ${ticket.contact_phone ? `<tr><td style="padding:4px 0;font-size:12px;color:#9e9a94">Phone</td><td style="padding:4px 0;font-size:13px">${ticket.contact_phone}</td></tr>` : ''}
-                ${ticket.description ? `
-                <tr><td colspan="2" style="padding:12px 0 0">
-                  <p style="margin:0 0 4px;font-size:12px;color:#9e9a94">Description</p>
-                  <p style="margin:0;font-size:13px;color:#6b6963;line-height:1.6">${ticket.description}</p>
-                </td></tr>` : ''}
-              </table>
-            </td></tr>
-          </table>
-          <p style="margin:0;font-size:13px;color:#6b6963">Log in to the <a href="https://gtcrmqbmlvtlyiwnshma.supabase.co/admin.html" style="color:#185FA5">admin panel</a> to assign and respond to this ticket.</p>
-        </td></tr>
-
-        <tr><td style="background:#f9f9f8;padding:16px 32px;border-top:1px solid rgba(0,0,0,0.08);text-align:center">
-          <p style="margin:0;font-size:11px;color:#9e9a94">${COMPANY_NAME} Internal Notification</p>
-        </td></tr>
-
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`
-
-    const RESEND_KEY = Deno.env.get('RESEND_API_KEY')!
-    const results: string[] = []
-
-    // ── Send to requester ────────────────────────────────────
-    if (requesterEmail) {
-      const res = await fetch(RESEND_API, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from:    `${COMPANY_NAME} <${HELPDESK_EMAIL}>`,
-          to:      [requesterEmail],
-          subject: `[Ticket #${ticket.ticket_number}] ${ticket.subject}`,
-          html:    clientHtml,
-        }),
-      })
-      const data = await res.json()
-      results.push(`client: ${res.ok ? 'sent' : JSON.stringify(data)}`)
-    } else {
-      results.push('client: no email address found')
-    }
-
-    // ── Send to helpdesk ─────────────────────────────────────
-    const res2 = await fetch(RESEND_API, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from:    `${COMPANY_NAME} Tickets <${HELPDESK_EMAIL}>`,
-        to:      [HELPDESK_EMAIL],
-        subject: `[#${ticket.ticket_number}] New ${ticket.priority} ticket: ${ticket.subject}`,
-        html:    helpdeskHtml,
-      }),
-    })
-    const data2 = await res2.json()
-    results.push(`helpdesk: ${res2.ok ? 'sent' : JSON.stringify(data2)}`)
-
-    return new Response(JSON.stringify({ ok: true, results }), {
-      headers: { 'Content-Type': 'application/json' },
-    })
-
-  } catch (err) {
-    console.error(err)
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500 })
+  if (ticketErr || !ticket) {
+    console.error("ticket-notify: ticket not found", ticketErr);
+    return json({ error: "Ticket not found" }, 404);
   }
-})
+
+  const ticketNum = ticket.ticket_number;
+  const subject   = ticket.subject   || "(no subject)";
+  const priority  = ticket.priority  || "medium";
+  const category  = ticket.category  || "General";
+  const requester = ticket.requester as { id: string; full_name: string; email: string } | null;
+
+  /* ── Parse attachment URLs ── */
+  let attachUrls: string[] = [];
+  if (ticket.attachment_urls) {
+    try { attachUrls = JSON.parse(ticket.attachment_urls); } catch { /* ignore */ }
+  }
+  if (!attachUrls.length && ticket.attachment_url) {
+    attachUrls = [ticket.attachment_url];
+  }
+
+  /* ── Build attachment thumbnail strip for email ── */
+  const attachBlock = buildAttachmentBlock(attachUrls);
+
+  /* ── Route by status ── */
+  if (new_status === "reopened") {
+    const clientName  = changed_by       || requester?.full_name || "A client";
+    const clientEmail = changed_by_email || requester?.email     || "";
+
+    const emailSubject = `🔄 Ticket #${ticketNum} Reopened — ${subject}`;
+    const emailHtml = `
+      <div style="font-family:Inter,system-ui,sans-serif;max-width:600px;margin:0 auto;color:#1a1917">
+        <div style="background:#185FA5;padding:20px 28px;border-radius:10px 10px 0 0">
+          <h2 style="color:#fff;margin:0;font-size:18px">Ticket Reopened</h2>
+        </div>
+        <div style="background:#ffffff;padding:28px;border:1px solid #e5e5e3;border-top:none;border-radius:0 0 10px 10px">
+          <p style="margin:0 0 20px;font-size:15px">
+            A resolved ticket has been <strong>reopened</strong> by the client and needs your attention.
+          </p>
+
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px">
+            <tr style="background:#f5f5f4">
+              <td style="padding:10px 14px;font-weight:600;width:140px;border:1px solid #e5e5e3">Ticket</td>
+              <td style="padding:10px 14px;border:1px solid #e5e5e3">#${ticketNum} — ${escHtml(subject)}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;font-weight:600;border:1px solid #e5e5e3">Reopened by</td>
+              <td style="padding:10px 14px;border:1px solid #e5e5e3">${escHtml(clientName)}${clientEmail ? ` &lt;${escHtml(clientEmail)}&gt;` : ""}</td>
+            </tr>
+            <tr style="background:#f5f5f4">
+              <td style="padding:10px 14px;font-weight:600;border:1px solid #e5e5e3">Priority</td>
+              <td style="padding:10px 14px;border:1px solid #e5e5e3;text-transform:capitalize">${escHtml(priority)}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;font-weight:600;border:1px solid #e5e5e3">Category</td>
+              <td style="padding:10px 14px;border:1px solid #e5e5e3">${escHtml(category)}</td>
+            </tr>
+            <tr style="background:#f5f5f4">
+              <td style="padding:10px 14px;font-weight:600;border:1px solid #e5e5e3">Reopened at</td>
+              <td style="padding:10px 14px;border:1px solid #e5e5e3">${new Date().toLocaleString("en-GB", { dateStyle: "full", timeStyle: "short" })}</td>
+            </tr>
+          </table>
+
+          ${attachBlock}
+
+          <p style="margin:0 0 8px;font-size:13px;color:#6b6963">
+            The ticket status has been set back to <strong>Open</strong>. Please review and follow up with the client.
+          </p>
+          <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e5e5e3;font-size:12px;color:#9e9a94">
+            El Martillo I.T. Helpdesk · This is an automated notification
+          </div>
+        </div>
+      </div>`;
+
+    const result = await sendEmail({ resendKey, from: `El Martillo Helpdesk <${helpdeskEmail}>`, to: helpdeskEmail, subject: emailSubject, html: emailHtml });
+    console.log(`ticket-notify: reopened #${ticketNum} → ${helpdeskEmail}`, result.ok ? "sent" : "failed");
+    return json({ sent: result.ok, direction: "client→helpdesk", ticket: ticketNum });
+
+  } else if (new_status === "resolved") {
+    const clientEmail = requester?.email;
+    if (!clientEmail) {
+      console.warn(`ticket-notify: no client email for ticket #${ticketNum}`);
+      return json({ sent: false, reason: "No client email on record" });
+    }
+
+    const clientName  = requester?.full_name || "Customer";
+    const agentName   = changed_by || "The support team";
+    const emailSubject = `✅ Your ticket #${ticketNum} has been resolved`;
+    const emailHtml = `
+      <div style="font-family:Inter,system-ui,sans-serif;max-width:600px;margin:0 auto;color:#1a1917">
+        <div style="background:#3B6D11;padding:20px 28px;border-radius:10px 10px 0 0">
+          <h2 style="color:#fff;margin:0;font-size:18px">Ticket Resolved</h2>
+        </div>
+        <div style="background:#ffffff;padding:28px;border:1px solid #e5e5e3;border-top:none;border-radius:0 0 10px 10px">
+          <p style="margin:0 0 20px;font-size:15px">
+            Hi ${escHtml(clientName)},<br><br>
+            Your support ticket has been <strong>resolved</strong> by ${escHtml(agentName)}.
+          </p>
+
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px">
+            <tr style="background:#f5f5f4">
+              <td style="padding:10px 14px;font-weight:600;width:140px;border:1px solid #e5e5e3">Ticket</td>
+              <td style="padding:10px 14px;border:1px solid #e5e5e3">#${ticketNum} — ${escHtml(subject)}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;font-weight:600;border:1px solid #e5e5e3">Resolved by</td>
+              <td style="padding:10px 14px;border:1px solid #e5e5e3">${escHtml(agentName)}</td>
+            </tr>
+            <tr style="background:#f5f5f4">
+              <td style="padding:10px 14px;font-weight:600;border:1px solid #e5e5e3">Resolved at</td>
+              <td style="padding:10px 14px;border:1px solid #e5e5e3">${new Date().toLocaleString("en-GB", { dateStyle: "full", timeStyle: "short" })}</td>
+            </tr>
+          </table>
+
+          ${attachBlock}
+
+          <p style="margin:0 0 8px;font-size:13px;color:#6b6963">
+            If your issue is not fully resolved, you can log in to the client portal and reopen this ticket.
+          </p>
+          <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e5e5e3;font-size:12px;color:#9e9a94">
+            El Martillo I.T. Helpdesk · <a href="mailto:${helpdeskEmail}" style="color:#185FA5">${helpdeskEmail}</a>
+          </div>
+        </div>
+      </div>`;
+
+    const result = await sendEmail({ resendKey, from: `El Martillo I.T. Support <${helpdeskEmail}>`, to: clientEmail, subject: emailSubject, html: emailHtml });
+    console.log(`ticket-notify: resolved #${ticketNum} → ${clientEmail}`, result.ok ? "sent" : "failed");
+    return json({ sent: result.ok, direction: "helpdesk→client", ticket: ticketNum });
+
+  } else {
+    return json({ skipped: true, reason: `No notification configured for status '${new_status}'` });
+  }
+});
+
+/* ── Attachment thumbnail strip ──────────────────────────────────────────── */
+function buildAttachmentBlock(urls: string[]): string {
+  if (!urls.length) return "";
+
+  // Each thumbnail: 120×120, linked to full image, table-based for email client compat
+  const THUMB_SIZE = 120;
+  const MAX_SHOW   = 5; // show at most 5 thumbs in email
+  const visible    = urls.slice(0, MAX_SHOW);
+  const extra      = urls.length - visible.length;
+
+  const cells = visible.map((u, i) => `
+    <td style="padding:4px;vertical-align:top">
+      <a href="${escHtml(u)}" target="_blank" style="display:block;text-decoration:none">
+        <img src="${escHtml(u)}"
+             width="${THUMB_SIZE}" height="${THUMB_SIZE}"
+             alt="Attachment ${i + 1}"
+             style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;object-fit:cover;border-radius:6px;border:1px solid #e5e5e3;display:block"/>
+      </a>
+    </td>`).join("");
+
+  const extraNote = extra > 0
+    ? `<p style="margin:6px 0 0;font-size:11px;color:#9e9a94">+ ${extra} more image${extra > 1 ? "s" : ""} — view in portal</p>`
+    : "";
+
+  return `
+    <div style="margin-bottom:20px">
+      <p style="margin:0 0 8px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#9e9a94">
+        Attachment${urls.length > 1 ? `s (${urls.length})` : ""}
+      </p>
+      <table border="0" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
+        <tr>${cells}</tr>
+      </table>
+      ${extraNote}
+    </div>`;
+}
+
+/* ── Send via Resend ─────────────────────────────────────────────────────── */
+async function sendEmail({ resendKey, from, to, subject, html }: {
+  resendKey: string | undefined;
+  from: string; to: string; subject: string; html: string;
+}): Promise<{ ok: boolean; body?: unknown }> {
+  if (!resendKey) {
+    console.warn("ticket-notify: RESEND_API_KEY not set — dry run");
+    console.log("ticket-notify dry-run:", { from, to, subject });
+    return { ok: false, body: { error: "RESEND_API_KEY not configured" } };
+  }
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from, to, subject, html }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) console.error("ticket-notify: Resend error", res.status, body);
+  return { ok: res.ok, body };
+}
+
+/* ── Helpers ─────────────────────────────────────────────────────────────── */
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+  });
+}
+
+function escHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
