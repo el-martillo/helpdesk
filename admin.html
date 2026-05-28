@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>El Martillo I.T. Ticketing System — Admin</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="icon" type="image/x-icon" href="favicon.ico"/>
+<link rel="icon" type="image/png" sizes="32x32" href="logo.png"/>
+<link rel="apple-touch-icon" href="logo.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
 <style>
@@ -88,6 +91,13 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
 .nav-badge.warn { background: var(--warn); }
 .sep { height: 1px; background: var(--border); margin: 4px 8px; }
 .content { flex: 1; overflow-y: auto; padding: 24px; background: var(--bg); }
+th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+th.sortable:hover { color: var(--text1); background: var(--surface); }
+th.sort-asc::after  { content: ' ↑'; color: var(--accent); font-size: 10px; }
+th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .settings-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .settings-grid { grid-template-columns: 1fr; } .content { padding: 16px; } }
 .page { display: none; }
 .page.active { display: block; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; gap: 12px; }
@@ -127,6 +137,8 @@ th { padding: 10px 16px; text-align: left; font-size: 10px; font-weight: 600; co
 td { padding: 11px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 tr:last-child td { border-bottom: none; }
 tbody tr:hover td { background: var(--bg); cursor: pointer; }
+tbody tr:nth-child(even) td { background: var(--surface2); }
+tbody tr:nth-child(even):hover td { background: var(--bg); }
 .empty-row td { text-align: center; padding: 40px; color: var(--text3); }
 .loading-row td { text-align: center; padding: 32px; }
 
@@ -271,11 +283,15 @@ textarea.fc { resize: vertical; min-height: 80px; }
       </svg>
     </div>
     <h2>Admin sign in</h2>
-    <p class="desc">Sign in with your admin or agent account.</p>
+    <p class="desc">Sign in with your admin account.</p>
     <div class="fg"><label class="fl">Email</label><input id="auth-email" class="fc" type="email" placeholder="admin@example.com"/></div>
     <div class="fg"><label class="fl">Password</label><input id="auth-password" class="fc" type="password" placeholder="••••••••"/></div>
     <button class="btn primary" style="width:100%;justify-content:center" onclick="signIn()">Sign in</button>
     <div id="auth-err" style="text-align:center;margin-top:10px;font-size:12px;color:var(--danger)"></div>
+    <div style="text-align:center;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+      <span style="font-size:12px;color:var(--text3)">Are you a client?</span>
+      <a href="index.html" style="font-size:12px;color:var(--accent);text-decoration:none;margin-left:6px;font-weight:500">Go to client portal →</a>
+    </div>
   </div>
 </div>
 
@@ -287,7 +303,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       El Martillo I.T. Ticketing System
     </div>
     <div class="topbar-center">
-      <span class="badge-admin">Admin</span>
+      <span class="badge-admin" id="topbar-role-badge">Admin</span>
       <span id="topbar-user" style="color:var(--text3)"></span>
     </div>
     <div class="topbar-right">
@@ -299,8 +315,13 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
   <div class="body">
     <div class="sidebar">
+      <div class="nav-item active" onclick="adminNav(this,'dashboard');renderDashboard()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </div>
+      <div class="sep"></div>
       <div class="sidebar-label">Tickets</div>
-      <div class="nav-item active" onclick="adminNav(this,'all')">
+      <div class="nav-item" onclick="adminNav(this,'all')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8h18M3 12h18M3 16h18"/></svg>
         All tickets <span class="nav-badge" id="badge-all">—</span>
       </div>
@@ -314,7 +335,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       </div>
       <div class="nav-item" onclick="adminNav(this,'waiting')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-        Waiting
+        Waiting <span class="nav-badge warn" id="badge-waiting">—</span>
       </div>
       <div class="nav-item" onclick="adminNav(this,'resolved')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
@@ -324,7 +345,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <div class="sidebar-label">Manage</div>
       <div class="nav-item" onclick="adminNav(this,'agents')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        Agents
+        Team
       </div>
       <div class="nav-item" onclick="adminNav(this,'users');loadAllProfiles()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -334,15 +355,81 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="4" height="11"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="3" width="4" height="18"/></svg>
         Reports
       </div>
-      <div class="nav-item" onclick="adminNav(this,'settings');loadBackupStats()">
+      <div class="nav-item" onclick="adminNav(this,'activity');loadActivityLog()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Activity log
+      </div>
+      <div class="nav-item" onclick="adminNav(this,'syslog');loadSysLog()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        System log
+      </div>
+      <div class="nav-item" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </div>
+      <div class="sep"></div>
+      <a href="index.html" class="nav-item">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        Client portal
+      </a>
+      <a href="about.html" class="nav-item">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        About
+      </a>
     </div>
 
     <div class="content">
+      <!-- Dashboard -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <div><h1>Dashboard</h1><p id="dash-sub">Overview of support activity</p></div>
+          <button class="btn primary" onclick="openModal('modal-new-ticket')">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            New ticket
+          </button>
+        </div>
+        <div class="stats-grid" style="margin-bottom:20px;grid-template-columns:repeat(5,1fr)">
+          <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='all']'),'all')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'" onmouseout="this.style.boxShadow=''"><div class="label">Open</div><div class="value" id="dash-open" style="color:var(--accent)">—</div><div class="sub">Awaiting action</div></div>
+          <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='in_progress']'),'in_progress')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--purple)'" onmouseout="this.style.boxShadow=''"><div class="label">In progress</div><div class="value" id="dash-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to tech</div></div>
+          <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='waiting']'),'waiting')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--warn)'" onmouseout="this.style.boxShadow=''"><div class="label">Waiting</div><div class="value" id="dash-waiting" style="color:var(--warn)">—</div><div class="sub">Pending response</div></div>
+          <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='resolved']'),'resolved')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--success)'" onmouseout="this.style.boxShadow=''"><div class="label">Resolved</div><div class="value" id="dash-resolved" style="color:var(--success)">—</div><div class="sub">All time</div></div>
+          <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='all']'),'all')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--border2)'" onmouseout="this.style.boxShadow=''"><div class="label">Total</div><div class="value" id="dash-total">—</div><div class="sub">All tickets</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+          <div class="table-card" style="padding:18px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:14px">By status</div>
+            <div id="dash-status-bars"></div>
+          </div>
+          <div class="table-card" style="padding:18px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:14px">By priority</div>
+            <div id="dash-priority-bars"></div>
+          </div>
+        </div>
+        <div class="table-card">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">Recent activity</div>
+          <table><thead><tr><th class="sortable" data-sort="ticket_number" onclick="setSort('ticket_number')">ID</th><th class="sortable" data-sort="client" onclick="setSort('client')">Client</th><th class="sortable" data-sort="company" onclick="setSort('company')">Organisation</th><th class="sortable" data-sort="subject" onclick="setSort('subject')">Subject</th><th class="sortable" data-sort="status" onclick="setSort('status')">Status</th><th class="sortable" data-sort="priority" onclick="setSort('priority')">Priority</th><th class="sortable sort-desc" data-sort="updated_at" onclick="setSort('updated_at')">Updated</th><th></th></tr></thead>
+          <tbody id="dash-recent-tbody"></tbody></table>
+        </div>
+
+        <div class="table-card" style="margin-top:16px">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <div style="font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              BBC Technology News
+            </div>
+            <button class="btn sm" onclick="loadBBCNews()">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+              Refresh
+            </button>
+          </div>
+          <div id="bbc-news-list" style="padding:8px 0">
+            <div style="text-align:center;padding:24px;color:var(--text3)"><div class="loader"></div></div>
+          </div>
+        </div>
+      </div>
+
       <!-- All tickets -->
-      <div class="page active" id="page-all">
+      <div class="page" id="page-all">
         <div class="page-header">
           <div><h1>All tickets</h1><p id="ticket-count-sub">Loading…</p></div>
           <button class="btn primary" onclick="openModal('modal-new-ticket')">
@@ -352,7 +439,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         </div>
         <div class="stats-grid">
           <div class="stat-card"><div class="label">Open</div><div class="value" id="stat-open" style="color:var(--accent)">—</div><div class="sub"></div></div>
-          <div class="stat-card"><div class="label">In progress</div><div class="value" id="stat-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to agents</div></div>
+          <div class="stat-card"><div class="label">In progress</div><div class="value" id="stat-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to tech</div></div>
           <div class="stat-card"><div class="label">Resolved</div><div class="value" id="stat-resolved" style="color:var(--success)">—</div><div class="sub"></div></div>
           <div class="stat-card"><div class="label">Total</div><div class="value" id="stat-total">—</div><div class="sub">All time</div></div>
         </div>
@@ -368,7 +455,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
               <option value="in_progress">In progress</option>
               <option value="waiting">Waiting</option>
               <option value="resolved">Resolved</option>
-              <option value="closed">Closed</option>
             </select>
             <select class="filter-sel" id="filter-priority" onchange="renderTable()">
               <option value="">All priorities</option>
@@ -382,7 +468,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
               Refresh
             </button>
           </div>
-          <table><thead><tr><th>ID</th><th>Subject</th><th>Status</th><th>Priority</th><th>Requester</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
+          <table><thead><tr><th class="sortable" data-sort="ticket_number" onclick="setSort('ticket_number')">ID</th><th class="sortable" data-sort="client" onclick="setSort('client')">Client</th><th class="sortable" data-sort="company" onclick="setSort('company')">Organisation</th><th class="sortable" data-sort="subject" onclick="setSort('subject')">Subject</th><th class="sortable" data-sort="status" onclick="setSort('status')">Status</th><th class="sortable" data-sort="priority" onclick="setSort('priority')">Priority</th><th class="sortable" data-sort="assignee" onclick="setSort('assignee')">Tech assigned</th><th class="sortable sort-desc" data-sort="updated_at" onclick="setSort('updated_at')">Updated</th><th></th></tr></thead>
           <tbody id="admin-tbody"></tbody></table>
         </div>
       </div>
@@ -396,11 +482,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <!-- Agents -->
       <div class="page" id="page-agents">
         <div class="page-header">
-          <div><h1>Agents</h1><p>Support team members</p></div>
-          <button class="btn primary" onclick="openModal('modal-invite-agent')">
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-            Invite agent
-          </button>
+          <div><h1>Team</h1><p>Admin team members</p></div>
+
         </div>
         <div id="agents-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
       </div>
@@ -422,8 +505,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
             </div>
             <select class="filter-sel" id="users-role-filter" onchange="renderUsersTable()">
               <option value="">All roles</option>
+              <option value="super_admin">Super Admin</option>
               <option value="admin">Admin</option>
-              <option value="agent">Agent</option>
               <option value="client">Client</option>
             </select>
             <button class="btn sm" onclick="loadAllProfiles()">
@@ -447,7 +530,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <!-- Reports -->
       <div class="page" id="page-reports">
         <div class="page-header"><div><h1>Reports</h1><p>Support performance overview</p></div></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
           <div class="table-card" style="padding:18px">
             <div style="font-size:13px;font-weight:600;margin-bottom:14px">Tickets by status</div>
             <div id="report-status-bars"></div>
@@ -457,13 +540,105 @@ textarea.fc { resize: vertical; min-height: 80px; }
             <div id="report-priority-bars"></div>
           </div>
         </div>
+        <div class="table-card" style="padding:18px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div style="font-size:13px;font-weight:600">Average time to resolution</div>
+            <div style="font-size:11px;color:var(--text3)">Based on resolved tickets</div>
+          </div>
+          <div id="report-resolution-time"></div>
+        </div>
+        <div class="table-card" style="padding:18px;margin-top:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div style="font-size:13px;font-weight:600">Agent performance</div>
+            <div style="font-size:11px;color:var(--text3)">Tech assigned · resolutions · avg resolution time</div>
+          </div>
+          <div id="report-agent-performance"></div>
+        </div>
+      </div>
+
+      <!-- Activity Log -->
+      <div class="page" id="page-activity">
+        <div class="page-header">
+          <div><h1>Activity log</h1><p id="activity-count-sub">User activity across the system</p></div>
+          <div style="display:flex;gap:8px">
+            <select class="filter-sel" id="activity-action-filter" onchange="renderActivityTable()">
+              <option value="">All actions</option>
+              <option value="login">Login</option>
+              <option value="logout">Logout</option>
+              <option value="signup_attempt">Signup</option>
+              <option value="signup_failed">Signup failed</option>
+            </select>
+            <select class="filter-sel" id="activity-status-filter" onchange="renderActivityTable()">
+              <option value="">All statuses</option>
+              <option value="success">Success</option>
+              <option value="failed">Failed</option>
+              <option value="blocked">Blocked</option>
+            </select>
+            <button class="btn sm" onclick="loadActivityLog()">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <div class="search-wrap">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" id="activity-search" placeholder="Search by user or action…" oninput="renderActivityTable()"/>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Time</th><th>User</th><th>Email</th><th>Action</th><th>Status</th><th>Details</th></tr></thead>
+            <tbody id="activity-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- System Log -->
+      <div class="page" id="page-syslog">
+        <div class="page-header">
+          <div><h1>System log</h1><p id="syslog-count-sub">Admin &amp; super admin actions across the system</p></div>
+          <div style="display:flex;gap:8px">
+            <select class="filter-sel" id="syslog-action-filter" onchange="renderSysLogTable()">
+              <option value="">All actions</option>
+              <option value="ticket_created">Ticket created</option>
+              <option value="ticket_status">Status changed</option>
+              <option value="ticket_assigned">Tech assigned</option>
+              <option value="user_created">User created</option>
+              <option value="user_updated">User updated</option>
+              <option value="user_deleted">User deleted</option>
+              <option value="agent_invited">Agent invited</option>
+              <option value="version_updated">Version updated</option>
+              <option value="orgs_updated">Organisations updated</option>
+              <option value="backup_created">Backup created</option>
+            </select>
+            <button class="btn sm" onclick="loadSysLog()">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <div class="search-wrap">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" id="syslog-search" placeholder="Search by user or details…" oninput="renderSysLogTable()"/>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Time</th><th>Admin / Agent</th><th>Action</th><th>Details</th></tr></thead>
+            <tbody id="syslog-tbody"></tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Settings -->
       <div class="page" id="page-settings">
         <div class="page-header"><div><h1>Settings</h1><p>System configuration</p></div></div>
-        <div style="display:flex;flex-direction:column;gap:16px;max-width:560px">
+        <div class="settings-grid">
 
+          <!-- Col 1: General + Version -->
+          <div style="display:flex;flex-direction:column;gap:16px">
           <!-- General settings -->
           <div class="table-card" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:14px">General</div>
@@ -483,6 +658,39 @@ textarea.fc { resize: vertical; min-height: 80px; }
             </div>
           </div>
 
+          <!-- Version section -->
+          <div class="table-card" style="padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Application version</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+              Set the version number displayed in the footer across all pages.
+            </div>
+            <div class="fg">
+              <label class="fl">Version string</label>
+              <input class="fc" id="settings-version" type="text" placeholder="e.g. 1.0.0" style="max-width:220px"/>
+            </div>
+            <button class="btn primary" onclick="saveVersion()">Save version</button>
+          </div>
+
+          </div><!-- /col1 -->
+
+          <!-- Organisations section -->
+          <div class="table-card" style="padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Organisations</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+              Manage the list of organisations available in dropdowns across the system. Changes are saved to the database immediately.
+            </div>
+            <div id="org-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+              <div style="text-align:center;padding:16px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input class="fc" id="new-org-input" type="text" placeholder="Add organisation…" style="max-width:260px" onkeydown="if(event.key==='Enter')addOrg()"/>
+              <button class="btn primary" onclick="addOrg()">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                Add
+              </button>
+            </div>
+          </div>
+
           <!-- Backup section -->
           <div class="table-card" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Database backup</div>
@@ -490,7 +698,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
               Export all tickets, profiles, and comments as a JSON file. The backup is generated directly from your Supabase database and downloaded to your browser.
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px" id="backup-stats">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:16px" id="backup-stats">
               <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
                 <div style="font-size:22px;font-weight:600;color:var(--accent)" id="bk-tickets">—</div>
                 <div style="font-size:11px;color:var(--text3);margin-top:2px">Tickets</div>
@@ -502,6 +710,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
               <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
                 <div style="font-size:22px;font-weight:600;color:var(--success)" id="bk-profiles">—</div>
                 <div style="font-size:11px;color:var(--text3);margin-top:2px">Profiles</div>
+              </div>
+              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
+                <div style="font-size:22px;font-weight:600;color:var(--warn)" id="bk-settings">—</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">Settings</div>
               </div>
             </div>
 
@@ -519,6 +731,38 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
             <div style="margin-top:14px;padding:12px;background:var(--warn-l);border-radius:var(--radius);font-size:12px;color:var(--warn);line-height:1.6;display:none" id="backup-progress">
               <div style="display:flex;align-items:center;gap:8px"><div class="loader" style="border-top-color:var(--warn)"></div> <span id="backup-progress-msg">Fetching data…</span></div>
+            </div>
+          </div>
+
+          <!-- Logs download section -->
+          <div class="table-card" style="padding:20px;margin-top:16px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Download logs</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+              Export activity and system logs as JSON files for auditing or offline analysis.
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px" id="log-stats">
+              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
+                <div style="font-size:22px;font-weight:600;color:var(--accent)" id="bk-activity">—</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">Activity events</div>
+              </div>
+              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
+                <div style="font-size:22px;font-weight:600;color:var(--purple)" id="bk-syslog">—</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">System events</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button class="btn primary" onclick="downloadActivityLog()">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Activity log (JSON)
+              </button>
+              <button class="btn primary" onclick="downloadSysLog()">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                System log (JSON)
+              </button>
+              <button class="btn" onclick="loadLogStats()">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+                Refresh counts
+              </button>
             </div>
           </div>
 
@@ -546,6 +790,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <select id="nt-category" class="fc"><option value="Billing">Billing</option><option value="Technical">Technical</option><option value="Account">Account</option><option value="General">General</option></select>
       </div>
     </div>
+    <div class="fg"><label class="fl">Organisation</label><select id="nt-company" class="fc"><option value="">— Select company —</option></select></div>
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-new-ticket')">Cancel</button>
       <button class="btn primary" onclick="createTicket()">Create ticket</button>
@@ -566,14 +811,14 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Phone</label><input id="au-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
-      <div class="fg"><label class="fl">Company / Organisation</label><input id="au-company" class="fc" type="text" placeholder="Acme Ltd"/></div>
+      <div class="fg"><label class="fl">Organisation</label><select id="au-company" class="fc"><option value="">— Select company —</option></select></div>
     </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Role</label>
         <select id="au-role" class="fc">
           <option value="client">Client</option>
-          <option value="agent">Agent</option>
           <option value="admin">Admin</option>
+          <option value="super_admin">Super Admin</option>
         </select>
       </div>
     </div>
@@ -606,7 +851,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
     <div class="form-row">
       <div class="fg"><label class="fl">Phone</label><input id="eu-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
-      <div class="fg"><label class="fl">Company / Organisation</label><input id="eu-company" class="fc" type="text" placeholder="Acme Ltd"/></div>
+      <div class="fg"><label class="fl">Organisation</label><select id="eu-company" class="fc"><option value="">— Select company —</option></select></div>
     </div>
 
     <div style="height:1px;background:var(--border);margin:14px 0"></div>
@@ -616,8 +861,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
     <div class="fg"><label class="fl">Role</label>
       <select id="eu-role" class="fc">
         <option value="client">Client</option>
-        <option value="agent">Agent</option>
         <option value="admin">Admin</option>
+        <option value="super_admin">Super Admin</option>
       </select>
     </div>
 
@@ -649,14 +894,14 @@ textarea.fc { resize: vertical; min-height: 80px; }
   </div>
 </div>
 
-<!-- Invite agent modal -->
+<!-- Invite tech modal -->
 <div class="overlay" id="modal-invite-agent">
   <div class="modal">
-    <div class="modal-head"><div class="modal-title">Invite agent</div><button class="close-x" onclick="closeModal('modal-invite-agent')">✕</button></div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">The agent will receive an email invitation to set their password.</p>
+    <div class="modal-head"><div class="modal-title">Invite tech</div><button class="close-x" onclick="closeModal('modal-invite-agent')">✕</button></div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">The tech user will receive an email invitation to set their password.</p>
     <div class="fg"><label class="fl">Full name</label><input id="ia-name" class="fc" type="text" placeholder="Jane Smith"/></div>
     <div class="fg"><label class="fl">Email address</label><input id="ia-email" class="fc" type="email" placeholder="agent@support.com"/></div>
-    <div class="fg"><label class="fl">Role</label><select id="ia-role" class="fc"><option value="agent">Agent</option><option value="admin">Admin</option></select></div>
+    <div class="fg"><label class="fl">Role</label><select id="ia-role" class="fc"><option value="admin">Admin</option><option value="super_admin">Super Admin</option></select></div>
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-invite-agent')">Cancel</button>
       <button class="btn primary" onclick="inviteAgent()">Send invitation</button>
@@ -670,17 +915,18 @@ textarea.fc { resize: vertical; min-height: 80px; }
 /* ── State ── */
 let sbClient = null, currentUser = null, currentProfile = null;
 let tickets = [], profiles = [];
+let sortKey = 'updated_at', sortDir = 'desc';
 let demoMode = false;
 const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
 
 /* ── Demo data ── */
 const DEMO_PROFILES = [
-  {id:'p1',full_name:'Sarah Johnson', email:'sarah@support.com', role:'agent', status:'online'},
-  {id:'p2',full_name:'Marcus Reid',   email:'marcus@support.com',role:'agent', status:'online'},
-  {id:'p3',full_name:'Aiko Lim',      email:'aiko@support.com',  role:'agent', status:'away'},
+  {id:'p1',full_name:'Sarah Johnson', email:'sarah@support.com', role:'admin', status:'online'},
+  {id:'p2',full_name:'Marcus Reid',   email:'marcus@support.com',role:'admin', status:'online'},
+  {id:'p3',full_name:'Aiko Lim',      email:'aiko@support.com',  role:'admin', status:'away'},
   {id:'p4',full_name:'Dev Kumar',     email:'dev@support.com',   role:'admin', status:'online'},
-  {id:'p5',full_name:'Jane Doe',      email:'jane@client.com',   role:'client',status:'online'},
-  {id:'p6',full_name:'Robert Chen',   email:'robert@client.com', role:'client',status:'offline'},
+  {id:'p5',full_name:'Jane Doe',      email:'jane@client.com',   role:'client',status:'online',  company:'Acme Ltd'},
+  {id:'p6',full_name:'Robert Chen',   email:'robert@client.com', role:'client',status:'offline', company:'Global Corp'},
 ];
 const DEMO_TICKETS = [
   {id:'t1',ticket_number:12,subject:'Cannot export invoices to PDF',description:'When clicking Export PDF the page just spins. Happens on Chrome and Firefox.',status:'open',priority:'high',category:'Billing',requester_id:'p5',assignee_id:'p1',updated_at:new Date(Date.now()-2*60000).toISOString(),created_at:new Date(Date.now()-30*60000).toISOString()},
@@ -704,10 +950,11 @@ const DEMO_COMMENTS = {
 };
 
 /* ── Helpers ── */
+const esc = s => { const d=document.createElement('div'); d.textContent=String(s??''); return d.innerHTML; };
 const initials = n => n ? n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '?';
 const avColor  = id => AV_COLORS[(id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0) % AV_COLORS.length];
 const timeAgo  = iso => { if(!iso) return '—'; const m=Math.floor((Date.now()-new Date(iso))/60000); if(m<1) return 'just now'; if(m<60) return m+'m ago'; const h=Math.floor(m/60); if(h<24) return h+'h ago'; return Math.floor(h/24)+'d ago'; };
-const sLabel   = s => ({open:'Open',in_progress:'In progress',waiting:'Waiting',resolved:'Resolved',closed:'Closed'}[s]||s);
+const sLabel   = s => ({open:'Open',in_progress:'In progress',waiting:'Waiting',resolved:'Resolved'}[s]||s);
 const profileById = id => profiles.find(p=>p.id===id);
 function toast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 function openModal(id){document.getElementById(id).classList.add('open');}
@@ -735,7 +982,7 @@ function loadDemo() {
   document.getElementById('auth-screen').classList.remove('active');
   document.getElementById('app').style.display = 'flex';
   document.getElementById('topbar-user').textContent = 'Dev Kumar';
-  loadTickets(); renderAgents(); renderReports();
+  loadTickets(); renderAgents(); renderReports(); loadAllProfiles(); loadUserCount(); loadCompanies();
 }
 async function ensureProfile(user) {
   const {data:existing} = await sbClient.from('profiles').select('*').eq('id', user.id).single();
@@ -757,36 +1004,72 @@ async function signIn() {
   currentUser = data.user;
   const prof = await ensureProfile(currentUser);
   currentProfile = prof;
-  if (prof?.role==='client') { document.getElementById('auth-err').textContent='Access denied. Client accounts must use the client portal.'; return; }
+  if (!prof?.role || prof?.role==='client') { document.getElementById('auth-err').textContent='Access denied. Client accounts must use the client portal.'; return; }
   document.getElementById('auth-screen').classList.remove('active');
   document.getElementById('app').style.display = 'flex';
   document.getElementById('db-dot').className = 'dot connected';
   document.getElementById('db-label').textContent = 'Supabase connected';
   document.getElementById('topbar-user').textContent = prof?.full_name||email;
+  const rb = document.getElementById('topbar-role-badge'); if(rb) rb.textContent = prof?.role==='super_admin'?'Super Admin':'Admin';
   document.getElementById('settings-url').value = localStorage.getItem('sb_url')||'';
-  loadTickets(); loadProfiles();
+  loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime();
 }
-async function signOut() { if(sbClient) await sbClient.auth.signOut(); location.reload(); }
+async function signOut() { if(realtimeChannel && sbClient) sbClient.removeChannel(realtimeChannel); if(sbClient) await sbClient.auth.signOut(); location.reload(); }
 function clearCreds() { localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key'); location.reload(); }
 
 /* ── Data ── */
 async function loadTickets() {
-  if (demoMode) { renderTable(); updateStats(); updateBadges(); return; }
+  if (demoMode) { renderTable(); updateStats(); updateBadges(); renderDashboard(); return; }
   document.getElementById('admin-tbody').innerHTML='<tr class="loading-row"><td colspan="8"><div class="loader"></div></td></tr>';
   const {data,error} = await sbClient.from('tickets')
-    .select('*, requester:profiles!requester_id(id,full_name), assignee:profiles!assignee_id(id,full_name)')
+    .select('*, requester:profiles!requester_id(id,full_name,company), assignee:profiles!assignee_id(id,full_name,company)')
     .order('updated_at',{ascending:false});
   if (error) { toast('Error: '+error.message); return; }
-  tickets = data||[]; renderTable(); updateStats(); updateBadges();
+  tickets = data||[]; renderTable(); updateStats(); updateBadges(); renderDashboard();
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
 }
 async function loadProfiles() {
   if (demoMode) { renderAgents(); return; }
-  const {data} = await sbClient.from('profiles').select('*').in('role',['agent','admin']);
+  const {data} = await sbClient.from('profiles').select('*').in('role',['admin','super_admin']);
   if (data) profiles=data; renderAgents();
 }
 
 /* ── Render table ── */
+const PRIORITY_ORDER = {critical:0,high:1,medium:2,low:3};
+function sortTickets(list) {
+  return [...list].sort((a, b) => {
+    let av, bv;
+    const req_a = demoMode ? profileById(a.requester_id) : (a.requester||{});
+    const req_b = demoMode ? profileById(b.requester_id) : (b.requester||{});
+    const asgn_a = demoMode ? profileById(a.assignee_id) : (a.assignee||{});
+    const asgn_b = demoMode ? profileById(b.assignee_id) : (b.assignee||{});
+    switch(sortKey) {
+      case 'ticket_number': av = a.ticket_number||0;          bv = b.ticket_number||0; break;
+      case 'subject':       av = (a.subject||'').toLowerCase(); bv = (b.subject||'').toLowerCase(); break;
+      case 'client':        av = (req_a?.full_name||'').toLowerCase(); bv = (req_b?.full_name||'').toLowerCase(); break;
+      case 'company':       av = (req_a?.company||'').toLowerCase(); bv = (req_b?.company||'').toLowerCase(); break;
+      case 'status':        av = a.status||'';                bv = b.status||''; break;
+      case 'priority':      av = PRIORITY_ORDER[a.priority]??9; bv = PRIORITY_ORDER[b.priority]??9; break;
+      case 'assignee':      av = (asgn_a?.full_name||'').toLowerCase(); bv = (asgn_b?.full_name||'').toLowerCase(); break;
+      default:              av = new Date(a.updated_at||0);   bv = new Date(b.updated_at||0);
+    }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1;
+    if (av > bv) return sortDir === 'asc' ?  1 : -1;
+    return 0;
+  });
+}
+function setSort(key) {
+  if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortKey = key; sortDir = key === 'updated_at' ? 'desc' : 'asc'; }
+  renderTable();
+  updateSortHeaders();
+}
+function updateSortHeaders() {
+  document.querySelectorAll('th.sortable').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    if (th.dataset.sort === sortKey) th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+  });
+}
 function renderTable(statusFilter) {
   const q  = (document.getElementById('search-input')?.value||'').toLowerCase();
   const sf = statusFilter||document.getElementById('filter-status')?.value||'';
@@ -795,25 +1078,43 @@ function renderTable(statusFilter) {
   if (sf) list=list.filter(t=>t.status===sf);
   if (pf) list=list.filter(t=>t.priority===pf);
   if (q)  list=list.filter(t=>t.subject.toLowerCase().includes(q)||(t.ticket_number+'').includes(q)||getReqName(t).toLowerCase().includes(q));
+  list = sortTickets(list);
   const tbody = document.getElementById('admin-tbody');
   if (!tbody) return;
-  if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="8">No tickets found</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="9">No tickets found</td></tr>'; return; }
   tbody.innerHTML = list.map(t => {
     const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
     const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
     return `<tr onclick="openTicketDetail('${t.id}')">
       <td><span class="tid">#${t.ticket_number}</span></td>
-      <td style="max-width:240px"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.subject}</div><span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}" style="margin-top:3px">${t.category||'General'}</span></td>
+      <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${esc(req?.full_name)||'—'}</span></div></td>
+      <td style="font-size:12px;color:var(--text2);white-space:nowrap">${esc(req?.company)||'—'}</td>
+      <td style="max-width:200px"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.subject)}</div><span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}" style="margin-top:3px">${esc(t.category||'General')}</span></td>
       <td><span class="sb s-${t.status}">${sLabel(t.status)}</span></td>
       <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
-      <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${req?.full_name||'—'}</span></div></td>
-      <td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${esc(asgn?.full_name)||'—'}</td>
       <td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td>
       <td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td>
     </tr>`;
   }).join('');
 }
 const getReqName = t => { const p = demoMode ? profileById(t.requester_id) : t.requester; return p?.full_name||''; };
+
+function refreshCurrentPage() {
+  // Find which page is currently active and re-render it
+  const activePage = document.querySelector('.page.active');
+  if (!activePage) return;
+  const id = activePage.id;
+  if (id === 'page-all') {
+    renderTable();
+  } else if (['page-open','page-in_progress','page-waiting','page-resolved'].includes(id)) {
+    const status = id.replace('page-','');
+    const navEl = document.querySelector(`.nav-item.active`);
+    if (navEl) adminNav(navEl, status);
+  } else if (id === 'page-dashboard') {
+    renderDashboard();
+  }
+}
 
 function updateStats() {
   document.getElementById('stat-open').textContent    = tickets.filter(t=>t.status==='open').length;
@@ -828,6 +1129,7 @@ function updateBadges() {
   document.getElementById('badge-all').textContent   = tickets.length;
   document.getElementById('badge-open').textContent  = tickets.filter(t=>t.status==='open').length;
   document.getElementById('badge-inprog').textContent= tickets.filter(t=>t.status==='in_progress').length;
+  document.getElementById('badge-waiting').textContent= tickets.filter(t=>t.status==='waiting').length;
 }
 
 /* ── Navigation ── */
@@ -839,13 +1141,13 @@ function adminNav(el, page) {
   if (!pg) return;
   pg.classList.add('active');
   if (['open','in_progress','waiting','resolved'].includes(page)) {
-    const filtered = tickets.filter(t=>t.status===page);
+    const filtered = sortTickets(tickets.filter(t=>t.status===page));
     pg.innerHTML = `<div class="page-header"><div><h1>${sLabel(page)} tickets</h1><p>${filtered.length} tickets</p></div></div>
-    <div class="table-card"><table><thead><tr><th>ID</th><th>Subject</th><th>Priority</th><th>Requester</th><th>Assignee</th><th>Updated</th><th></th></tr></thead>
+    <div class="table-card"><table><thead><tr><th>ID</th><th>Client</th><th>Organisation</th><th>Subject</th><th>Priority</th><th>Tech assigned</th><th>Updated</th><th></th></tr></thead>
     <tbody>${filtered.length ? filtered.map(t=>{
       const req=demoMode?profileById(t.requester_id):(t.requester||{});
       const asgn=demoMode?profileById(t.assignee_id):(t.assignee||{});
-      return `<tr onclick="openTicketDetail('${t.id}')"><td><span class="tid">#${t.ticket_number}</span></td><td style="font-weight:500;max-width:260px">${t.subject}</td><td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td><td style="font-size:12px">${req?.full_name||'—'}</td><td style="font-size:12px;color:var(--text2)">${asgn?.full_name||'—'}</td><td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td><td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td></tr>`;
+      return `<tr onclick="openTicketDetail('${t.id}')"><td><span class="tid">#${t.ticket_number}</span></td><td style="font-size:12px">${esc(req?.full_name)||'—'}</td><td style="font-size:12px;color:var(--text2);white-space:nowrap">${esc(req?.company)||'—'}</td><td style="font-weight:500;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.subject)}</td><td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td><td style="font-size:12px;color:var(--text2)">${esc(asgn?.full_name)||'—'}</td><td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td><td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td></tr>`;
     }).join('') : '<tr class="empty-row"><td colspan="7">No tickets in this status</td></tr>'}</tbody></table></div>`;
   }
   if (page==='reports') renderReports();
@@ -857,37 +1159,36 @@ async function openTicketDetail(id) {
   const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
   const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
   document.getElementById('detail-title').textContent = t.subject;
-  document.getElementById('detail-sub').textContent   = `#${t.ticket_number} · ${t.category||'General'} · ${timeAgo(t.updated_at)}`;
+  document.getElementById('detail-sub').textContent   = `#${t.ticket_number} · ${esc(t.category||'General')} · ${timeAgo(t.updated_at)}`;
   let comments=[];
   if (demoMode) { comments=DEMO_COMMENTS[id]||[]; }
   else { const {data}=await sbClient.from('comments').select('*,author:profiles(id,full_name,role)').eq('ticket_id',id).order('created_at'); comments=data||[]; }
-  const agentOpts = profiles.filter(p=>p.role==='agent'||p.role==='admin')
+  const agentOpts = profiles.filter(p=>p.role==='admin'||p.role==='super_admin')
     .map(p=>`<option value="${p.id}" ${p.id===t.assignee_id?'selected':''}>${p.full_name}</option>`).join('');
   document.getElementById('detail-body').innerHTML=`
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
       <span class="sb s-${t.status}">${sLabel(t.status)}</span>
-      <span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}">${t.category||'General'}</span>
+      <span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}">${esc(t.category||'General')}</span>
       <span style="font-size:12px;color:var(--text2)"><span class="pdot ${t.priority}"></span>${t.priority} priority</span>
       <select class="filter-sel" style="margin-left:auto" onchange="updateStatus('${t.id}',this.value)">
         <option value="open" ${t.status==='open'?'selected':''}>Open</option>
         <option value="in_progress" ${t.status==='in_progress'?'selected':''}>In progress</option>
         <option value="waiting" ${t.status==='waiting'?'selected':''}>Waiting</option>
         <option value="resolved" ${t.status==='resolved'?'selected':''}>Resolved</option>
-        <option value="closed" ${t.status==='closed'?'selected':''}>Closed</option>
       </select>
       <select class="filter-sel" onchange="updateAssignee('${t.id}',this.value)">
         <option value="">Unassigned</option>${agentOpts}
       </select>
     </div>
     <div class="detail-meta-grid">
-      <div class="dmi"><div class="key">Requester</div><div class="val flex-c"><div class="avatar ${avColor(req?.id)}" style="width:22px;height:22px;font-size:9px">${initials(req?.full_name||'?')}</div>${req?.full_name||'—'}</div></div>
-      <div class="dmi"><div class="key">Assignee</div><div class="val">${asgn?.full_name||'Unassigned'}</div></div>
+      <div class="dmi"><div class="key">Client</div><div class="val flex-c"><div class="avatar ${avColor(req?.id)}" style="width:22px;height:22px;font-size:9px">${initials(req?.full_name||'?')}</div>${esc(req?.full_name)||'—'}</div></div>
+      <div class="dmi"><div class="key">Tech assigned</div><div class="val">${esc(asgn?.full_name)||'Unassigned'}</div></div>
       <div class="dmi"><div class="key">Created</div><div class="val">${timeAgo(t.created_at||t.updated_at)}</div></div>
-      <div class="dmi"><div class="key">Category</div><div class="val">${t.category||'General'}</div></div>
-      ${t.contact_email?`<div class="dmi"><div class="key">Email</div><div class="val"><a href="mailto:${t.contact_email}" style="color:var(--accent)">${t.contact_email}</a></div></div>`:''}
-      ${t.contact_phone?`<div class="dmi"><div class="key">Telephone</div><div class="val"><a href="tel:${t.contact_phone}" style="color:var(--accent)">${t.contact_phone}</a></div></div>`:''}
+      <div class="dmi"><div class="key">Category</div><div class="val">${esc(t.category||'General')}</div></div>
+      ${t.contact_email?`<div class="dmi"><div class="key">Email</div><div class="val"><a href="mailto:${esc(t.contact_email)}" style="color:var(--accent)">${esc(t.contact_email)}</a></div></div>`:''}
+      ${t.contact_phone?`<div class="dmi"><div class="key">Telephone</div><div class="val"><a href="tel:${esc(t.contact_phone)}" style="color:var(--accent)">${esc(t.contact_phone)}</a></div></div>`:''}
     </div>
-    <div class="desc-box">${t.description||'<em style="color:var(--text3)">No description provided.</em>'}</div>
+    <div class="desc-box">${esc(t.description||'<em style="color:var(--text3)">No description provided.</em>')}</div>
     <div class="activity">
       <div class="activity-label">Activity (${comments.length} comments)</div>
       <div id="comments-list">${renderComments(comments,true)}</div>
@@ -908,10 +1209,10 @@ function renderComments(comments, showInternal=false) {
   if (!comments.length) return '<div style="color:var(--text3);font-size:13px;padding:8px 0">No comments yet.</div>';
   return comments.filter(c=>showInternal||!c.is_internal).map(c=>{
     const author=demoMode?profileById(c.author_id):(c.author||{});
-    const isAgent=author?.role==='agent'||author?.role==='admin';
+    const isAgent=author?.role==='admin'||author?.role==='super_admin';
     const cls=c.is_internal?'internal-bubble':(isAgent?'agent-bubble':'');
     return `<div class="comment-item"><div class="avatar ${avColor(author?.id)}" style="flex-shrink:0">${initials(author?.full_name||'?')}</div>
-      <div class="comment-bubble ${cls}"><div class="comment-meta">${author?.full_name||'Unknown'} ${isAgent?'(agent)':''} ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${c.body}</div></div>`;
+      <div class="comment-bubble ${cls}"><div class="comment-meta">${esc(author?.full_name)||'Unknown'}  ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${esc(c.body)}</div></div>`;
   }).join('');
 }
 async function addComment(ticketId) {
@@ -929,12 +1230,30 @@ async function addComment(ticketId) {
   document.getElementById('reply-text').value=''; toast('Reply sent'); openTicketDetail(ticketId);
 }
 async function updateStatus(id, status) {
-  if (demoMode) { const t=tickets.find(x=>x.id===id); if(t){t.status=status;t.updated_at=new Date().toISOString();} updateStats();updateBadges();renderTable();toast('Status updated');return; }
-  await sbClient.from('tickets').update({status}).eq('id',id); loadTickets(); toast('Status updated');
+  if (demoMode) { const t=tickets.find(x=>x.id===id); if(t){t.status=status;t.updated_at=new Date().toISOString();} updateStats();updateBadges();refreshCurrentPage();toast('Status updated');return; }
+  await sbClient.from('tickets').update({status}).eq('id',id);
+  await loadTickets();
+  refreshCurrentPage();
+  toast('Status updated');
+  const t=tickets.find(x=>x.id===id); logSystemEvent('ticket_status',`#${t?.ticket_number||id} "${t?.subject||''}" | ${t?.status||'?'} → ${sLabel(status)} | Priority: ${t?.priority||'?'}`);
+  // Trigger notification edge function for resolved status
+  if (status === 'resolved') {
+    try {
+      await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticket_id: id, new_status: status, changed_by: currentProfile?.full_name || 'Support team' })
+      });
+    } catch(e) { console.warn('Notification failed:', e.message); }
+  }
 }
 async function updateAssignee(id, assigneeId) {
-  if (demoMode) { const t=tickets.find(x=>x.id===id); if(t) t.assignee_id=assigneeId||null; renderTable();toast('Assignee updated');return; }
-  await sbClient.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id); loadTickets(); toast('Assignee updated');
+  if (demoMode) { const t=tickets.find(x=>x.id===id); if(t) t.assignee_id=assigneeId||null; refreshCurrentPage();toast('Tech assigned updated');return; }
+  await sbClient.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id);
+  await loadTickets();
+  refreshCurrentPage();
+  toast('Tech assigned updated');
+  const ta=tickets.find(x=>x.id===id); const ag=profiles.find(p=>p.id===assigneeId); const prevAg=profiles.find(p=>p.id===ta?.assignee_id); logSystemEvent('ticket_assigned',`#${ta?.ticket_number||id} "${ta?.subject||''}" | From: ${prevAg?.full_name||'Unassigned'} → To: ${ag?.full_name||'Unassigned'} | Status: ${ta?.status||'?'}`);
 }
 
 /* ── Create ticket ── */
@@ -960,49 +1279,163 @@ async function createTicket() {
   }
   if (demoMode) {
     tickets.unshift({id:'t'+Date.now(),ticket_number:tickets.length+1,...payload,requester_id:'p4',assignee_id:null,updated_at:new Date().toISOString(),created_at:new Date().toISOString()});
-    renderTable();updateStats();updateBadges();closeModal('modal-new-ticket');clearForm();toast('Ticket created');return;
+    refreshCurrentPage();updateStats();updateBadges();closeModal('modal-new-ticket');clearForm();toast('Ticket created');return;
   }
   const {error}=await sbClient.from('tickets').insert({...payload,requester_id:currentUser.id});
   if (error){toast('Error: '+error.message);return;}
-  closeModal('modal-new-ticket');clearForm();loadTickets();toast('Ticket created');
+  closeModal('modal-new-ticket');clearForm();await loadTickets();refreshCurrentPage();toast('Ticket created');
+  logSystemEvent('ticket_created',`"${payload.subject}" | Priority: ${payload.priority} | Category: ${payload.category} | Contact: ${payload.contact_email}`);
 }
 
 /* ── Agents ── */
 function renderAgents() {
-  const agents=profiles.filter(p=>p.role==='agent'||p.role==='admin');
+  const agents=profiles.filter(p=>p.role==='admin'||p.role==='super_admin');
   const openByAgent={};
-  tickets.forEach(t=>{if(t.assignee_id&&t.status!=='resolved'&&t.status!=='closed') openByAgent[t.assignee_id]=(openByAgent[t.assignee_id]||0)+1;});
+  tickets.forEach(t=>{if(t.assignee_id&&t.status!=='resolved') openByAgent[t.assignee_id]=(openByAgent[t.assignee_id]||0)+1;});
   const ss={online:'s-open',away:'s-waiting',offline:'s-closed'};
   document.getElementById('agents-grid').innerHTML=agents.map(p=>`
     <div class="table-card" style="display:flex;align-items:center;gap:14px;padding:16px">
       <div class="avatar ${avColor(p.id)}" style="width:42px;height:42px;font-size:15px">${initials(p.full_name)}</div>
       <div style="flex:1"><div style="font-size:14px;font-weight:600">${p.full_name}</div>
-      <div style="font-size:12px;color:var(--text2)">${p.role==='admin'?'Admin':'Support Agent'} · ${openByAgent[p.id]||0} open</div></div>
+      <div style="font-size:12px;color:var(--text2)">${p.role==='super_admin'?'Super Admin':'Admin'} · ${openByAgent[p.id]||0} open</div></div>
       <span class="sb ${ss[p.status]||'s-closed'}">${p.status||'offline'}</span>
     </div>`).join('');
 }
-async function inviteAgent() {
-  const name=document.getElementById('ia-name').value.trim(),email=document.getElementById('ia-email').value.trim();
-  if (!name||!email){toast('Name and email required');return;}
-  if (demoMode){profiles.push({id:'p'+Date.now(),full_name:name,email,role:document.getElementById('ia-role').value,status:'offline'});renderAgents();closeModal('modal-invite-agent');toast('Agent invited (demo)');return;}
-  const {error}=await sbClient.auth.admin.inviteUserByEmail(email,{data:{full_name:name,role:document.getElementById('ia-role').value}});
-  if (error){toast('Error: '+error.message);return;}
-  closeModal('modal-invite-agent');toast('Invitation sent!');
-}
+
 
 /* ── Reports ── */
 function renderReports() {
-  const statuses=['open','in_progress','waiting','resolved','closed'];
+  const statuses=['open','in_progress','waiting','resolved'];
   const priorities=['critical','high','medium','low'];
   const max=Math.max(...statuses.map(s=>tickets.filter(t=>t.status===s).length),1);
   const pmax=Math.max(...priorities.map(p=>tickets.filter(t=>t.priority===p).length),1);
-  const sc={open:'var(--accent)',in_progress:'var(--purple)',waiting:'var(--warn)',resolved:'var(--success)',closed:'var(--text3)'};
+  const sc={open:'var(--accent)',in_progress:'var(--purple)',waiting:'var(--warn)',resolved:'var(--success)'};
   const pc={critical:'#E24B4A',high:'#EF9F27',medium:'#378ADD',low:'#9e9a94'};
   document.getElementById('report-status-bars').innerHTML=statuses.map(s=>{const c=tickets.filter(t=>t.status===s).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${sLabel(s)}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/max*100)}%;height:100%;background:${sc[s]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
   document.getElementById('report-priority-bars').innerHTML=priorities.map(p=>{const c=tickets.filter(t=>t.priority===p).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${p}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/pmax*100)}%;height:100%;background:${pc[p]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
+
+  // Average resolution time by priority
+  const fmtDur = ms => {
+    const h = ms / 3600000;
+    if (h < 1)   return Math.round(h * 60) + ' min';
+    if (h < 24)  return h.toFixed(1) + ' hrs';
+    return (h / 24).toFixed(1) + ' days';
+  };
+  const resolved = tickets.filter(t => t.status === 'resolved');
+  const resEl = document.getElementById('report-resolution-time');
+  if (!resEl) return;
+  if (!resolved.length) {
+    resEl.innerHTML = '<div style="padding:20px 0;text-align:center;font-size:13px;color:var(--text3)">No resolved tickets yet.</div>';
+    return;
+  }
+  // Overall avg
+  const withTimes = resolved.filter(t => t.created_at && t.updated_at);
+  const overallAvg = withTimes.length
+    ? withTimes.reduce((sum, t) => sum + (new Date(t.updated_at) - new Date(t.created_at)), 0) / withTimes.length
+    : 0;
+  // By priority
+  const resByPri = priorities.map(p => {
+    const group = withTimes.filter(t => t.priority === p);
+    const avg   = group.length ? group.reduce((s,t) => s + (new Date(t.updated_at)-new Date(t.created_at)), 0) / group.length : null;
+    return { p, avg, count: group.length };
+  }).filter(x => x.avg !== null);
+  const maxAvg = Math.max(...resByPri.map(x => x.avg), 1);
+  resEl.innerHTML = `
+    <div style="display:flex;align-items:center;gap:16px;padding:14px 0 18px;border-bottom:1px solid var(--border);margin-bottom:18px">
+      <div style="text-align:center;padding:0 24px">
+        <div style="font-size:28px;font-weight:700;color:var(--success)">${fmtDur(overallAvg)}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Overall average · ${withTimes.length} ticket${withTimes.length!==1?'s':''}</div>
+      </div>
+      <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        ${priorities.map(p => {
+          const group = withTimes.filter(t => t.priority === p);
+          const avg   = group.length ? group.reduce((s,t)=>s+(new Date(t.updated_at)-new Date(t.created_at)),0)/group.length : null;
+          return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px;text-align:center">
+            <div style="font-size:16px;font-weight:600;color:${pc[p]}">${avg!==null?fmtDur(avg):'—'}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:3px;text-transform:capitalize">${p} · ${group.length}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:12px">By priority</div>
+    ${resByPri.map(({p, avg, count}) => `
+      <div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px">
+        <div style="width:70px;color:var(--text2);text-transform:capitalize">${p}</div>
+        <div style="flex:1;height:9px;background:var(--bg);border-radius:4px;overflow:hidden">
+          <div style="width:${Math.round(avg/maxAvg*100)}%;height:100%;background:${pc[p]};border-radius:4px;transition:width .4s"></div>
+        </div>
+        <div style="width:70px;text-align:right;font-weight:600">${fmtDur(avg)}</div>
+        <div style="width:40px;text-align:right;font-size:11px;color:var(--text3)">${count} ticket${count!==1?'s':''}</div>
+      </div>`).join('')}`;
+  // Agent performance
+  const agentPerf = document.getElementById('report-agent-performance');
+  if (!agentPerf) return;
+  const staff = profiles.filter(p => p.role === 'admin' || p.role === 'super_admin');
+  if (!staff.length) {
+    agentPerf.innerHTML = '<div style="padding:20px 0;text-align:center;font-size:13px;color:var(--text3)">No agents found.</div>';
+    return;
+  }
+  const agentData = staff.map(agent => {
+    const assigned  = tickets.filter(t => t.assignee_id === agent.id);
+    const open      = assigned.filter(t => t.status !== 'resolved').length;
+    const resolved  = assigned.filter(t => t.status === 'resolved');
+    const withTimes = resolved.filter(t => t.created_at && t.updated_at);
+    const avgMs     = withTimes.length
+      ? withTimes.reduce((s,t) => s + (new Date(t.updated_at)-new Date(t.created_at)), 0) / withTimes.length
+      : null;
+    return { agent, total: assigned.length, open, resolved: resolved.length, avgMs };
+  }).sort((a,b) => b.resolved - a.resolved);
+  const maxTotal    = Math.max(...agentData.map(x => x.total), 1);
+  const maxResolved = Math.max(...agentData.map(x => x.resolved), 1);
+  if (!agentData.length) {
+    agentPerf.innerHTML = '<div style="padding:20px 0;text-align:center;font-size:13px;color:var(--text3)">No data yet.</div>';
+    return;
+  }
+  agentPerf.innerHTML = `
+    <div style="display:grid;grid-template-columns:180px 1fr 1fr 90px;gap:0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:0 0 10px;border-bottom:1px solid var(--border);margin-bottom:12px">
+      <div>Agent</div><div>Tech assigned</div><div>Resolved</div><div style="text-align:right">Avg time</div>
+    </div>
+    ${agentData.map(({agent, total, open, resolved, avgMs}) => `
+    <div style="display:grid;grid-template-columns:180px 1fr 1fr 90px;gap:0;align-items:center;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="avatar ${avColor(agent.id)}" style="width:26px;height:26px;font-size:10px;flex-shrink:0">${initials(agent.full_name)}</div>
+        <div>
+          <div style="font-size:12px;font-weight:500">${agent.full_name}</div>
+          <div style="font-size:10px;color:var(--text3)">${agent.role==='super_admin'?'Super Admin':'Admin'}</div>
+        </div>
+      </div>
+      <div style="padding-right:20px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden">
+            <div style="width:${Math.round(total/maxTotal*100)}%;height:100%;background:var(--accent);border-radius:4px"></div>
+          </div>
+          <div style="font-size:12px;font-weight:600;width:24px;text-align:right">${total}</div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${open} open</div>
+      </div>
+      <div style="padding-right:20px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden">
+            <div style="width:${Math.round(resolved/maxResolved*100)}%;height:100%;background:var(--success);border-radius:4px"></div>
+          </div>
+          <div style="font-size:12px;font-weight:600;width:24px;text-align:right">${resolved}</div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${total?Math.round(resolved/total*100):0}% resolution rate</div>
+      </div>
+      <div style="text-align:right;font-size:12px;font-weight:600;color:${avgMs!==null?'var(--success)':'var(--text3)'}">${avgMs!==null?fmtDur(avgMs):'—'}</div>
+    </div>`).join('')}`;
 }
 
 /* ── Auto-restore session ── */
+/* ── Supabase client configuration ──────────────────────────────────────────
+   These credentials are intentionally client-side and are designed to be
+   public. The anon key grants only the access permitted by Row-Level Security
+   (RLS) policies on the database. Real access control is enforced server-side
+   via RLS — not by keeping these values secret.
+   
+   If you rotate the anon key, update both values here.
+   The project ref (gtcrmqbmlvtlyiwnshma) is not a secret.
+   ──────────────────────────────────────────────────────────────────────────── */
 const SB_URL = 'https://gtcrmqbmlvtlyiwnshma.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
 
@@ -1027,14 +1460,25 @@ async function initSupabase() {
       currentUser = session.user;
       const { data: prof } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).single();
       currentProfile = prof;
+      // Block client accounts from accessing admin
+      if (!prof?.role || prof?.role === 'client') {
+        await sbClient.auth.signOut();
+        document.getElementById('cfg-screen').classList.remove('active');
+        document.getElementById('auth-screen').classList.add('active');
+        document.getElementById('auth-err').textContent = 'Access denied. Client accounts must use the client portal.';
+        return;
+      }
       document.getElementById('cfg-screen').classList.remove('active');
       const tu = document.getElementById('topbar-user');
       if (tu) tu.textContent = prof?.full_name || currentUser.email;
+      const rb = document.getElementById('topbar-role-badge');
+      if (rb) rb.textContent = prof?.role === 'super_admin' ? 'Super Admin' : 'Admin';
       document.getElementById('app').style.display = 'flex';
-      loadTickets(); loadProfiles();
+      loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime();
     } else {
       document.getElementById('cfg-screen').classList.remove('active');
       document.getElementById('auth-screen').classList.add('active');
+      loadVersion();
     }
   } catch(e) {
     console.error('Session restore error:', e);
@@ -1048,17 +1492,20 @@ let allProfiles = [];
 
 async function loadAllProfiles() {
   const tbody = document.getElementById('users-tbody');
-  if (!tbody) return;
-  tbody.innerHTML = '<tr class="loading-row"><td colspan="5"><div class="loader"></div></td></tr>';
+  if (tbody) tbody.innerHTML = '<tr class="loading-row"><td colspan="5"><div class="loader"></div></td></tr>';
   if (demoMode) {
     allProfiles = [...DEMO_PROFILES];
-    renderUsersTable(); return;
+    renderUsersTable();
+    const fuc = document.getElementById('footer-user-count'); if(fuc) fuc.textContent = allProfiles.length;
+    return;
   }
+  if (!sbClient) return;
   const { data, error } = await sbClient.from('profiles').select('*').order('full_name');
   if (error) { toast('Error loading users: ' + error.message); return; }
   allProfiles = data || [];
   renderUsersTable();
-  document.getElementById('users-count-sub').textContent = allProfiles.length + ' registered profiles';
+  const sub = document.getElementById('users-count-sub'); if(sub) sub.textContent = allProfiles.length + ' registered profiles';
+  const fuc = document.getElementById('footer-user-count'); if(fuc) fuc.textContent = allProfiles.length;
 }
 
 function renderUsersTable() {
@@ -1072,19 +1519,19 @@ function renderUsersTable() {
   if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="3">No users found</td></tr>'; return; }
 
   const roleBadge = r => ({
-    admin:  '<span class="sb s-in_progress">Admin</span>',
-    agent:  '<span class="sb s-open">Agent</span>',
-    client: '<span class="sb s-closed">Client</span>',
+    super_admin: '<span class="sb" style="background:var(--danger-l);color:var(--danger)">Super Admin</span>',
+    admin:       '<span class="sb s-in_progress">Admin</span>',
+    client:      '<span class="sb s-closed">Client</span>',
   }[r] || r);
   const renderRow = p => {
-    const openCount = tickets.filter(t => t.requester_id === p.id && !['resolved','closed'].includes(t.status)).length;
+    const openCount = tickets.filter(t => t.requester_id === p.id && t.status !== 'resolved').length;
     return `<tr onclick="openEditUser('${p.id}')" style="cursor:pointer">
       <td>
         <div class="flex-c">
           <div class="avatar ${avColor(p.id)}" style="width:30px;height:30px;font-size:11px">${initials(p.full_name||'?')}</div>
           <div>
-            <div style="font-weight:500;font-size:13px">${p.full_name||'—'}</div>
-            <div style="font-size:11px;margin-top:2px">${p.email ? `<a href="mailto:${p.email}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${p.email}</a>` : `<span style="color:var(--text3);font-family:var(--mono)">${p.id.slice(0,8)}…</span>`}</div>
+            <div style="font-weight:500;font-size:13px">${esc(p.full_name)||'—'}</div>
+            <div style="font-size:11px;margin-top:2px">${p.email ? `<a href="mailto:${esc(p.email)}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${esc(p.email)}</a>` : `<span style="color:var(--text3);font-family:var(--mono)">${p.id.slice(0,8)}…</span>`}</div>
           </div>
         </div>
       </td>
@@ -1100,7 +1547,7 @@ function renderUsersTable() {
       </td>
     </tr>`;
 
-  const staff   = list.filter(p => p.role === 'admin' || p.role === 'agent');
+  const staff   = list.filter(p => p.role === 'super_admin' || p.role === 'admin');
   const clients = list.filter(p => p.role === 'client');
 
   let html = '';
@@ -1123,9 +1570,10 @@ function openEditUser(id) {
   document.getElementById('eu-name').value    = p.full_name  || '';
   document.getElementById('eu-email').value   = p.email      || '';
   document.getElementById('eu-phone').value   = p.phone      || '';
-  document.getElementById('eu-company').value = p.company    || '';
   document.getElementById('eu-role').value    = p.role       || 'client';
   document.getElementById('eu-notes').value   = p.notes      || '';
+  populateCompanySelects();
+  document.getElementById('eu-company').value = p.company    || '';
   openModal('modal-edit-user');
 }
 
@@ -1151,19 +1599,36 @@ async function saveUser() {
   const { error } = await sbClient.from('profiles').update(updates).eq('id', id);
   if (error) { toast('Error: ' + error.message); return; }
   closeModal('modal-edit-user');
-  loadAllProfiles(); loadProfiles(); toast('User updated');
+  loadAllProfiles(); loadProfiles(); loadCompanies(); toast('User updated');
+  const euName=document.getElementById('eu-name').value; const euEmail=document.getElementById('eu-email').value; const euRole=document.getElementById('eu-role').value; const euCompany=document.getElementById('eu-company').value;
+  logSystemEvent('user_updated',`${euName} (${euEmail}) | Role: ${euRole}${euCompany?' | Org: '+euCompany:''}`);
+
 }
 
 async function deleteUser(id) {
-  if (!confirm('Delete this profile? This cannot be undone.')) return;
+  if (!confirm('Permanently delete this user? Their tickets will be reassigned to a Deleted User placeholder. This cannot be undone.')) return;
   if (demoMode) {
     allProfiles = allProfiles.filter(x => x.id !== id);
     closeModal('modal-edit-user'); renderUsersTable(); toast('User deleted'); return;
   }
-  const { error } = await sbClient.from('profiles').delete().eq('id', id);
-  if (error) { toast('Error: ' + error.message); return; }
+  // Call the database function that hard-deletes from both profiles and auth.users
+  const { error } = await sbClient.rpc('delete_user_hard', { user_id: id });
+  if (error) {
+    // Fallback: delete profile only if RPC not available
+    if (error.message.includes('function') || error.code === '42883') {
+      const { error: pe } = await sbClient.from('profiles').delete().eq('id', id);
+      if (pe) { toast('Error: ' + pe.message); return; }
+      toast('Profile deleted (auth record may remain — run SQL function for full deletion)');
+    } else {
+      toast('Error: ' + error.message);
+      return;
+    }
+  } else {
+    const delP=allProfiles.find(x=>x.id===id); toast('User permanently deleted');
+  logSystemEvent('user_deleted',`${delP?.full_name||'Unknown'} (${delP?.email||id}) | Role: ${delP?.role||'?'}${delP?.company?' | Org: '+delP.company:''}`);
+  }
   closeModal('modal-edit-user');
-  loadAllProfiles(); loadProfiles(); toast('User deleted');
+  loadAllProfiles(); loadProfiles();
 }
 
 async function addUser() {
@@ -1192,7 +1657,8 @@ async function addUser() {
   const { error } = await sbClient.from('profiles').insert(payload);
   if (error) { toast('Error: ' + error.message); return; }
   closeModal('modal-add-user'); clearForm();
-  loadAllProfiles(); toast('User profile created. To grant login access, invite them via Supabase Auth.');
+  loadAllProfiles(); loadCompanies(); toast('User profile created. To grant login access, invite them via Supabase Auth.');
+  logSystemEvent('user_created',`${payload.full_name} (${payload.email}) | Role: ${payload.role}${payload.company?' | Org: '+payload.company:''}`);
 }
 
 /* ── Backup ── */
@@ -1211,6 +1677,7 @@ async function loadBackupStats() {
   document.getElementById('bk-tickets').textContent  = t.count ?? '—';
   document.getElementById('bk-comments').textContent = c.count ?? '—';
   document.getElementById('bk-profiles').textContent = p.count ?? '—';
+  document.getElementById('bk-settings').textContent = '✓';
 }
 
 async function runBackup() {
@@ -1248,6 +1715,10 @@ async function runBackup() {
     const { data: profileData, error: pe } = await sbClient.from('profiles').select('*');
     if (pe) throw pe;
 
+    setMsg('Fetching app settings…');
+    const { data: settingsData, error: se } = await sbClient.from('app_settings').select('*');
+    if (se) throw se;
+
     setMsg('Building backup file…');
     await new Promise(r => setTimeout(r, 300));
 
@@ -1255,14 +1726,16 @@ async function runBackup() {
       exported_at: new Date().toISOString(),
       project_url: SB_URL,
       summary: {
-        tickets:  ticketData.length,
-        comments: commentData.length,
-        profiles: profileData.length,
+        tickets:      ticketData.length,
+        comments:     commentData.length,
+        profiles:     profileData.length,
+        app_settings: settingsData.length,
       },
       tables: {
-        tickets:  ticketData,
-        comments: commentData,
-        profiles: profileData,
+        tickets:      ticketData,
+        comments:     commentData,
+        profiles:     profileData,
+        app_settings: settingsData,
       }
     };
 
@@ -1271,6 +1744,7 @@ async function runBackup() {
     document.getElementById('backup-last').textContent = 'Last backup: ' + now;
     toast('Backup downloaded successfully');
     loadBackupStats();
+    logSystemEvent('backup_created',`${ticketData.length} tickets · ${commentData.length} comments · ${profileData.length} profiles · ${settingsData.length} settings rows`);
 
   } catch(e) {
     toast('Backup failed: ' + (e.message || JSON.stringify(e)));
@@ -1280,18 +1754,520 @@ async function runBackup() {
   }
 }
 
-function downloadJSON(data) {
+function downloadJSON(data, filename) {
   const json = JSON.stringify(data, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   const date = new Date().toISOString().slice(0,10);
   a.href     = url;
-  a.download = `elmartillo-helpdesk-backup-${date}.json`;
+  a.download = filename || `elmartillo-helpdesk-backup-${date}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/* ── Dashboard ── */
+function renderDashboard() {
+  loadBBCNews();
+  document.getElementById('dash-open').textContent    = tickets.filter(t=>t.status==='open').length;
+  document.getElementById('dash-inprog').textContent  = tickets.filter(t=>t.status==='in_progress').length;
+  document.getElementById('dash-waiting').textContent = tickets.filter(t=>t.status==='waiting').length;
+  document.getElementById('dash-resolved').textContent= tickets.filter(t=>t.status==='resolved').length;
+  document.getElementById('dash-total').textContent   = tickets.length;
+
+  const statuses=['open','in_progress','waiting','resolved'];
+  const priorities=['critical','high','medium','low'];
+  const max=Math.max(...statuses.map(s=>tickets.filter(t=>t.status===s).length),1);
+  const pmax=Math.max(...priorities.map(p=>tickets.filter(t=>t.priority===p).length),1);
+  const sc={open:'var(--accent)',in_progress:'var(--purple)',waiting:'var(--warn)',resolved:'var(--success)'};
+  const pc={critical:'#E24B4A',high:'#EF9F27',medium:'#378ADD',low:'#9e9a94'};
+  document.getElementById('dash-status-bars').innerHTML=statuses.map(s=>{const c=tickets.filter(t=>t.status===s).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${sLabel(s)}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/max*100)}%;height:100%;background:${sc[s]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
+  document.getElementById('dash-priority-bars').innerHTML=priorities.map(p=>{const c=tickets.filter(t=>t.priority===p).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${p}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/pmax*100)}%;height:100%;background:${pc[p]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
+
+  const recent = [...tickets].filter(t=>t.status!=='resolved').sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at)).slice(0,8);
+  const tbody = document.getElementById('dash-recent-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = recent.map(t => {
+    const req = demoMode ? profileById(t.requester_id) : (t.requester||{});
+    return `<tr onclick="openTicketDetail('${t.id}')">
+      <td><span class="tid">#${t.ticket_number}</span></td>
+      <td style="font-size:12px">${esc(req?.full_name)||'—'}</td>
+      <td style="font-size:12px;color:var(--text2);white-space:nowrap">${esc(req?.company)||'—'}</td>
+      <td style="max-width:180px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.subject)}</td>
+      <td><span class="sb s-${t.status}">${sLabel(t.status)}</span></td>
+      <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
+      <td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td>
+      <td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── BBC News ── */
+async function loadBBCNews() {
+  const el = document.getElementById('bbc-news-list');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3)"><div class="loader"></div></div>';
+  const FEEDS = [
+    'https://corsproxy.io/?url=https://feeds.bbci.co.uk/news/technology/rss.xml',
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://feeds.bbci.co.uk/news/technology/rss.xml'),
+    'https://rss.app/feeds/bbctechnology.xml',
+  ];
+  let xml = null;
+  for (const url of FEEDS) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const text = await res.text();
+      if (text.includes('<item>') || text.includes('<entry>')) { xml = text; break; }
+    } catch(e) { continue; }
+  }
+  if (!xml) {
+    el.innerHTML = '<div style="padding:20px 16px;font-size:13px;color:var(--text3)">Unable to load news feed. <button class="btn sm" onclick="loadBBCNews()" style="margin-left:8px">Try again</button></div>';
+    return;
+  }
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xml, 'text/xml');
+    const items = [...doc.querySelectorAll('item')].slice(0, 8);
+    if (!items.length) throw new Error('No items');
+
+    const getImg = (item) => {
+      // Try media:thumbnail
+      const mediaNS = item.getElementsByTagNameNS('http://search.yahoo.com/mrss/', 'thumbnail')[0];
+      if (mediaNS?.getAttribute('url')) return mediaNS.getAttribute('url');
+      // Try media:content
+      const mediaContent = item.getElementsByTagNameNS('http://search.yahoo.com/mrss/', 'content')[0];
+      if (mediaContent?.getAttribute('url')) return mediaContent.getAttribute('url');
+      // Try enclosure
+      const enc = item.querySelector('enclosure');
+      if (enc?.getAttribute('url') && enc.getAttribute('type')?.startsWith('image')) return enc.getAttribute('url');
+      // Try description for embedded img src
+      const desc = item.querySelector('description')?.textContent || '';
+      const imgMatch = desc.match(/src="([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i);
+      if (imgMatch) return imgMatch[1];
+      // BBC fallback: derive image from article URL using BBC's img CDN
+      const link = item.querySelector('link')?.textContent || '';
+      const slugMatch = link.match(/\/([a-z0-9-]+-\d{8,})/i);
+      if (slugMatch) return `https://ichef.bbci.co.uk/news/800/${slugMatch[1]}.jpg`;
+      return null;
+    };
+
+    el.innerHTML = items.map((item, i) => {
+      const title = item.querySelector('title')?.textContent || '';
+      const link  = item.querySelector('link')?.textContent || item.querySelector('link')?.getAttribute('href') || '#';
+      const pub   = item.querySelector('pubDate')?.textContent || '';
+      const date  = pub ? new Date(pub).toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+      const img   = getImg(item);
+      const imgHtml = img
+        ? `<img src="${img}" alt="" onerror="this.style.display='none'" style="width:72px;height:52px;object-fit:cover;border-radius:6px;flex-shrink:0;background:var(--surface2)">`
+        : `<div style="width:72px;height:52px;border-radius:6px;flex-shrink:0;background:var(--surface2);display:flex;align-items:center;justify-content:center"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="color:var(--text3)"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
+      return `<a href="${link.startsWith('http')?link:'#'}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;padding:11px 16px;text-decoration:none;color:inherit;border-bottom:${i<items.length-1?'1px solid var(--border)':'none'};transition:background .12s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">
+        ${imgHtml}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500;line-height:1.45;color:var(--text1);margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(title)}</div>
+          <div style="font-size:11px;color:var(--text3)">${date}</div>
+        </div>
+        <svg width="13" height="13" style="flex-shrink:0;color:var(--text3)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      </a>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="padding:20px 16px;font-size:13px;color:var(--text3)">Unable to parse news feed. <button class="btn sm" onclick="loadBBCNews()" style="margin-left:8px">Try again</button></div>';
+  }
+}
+
+/* ── User count ── */
+async function loadUserCount() {
+  if (demoMode) {
+    const fuc = document.getElementById('footer-user-count');
+    if (fuc) fuc.textContent = profiles.length;
+    return;
+  }
+  if (!sbClient) return;
+  const { count } = await sbClient.from('profiles').select('*', { count: 'exact', head: true });
+  const fuc = document.getElementById('footer-user-count');
+  if (fuc && count !== null) fuc.textContent = count;
+}
+
+/* ── Companies ── */
+let companiesList = [];
+
+async function loadCompanies() {
+  if (demoMode) {
+    companiesList = [...new Set(DEMO_PROFILES.map(p => p.company).filter(Boolean))].sort();
+    renderOrgList();
+    populateCompanySelects();
+    return;
+  }
+  if (!sbClient) return;
+  try {
+    const { data, error } = await sbClient.from('app_settings').select('value').eq('key','organisations').single();
+    if (!error && data) {
+      companiesList = JSON.parse(data.value);
+    } else {
+      // seed from existing profile company values if no saved list yet
+      const { data: pd } = await sbClient.from('profiles').select('company').not('company','is',null).neq('company','');
+      companiesList = pd ? [...new Set(pd.map(r => r.company).filter(Boolean))].sort((a,b) => a.localeCompare(b)) : [];
+    }
+  } catch(e) { companiesList = []; }
+  renderOrgList();
+  populateCompanySelects();
+}
+
+function renderOrgList() {
+  const el = document.getElementById('org-list');
+  if (!el) return;
+  if (!companiesList.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:4px 0">No organisations yet. Add one below.</div>';
+    return;
+  }
+  el.innerHTML = companiesList.map((c, i) => `
+    <div style="display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)" id="org-row-${i}">
+      <span class="org-label" id="org-label-${i}" style="flex:1;font-size:13px">${c}</span>
+      <input class="fc org-input" id="org-input-${i}" type="text" value="${esc(c)}" style="flex:1;display:none;padding:4px 8px;font-size:13px" onkeydown="if(event.key==='Enter')saveOrgEdit(${i});if(event.key==='Escape')cancelOrgEdit(${i})"/>
+      <button class="btn sm" id="org-edit-btn-${i}" onclick="startOrgEdit(${i})" title="Edit" style="padding:3px 8px">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button class="btn sm" id="org-save-btn-${i}" onclick="saveOrgEdit(${i})" style="display:none;padding:3px 8px;background:var(--accent-l);color:var(--accent);border-color:var(--accent-l)">✓</button>
+      <button class="btn sm" id="org-cancel-btn-${i}" onclick="cancelOrgEdit(${i})" style="display:none;padding:3px 8px">✕</button>
+      <button class="btn sm" id="org-del-btn-${i}" onclick="removeOrg(${i})" style="color:var(--danger);border-color:var(--danger-l);background:var(--danger-l);padding:3px 8px" title="Remove">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      </button>
+    </div>`).join('');
+}
+
+function startOrgEdit(i) {
+  document.getElementById(`org-label-${i}`).style.display   = 'none';
+  document.getElementById(`org-input-${i}`).style.display   = 'block';
+  document.getElementById(`org-edit-btn-${i}`).style.display = 'none';
+  document.getElementById(`org-save-btn-${i}`).style.display = 'inline-flex';
+  document.getElementById(`org-cancel-btn-${i}`).style.display = 'inline-flex';
+  document.getElementById(`org-del-btn-${i}`).style.display  = 'none';
+  const input = document.getElementById(`org-input-${i}`);
+  input.focus(); input.select();
+}
+
+function cancelOrgEdit(i) {
+  document.getElementById(`org-label-${i}`).style.display    = 'block';
+  document.getElementById(`org-input-${i}`).style.display    = 'none';
+  document.getElementById(`org-edit-btn-${i}`).style.display  = 'inline-flex';
+  document.getElementById(`org-save-btn-${i}`).style.display  = 'none';
+  document.getElementById(`org-cancel-btn-${i}`).style.display = 'none';
+  document.getElementById(`org-del-btn-${i}`).style.display   = 'inline-flex';
+  document.getElementById(`org-input-${i}`).value = companiesList[i];
+}
+
+async function saveOrgEdit(i) {
+  const val = (document.getElementById(`org-input-${i}`)?.value || '').trim();
+  if (!val) { toast('Name cannot be empty'); return; }
+  const duplicate = companiesList.some((c, j) => j !== i && c.toLowerCase() === val.toLowerCase());
+  if (duplicate) { toast('Organisation already exists'); return; }
+  companiesList[i] = val;
+  companiesList.sort((a,b) => a.localeCompare(b));
+  renderOrgList();
+  populateCompanySelects();
+  await persistOrgs();
+}
+
+async function addOrg() {
+  const input = document.getElementById('new-org-input');
+  const val = (input?.value || '').trim();
+  if (!val) return;
+  if (companiesList.map(c=>c.toLowerCase()).includes(val.toLowerCase())) { toast('Organisation already exists'); return; }
+  companiesList.push(val);
+  companiesList.sort((a,b) => a.localeCompare(b));
+  renderOrgList();
+  populateCompanySelects();
+  input.value = '';
+  await persistOrgs();
+}
+
+async function removeOrg(i) {
+  if (!confirm(`Remove "${companiesList[i]}"?`)) return;
+  companiesList.splice(i, 1);
+  renderOrgList();
+  populateCompanySelects();
+  await persistOrgs();
+}
+
+async function persistOrgs() {
+  if (demoMode) return;
+  const { error } = await sbClient.from('app_settings')
+    .upsert({ key: 'organisations', value: JSON.stringify(companiesList) }, { onConflict: 'key' });
+  if (error) toast('Error saving organisations: ' + error.message);
+  else { toast('Organisations saved'); logSystemEvent('orgs_updated',`${companiesList.length} organisations: ${companiesList.join(', ')}`); }
+}
+
+function populateCompanySelects() {
+  const opts = '<option value="">— Select organisation —</option>' +
+    companiesList.map(c => `<option value="${esc(c)}">${c}</option>`).join('');
+  ['au-company','eu-company','nt-company'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const current = el.value;
+    el.innerHTML = opts;
+    if (current) el.value = current;
+  });
+}
+
+/* ── System Log ── */
+let sysLog = [];
+
+async function logSystemEvent(action, details) {
+  if (demoMode) return;
+  if (!sbClient || !currentProfile) return;
+  try {
+    await sbClient.from('system_log').insert({
+      actor_id:    currentProfile.id,
+      actor_name:  currentProfile.full_name || currentProfile.email || 'Unknown',
+      actor_role:  currentProfile.role,
+      action,
+      details: details || null,
+    });
+  } catch(e) { /* never block the UI */ }
+}
+
+async function loadSysLog() {
+  const tbody = document.getElementById('syslog-tbody');
+  if (tbody) tbody.innerHTML = '<tr class="loading-row"><td colspan="4"><div class="loader"></div></td></tr>';
+  if (demoMode) {
+    sysLog = [
+      {id:'s1', actor_name:'Dev Kumar',   actor_role:'admin',       action:'ticket_status',  details:'Ticket #11 → resolved',         created_at: new Date(Date.now()-5*60000).toISOString()},
+      {id:'s2', actor_name:'Sarah Johnson',actor_role:'admin',     action:'ticket_assigned',details:'Ticket #12 assigned to Sarah',   created_at: new Date(Date.now()-15*60000).toISOString()},
+      {id:'s3', actor_name:'Dev Kumar',   actor_role:'admin',       action:'user_created',   details:'User: jane@client.com',          created_at: new Date(Date.now()-2*3600000).toISOString()},
+      {id:'s4', actor_name:'Dev Kumar',   actor_role:'admin',       action:'version_updated',details:'Version set to v1.2.0',          created_at: new Date(Date.now()-5*3600000).toISOString()},
+      {id:'s5', actor_name:'Dev Kumar',   actor_role:'super_admin', action:'user_deleted',   details:'User: old@client.com',           created_at: new Date(Date.now()-24*3600000).toISOString()},
+      {id:'s6', actor_name:'Dev Kumar',   actor_role:'admin',       action:'backup_created', details:'Backup: 24 tickets, 6 profiles', created_at: new Date(Date.now()-2*24*3600000).toISOString()},
+    ];
+    renderSysLogTable(); return;
+  }
+  if (!sbClient) return;
+  const { data, error } = await sbClient
+    .from('system_log')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (error) { toast('Error loading system log: ' + error.message); return; }
+  sysLog = data || [];
+  const sub = document.getElementById('syslog-count-sub');
+  if (sub) sub.textContent = sysLog.length + ' events (last 500)';
+  renderSysLogTable();
+}
+
+function renderSysLogTable() {
+  const q  = (document.getElementById('syslog-search')?.value || '').toLowerCase();
+  const af = document.getElementById('syslog-action-filter')?.value || '';
+  let list = sysLog;
+  if (af) list = list.filter(a => a.action === af);
+  if (q)  list = list.filter(a =>
+    (a.actor_name||'').toLowerCase().includes(q) ||
+    (a.action||'').toLowerCase().includes(q) ||
+    (a.details||'').toLowerCase().includes(q)
+  );
+  const tbody = document.getElementById('syslog-tbody');
+  if (!tbody) return;
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No events found</td></tr>'; return; }
+
+  const actionBadge = a => ({
+    ticket_created:  '<span class="sb s-open">Ticket created</span>',
+    ticket_status:   '<span class="sb s-in_progress">Status changed</span>',
+    ticket_assigned: '<span class="sb s-in_progress">Tech assigned</span>',
+    user_created:    '<span class="sb s-resolved">User created</span>',
+    user_updated:    '<span class="sb s-resolved">User updated</span>',
+    user_deleted:    '<span class="sb" style="background:var(--danger-l);color:var(--danger)">User deleted</span>',
+    agent_invited:   '<span class="sb s-resolved">Agent invited</span>',
+    version_updated: '<span class="sb s-closed">Version updated</span>',
+    orgs_updated:    '<span class="sb s-closed">Orgs updated</span>',
+    backup_created:  '<span class="sb s-closed">Backup created</span>',
+  }[a] || `<span class="sb s-closed">${a}</span>`);
+
+  const rolePill = r => ({
+    super_admin: '<span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;background:var(--danger-l);color:var(--danger)">Super Admin</span>',
+    admin:       '<span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;background:var(--purple-l);color:var(--purple)">Admin</span>',
+  }[r] || '');
+
+  tbody.innerHTML = list.map(a => `
+    <tr>
+      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${timeAgo(a.created_at)}<div style="font-size:10px;margin-top:1px">${a.created_at ? new Date(a.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</div></td>
+      <td><div style="font-size:13px;font-weight:500">${esc(a.actor_name)||'—'}</div><div style="margin-top:3px">${rolePill(a.actor_role)}</div></td>
+      <td>${actionBadge(a.action)}</td>
+      <td style="font-size:12px;color:var(--text2)">${esc(a.details)||'—'}</td>
+    </tr>`).join('');
+}
+
+/* ── Activity Log ── */
+let activityLog = [];
+
+async function loadActivityLog() {
+  const tbody = document.getElementById('activity-tbody');
+  if (tbody) tbody.innerHTML = '<tr class="loading-row"><td colspan="6"><div class="loader"></div></td></tr>';
+  if (demoMode) {
+    activityLog = [
+      {id:'a1', user_name:'Jane Doe',   user_email:'jane@client.com',  action:'login',          status:'success', details:'Signed in',                    created_at: new Date(Date.now()-5*60000).toISOString()},
+      {id:'a2', user_name:'Dev Kumar',  user_email:'dev@support.com',  action:'login',          status:'success', details:'Signed in',                    created_at: new Date(Date.now()-12*60000).toISOString()},
+      {id:'a3', user_name:'Jane Doe',   user_email:'jane@client.com',  action:'signup_attempt', status:'success', details:'Account created',               created_at: new Date(Date.now()-2*3600000).toISOString()},
+      {id:'a4', user_name:'Unknown',    user_email:'bad@example.com',  action:'login',          status:'failed',  details:'Invalid login credentials',    created_at: new Date(Date.now()-4*3600000).toISOString()},
+      {id:'a5', user_name:'Robert Chen',user_email:'robert@client.com',action:'logout',         status:'success', details:'',                             created_at: new Date(Date.now()-6*3600000).toISOString()},
+      {id:'a6', user_name:'Unknown',    user_email:'jane@client.com',  action:'signup_attempt', status:'blocked', details:'Email already registered',      created_at: new Date(Date.now()-24*3600000).toISOString()},
+    ];
+    renderActivityTable();
+    return;
+  }
+  if (!sbClient) return;
+  const { data, error } = await sbClient
+    .from('user_activity')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (error) { toast('Error loading activity: ' + error.message); return; }
+  activityLog = data || [];
+  const sub = document.getElementById('activity-count-sub');
+  if (sub) sub.textContent = activityLog.length + ' events (last 500)';
+  renderActivityTable();
+}
+
+function renderActivityTable() {
+  const q  = (document.getElementById('activity-search')?.value || '').toLowerCase();
+  const af = document.getElementById('activity-action-filter')?.value || '';
+  const sf = document.getElementById('activity-status-filter')?.value || '';
+  let list = activityLog;
+  if (af) list = list.filter(a => a.action === af);
+  if (sf) list = list.filter(a => a.status === sf);
+  if (q)  list = list.filter(a =>
+    (a.user_name||'').toLowerCase().includes(q) ||
+    (a.user_email||'').toLowerCase().includes(q) ||
+    (a.action||'').toLowerCase().includes(q) ||
+    (a.details||'').toLowerCase().includes(q)
+  );
+  const tbody = document.getElementById('activity-tbody');
+  if (!tbody) return;
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No activity found</td></tr>'; return; }
+
+  const actionLabel = a => ({
+    login:          '<span class="sb s-open">Login</span>',
+    logout:         '<span class="sb s-closed">Logout</span>',
+    signup_attempt: '<span class="sb s-in_progress">Signup</span>',
+    signup_failed:  '<span class="sb s-waiting">Signup failed</span>',
+  }[a] || `<span class="sb s-closed">${a}</span>`);
+
+  const statusLabel = s => ({
+    success: '<span class="sb s-resolved">Success</span>',
+    failed:  '<span class="sb s-waiting">Failed</span>',
+    blocked: '<span class="sb" style="background:var(--danger-l);color:var(--danger)">Blocked</span>',
+  }[s] || `<span class="sb s-closed">${s}</span>`);
+
+  tbody.innerHTML = list.map(a => `
+    <tr>
+      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${timeAgo(a.created_at)}<div style="font-size:10px;margin-top:1px">${a.created_at ? new Date(a.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</div></td>
+      <td><div style="font-size:13px;font-weight:500">${esc(a.user_name)||'—'}</div></td>
+      <td style="font-size:12px;color:var(--text2)">${a.user_email ? `<a href="mailto:${esc(a.user_email)}" style="color:var(--accent);text-decoration:none">${esc(a.user_email)}</a>` : '—'}</td>
+      <td>${actionLabel(a.action)}</td>
+      <td>${statusLabel(a.status)}</td>
+      <td style="font-size:12px;color:var(--text2);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.details)||'—'}</td>
+    </tr>`).join('');
+}
+
+/* ── Log downloads ── */
+async function loadLogStats() {
+  if (demoMode) {
+    document.getElementById('bk-activity').textContent = '6';
+    document.getElementById('bk-syslog').textContent   = '6';
+    return;
+  }
+  if (!sbClient) return;
+  const [a, s] = await Promise.all([
+    sbClient.from('user_activity').select('*', { count: 'exact', head: true }),
+    sbClient.from('system_log').select('*',    { count: 'exact', head: true }),
+  ]);
+  document.getElementById('bk-activity').textContent = a.count ?? '—';
+  document.getElementById('bk-syslog').textContent   = s.count ?? '—';
+}
+
+async function downloadActivityLog() {
+  if (demoMode) { toast('Activity log download not available in demo mode'); return; }
+  toast('Fetching activity log…');
+  const { data, error } = await sbClient.from('user_activity').select('*').order('created_at', { ascending: false });
+  if (error) { toast('Error: ' + error.message); return; }
+  const date = new Date().toISOString().slice(0, 10);
+  downloadJSON({ exported_at: new Date().toISOString(), total: data.length, events: data }, `activity-log-${date}.json`);
+  toast('Activity log downloaded');
+  logSystemEvent('backup_created', `Activity log exported: ${data.length} events`);
+}
+
+async function downloadSysLog() {
+  if (demoMode) { toast('System log download not available in demo mode'); return; }
+  toast('Fetching system log…');
+  const { data, error } = await sbClient.from('system_log').select('*').order('created_at', { ascending: false });
+  if (error) { toast('Error: ' + error.message); return; }
+  const date = new Date().toISOString().slice(0, 10);
+  downloadJSON({ exported_at: new Date().toISOString(), total: data.length, events: data }, `system-log-${date}.json`);
+  toast('System log downloaded');
+  logSystemEvent('backup_created', `System log exported: ${data.length} events`);
+}
+
+/* ── Realtime ── */
+let realtimeChannel = null;
+
+function startRealtime() {
+  if (demoMode || !sbClient) return;
+  // Unsubscribe from any existing channel first
+  if (realtimeChannel) { sbClient.removeChannel(realtimeChannel); realtimeChannel = null; }
+
+  realtimeChannel = sbClient
+    .channel('tickets-realtime')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tickets' }, payload => {
+      // New ticket submitted by client — reload and notify
+      loadTickets();
+      const t = payload.new;
+      toast(`New ticket #${t.ticket_number}: ${t.subject?.slice(0,40) || 'New ticket received'}`);
+    })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tickets' }, payload => {
+      // Ticket updated (e.g. client reopened) — silently reload
+      loadTickets();
+    })
+    .subscribe((status) => {
+      const dot   = document.getElementById('db-dot');
+      const label = document.getElementById('db-label');
+      if (status === 'SUBSCRIBED') {
+        if (dot)   dot.className = 'dot connected';
+        if (label) label.textContent = 'Supabase live';
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        if (label) label.textContent = 'Supabase connected';
+      }
+    });
+}
+
+/* ── Version ── */
+function applyVersion(v) {
+  const footerEl = document.getElementById('footer-version');
+  if (footerEl) footerEl.textContent = 'v' + (v || '1.0.0');
+  const inputEl = document.getElementById('settings-version');
+  if (inputEl) inputEl.value = v || '1.0.0';
+}
+async function loadVersion() {
+  if (demoMode) { applyVersion('1.0.0'); return; }
+  if (!sbClient) return;
+  try {
+    const { data, error } = await sbClient
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'app_version')
+      .single();
+    applyVersion(error || !data ? '1.0.0' : data.value);
+  } catch(e) { applyVersion('1.0.0'); }
+}
+async function saveVersion() {
+  const v = (document.getElementById('settings-version').value || '').trim();
+  if (!v) { toast('Please enter a version string'); return; }
+  if (demoMode) { applyVersion(v); toast('Version updated to v' + v + ' (demo)'); return; }
+  const { error } = await sbClient
+    .from('app_settings')
+    .upsert({ key: 'app_version', value: v }, { onConflict: 'key' });
+  if (error) { toast('Error saving version: ' + error.message); return; }
+  applyVersion(v);
+  toast('Version updated to v' + v);
+  const prevV=document.getElementById('footer-version')?.textContent||'unknown'; logSystemEvent('version_updated',`${prevV} → v${v}`);
 }
 
 document.addEventListener('DOMContentLoaded', initSupabase);
@@ -1326,6 +2302,10 @@ document.addEventListener('DOMContentLoaded', initSupabase);
   <span>Email: <a href="mailto:helpdesk@el-martillo.com">helpdesk@el-martillo.com</a></span>
   <span class="footer-sep">|</span>
   <span>Tickets: <span class="footer-tickets" id="footer-ticket-count">—</span></span>
+  <span class="footer-sep">|</span>
+  <span>Users: <span class="footer-tickets" id="footer-user-count">—</span></span>
+  <span class="footer-sep">|</span>
+  <span id="footer-version">v1.0.0</span>
 </div>
 
 </body>
