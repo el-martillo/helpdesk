@@ -1257,11 +1257,33 @@ function autofillTicketFromEmail(email) {
 /* ── Submit ticket ── */
 async function populateCompanyDropdown() { await fillOrgSelect(document.getElementById('nt-company')); }
 
+/* ── Rate limit check ── */
+async function checkRateLimit(action) {
+  if (demoMode) return true;
+  try {
+    const res = await fetch(`${SB_URL}/functions/v1/rate-limit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+      body: JSON.stringify({ action }),
+    });
+    if (res.status === 429) {
+      const d = await res.json().catch(() => ({}));
+      const wait = d.retryAfter ? Math.ceil(d.retryAfter / 60) : 60;
+      return { allowed: false, message: `Too many attempts. Please try again in ${wait} minute${wait === 1 ? '' : 's'}.` };
+    }
+    if (!res.ok) { console.warn('[rate-limit] non-429 error, failing open:', res.status); return true; }
+    const d = await res.json();
+    return d.allowed !== false ? true : { allowed: false, message: 'Too many attempts. Please try again later.' };
+  } catch(e) { console.warn('[rate-limit] check failed (failing open):', e); return true; }
+}
+
 async function submitTicket() {
   const subject=document.getElementById('nt-subject').value.trim();
   const email=document.getElementById('nt-email').value.trim();
   if (!subject){toast('Subject is required');return;}
   if (!email){toast('Email is required');return;}
+  const rl = await checkRateLimit('ticket_submit');
+  if (rl !== true) { toast(rl.message); return; }
   const company=document.getElementById('nt-company').value||null;
   const payload={
     subject,
