@@ -8,6 +8,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="logo.png"/>
 <link rel="apple-touch-icon" href="logo.png"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit" async defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
 <style>
@@ -399,8 +400,11 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
     <!-- Sign in -->
     <div class="tab-page active" id="auth-signin">
-      <div class="fg"><label class="fl">Email</label><input id="si-email" class="fc" type="email" placeholder="you@example.com"/></div>
-      <div class="fg"><label class="fl">Password</label><input id="si-password" class="fc" type="password" placeholder="••••••••"/></div>
+      <div class="fg"><label class="fl">Email</label><input id="si-email" class="fc" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')document.getElementById('si-password').focus()"/></div>
+      <div class="fg"><label class="fl">Password</label><input id="si-password" class="fc" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')signIn()"/></div>
+      <div style="margin-bottom:14px;display:flex;justify-content:center">
+        <div class="g-recaptcha" id="recaptcha-signin" data-sitekey="6LcDeAAtAAAAADep9JhT8Tgf5HoXDxn_VZ1JFjSQ" data-theme="auto"></div>
+      </div>
       <button class="btn primary" style="width:100%;justify-content:center" onclick="signIn()">Sign in</button>
       <div class="err" id="si-err"></div>
     </div>
@@ -422,6 +426,9 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <div class="fg">
         <label class="fl">Repeat password *</label>
         <input id="su-password2" class="fc" type="password" placeholder="••••••••"/>
+      </div>
+      <div style="margin-bottom:14px;display:flex;justify-content:center">
+        <div class="g-recaptcha" id="recaptcha-signup" data-sitekey="6LcDeAAtAAAAADep9JhT8Tgf5HoXDxn_VZ1JFjSQ" data-theme="auto"></div>
       </div>
       <button class="btn primary" style="width:100%;justify-content:center" onclick="signUp()">Create account</button>
       <div class="err" id="su-err"></div>
@@ -746,9 +753,17 @@ async function ensureProfile(user, fallbackName) {
 
 async function signIn() {
   if (!sbClient){loadDemo();return;}
+  // reCAPTCHA v2 check
+  const recaptchaToken = grecaptcha.getResponse(window._siWidgetId);
+  if (!recaptchaToken) {
+    document.getElementById('si-err').textContent = 'Please complete the reCAPTCHA check.';
+    return;
+  }
+  document.getElementById('si-err').textContent = '';
   const email=document.getElementById('si-email').value, pass=document.getElementById('si-password').value;
   const {data,error}=await sbClient.auth.signInWithPassword({email,password:pass});
   if (error){
+    grecaptcha.reset(window._siWidgetId);
     document.getElementById('si-err').textContent=error.message;
     // Track failed login attempt
     try { await sbClient.from('user_activity').insert({ user_email: email, action:'login', status:'failed', details: error.message }); } catch{}
@@ -767,6 +782,13 @@ async function signIn() {
 }
 async function signUp() {
   if (!sbClient){loadDemo();return;}
+  // reCAPTCHA v2 check
+  const recaptchaToken = grecaptcha.getResponse(window._suWidgetId);
+  if (!recaptchaToken) {
+    document.getElementById('su-err').style.color='var(--danger)';
+    document.getElementById('su-err').textContent = 'Please complete the reCAPTCHA check.';
+    return;
+  }
   const name    = document.getElementById('su-name').value.trim();
   const email   = document.getElementById('su-email').value.trim();
   const phone   = document.getElementById('su-phone').value.trim();
@@ -803,6 +825,7 @@ async function signUp() {
   });
 
   if (error){
+    grecaptcha.reset(window._suWidgetId);
     errEl.style.color='var(--danger)';
     errEl.textContent=error.message;
     try { await sbClient.from('user_activity').insert({ user_email: email, user_name: name, action:'signup_failed', status:'failed', details: error.message }); } catch{}
@@ -1364,6 +1387,18 @@ async function loadVersion() {
     const el = document.getElementById('footer-version');
     if (el) el.textContent = 'v' + v;
   } catch(e) {}
+}
+
+/* ── reCAPTCHA explicit render ── */
+function onRecaptchaLoad() {
+  window._siWidgetId = grecaptcha.render('recaptcha-signin', {
+    sitekey: '6LcDeAAtAAAAADep9JhT8Tgf5HoXDxn_VZ1JFjSQ',
+    theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  });
+  window._suWidgetId = grecaptcha.render('recaptcha-signup', {
+    sitekey: '6LcDeAAtAAAAADep9JhT8Tgf5HoXDxn_VZ1JFjSQ',
+    theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  });
 }
 
 document.addEventListener('DOMContentLoaded', initSupabase);
