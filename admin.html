@@ -2,11 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src https://fonts.gstatic.com; connect-src 'self' https://gtcrmqbmlvtlyiwnshma.supabase.co wss://gtcrmqbmlvtlyiwnshma.supabase.co https://corsproxy.io https://api.allorigins.win https://rss.app; img-src 'self' data: https://ichef.bbci.co.uk https://rss.app; frame-src https://www.google.com;"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>El Martillo I.T. Ticketing System — Admin</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://www.google.com/recaptcha/api.js?render=explicit" async defer></script>
 <link rel="icon" type="image/x-icon" href="favicon.ico"/>
 <link rel="icon" type="image/png" sizes="32x32" href="logo.png"/>
 <link rel="apple-touch-icon" href="logo.png"/>
@@ -286,9 +284,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
     <h2>Admin sign in</h2>
     <p class="desc">Sign in with your admin account.</p>
-    <div class="fg"><label class="fl">Email</label><input id="auth-email" class="fc" type="email" placeholder="admin@example.com" onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()"/></div>
-    <div class="fg"><label class="fl">Password</label><input id="auth-password" class="fc" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')signIn()"/></div>
-    <div style="margin-bottom:14px;display:flex;justify-content:center"><div id="admin-recaptcha"></div></div>
+    <div class="fg"><label class="fl">Email</label><input id="auth-email" class="fc" type="email" placeholder="admin@example.com"/></div>
+    <div class="fg"><label class="fl">Password</label><input id="auth-password" class="fc" type="password" placeholder="••••••••"/></div>
     <button class="btn primary" style="width:100%;justify-content:center" onclick="signIn()">Sign in</button>
     <div id="auth-err" style="text-align:center;margin-top:10px;font-size:12px;color:var(--danger)"></div>
     <div style="text-align:center;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
@@ -366,7 +363,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         System log
       </div>
-      <div class="nav-item" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList();loadRateLimits()">
+      <div class="nav-item" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList();renderTicketCompanies()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </div>
@@ -694,6 +691,24 @@ textarea.fc { resize: vertical; min-height: 80px; }
             </div>
           </div>
 
+
+          <!-- Companies in tickets section -->
+          <div class="table-card" style="padding:20px" id="ticket-companies-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <div style="font-size:13px;font-weight:600">Companies in tickets</div>
+              <button class="btn sm" onclick="renderTicketCompanies()" style="padding:3px 8px">
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+              </button>
+            </div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
+              Companies derived from current ticket data. Click a company to filter tickets, or
+              <button onclick="importTicketCompaniesToOrgs()" class="btn sm" style="padding:2px 8px;font-size:11px;margin-left:2px">import all to Organisations</button>
+            </div>
+            <div id="ticket-companies-list">
+              <div style="font-size:12px;color:var(--text3);padding:4px 0">Loading…</div>
+            </div>
+          </div>
+
           <!-- Backup section -->
           <div class="table-card" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Database backup</div>
@@ -769,51 +784,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
             </div>
           </div>
 
-
-          <!-- Rate limits section -->
-          <div class="table-card" style="padding:20px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-              <div style="font-size:13px;font-weight:600">Rate limiting</div>
-              <span class="sb s-open" style="font-size:10px" id="rl-status-badge">—</span>
-            </div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:18px;line-height:1.6">
-              Maximum requests per IP per hour, enforced by the Edge Function. Saved to <code style="font-family:var(--mono);background:var(--border);padding:1px 4px;border-radius:3px">app_settings</code>.
-            </div>
-            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
-              <div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
-                <div><div style="font-size:13px;font-weight:500">Ticket submission</div><div style="font-size:11px;color:var(--text3);margin-top:2px">Logged-in clients submitting tickets</div></div>
-                <div style="display:flex;align-items:center;gap:6px"><input id="rl-ticket_submit-max" type="number" min="1" max="1000" class="fc" style="width:68px;text-align:center" value="10"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">/ hour</span></div>
-                <div style="display:flex;align-items:center;gap:6px"><input id="rl-ticket_submit-window" type="number" min="1" max="1440" class="fc" style="width:68px;text-align:center" value="60"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">min window</span></div>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
-                <div><div style="font-size:13px;font-weight:500">Sign in</div><div style="font-size:11px;color:var(--text3);margin-top:2px">Login attempts on the client portal</div></div>
-                <div style="display:flex;align-items:center;gap:6px"><input id="rl-sign_in-max" type="number" min="1" max="1000" class="fc" style="width:68px;text-align:center" value="15"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">/ hour</span></div>
-                <div style="display:flex;align-items:center;gap:6px"><input id="rl-sign_in-window" type="number" min="1" max="1440" class="fc" style="width:68px;text-align:center" value="60"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">min window</span></div>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
-                <div><div style="font-size:13px;font-weight:500">Sign up</div><div style="font-size:11px;color:var(--text3);margin-top:2px">New account registrations</div></div>
-                <div style="display:flex;align-items:center;gap:6px"><input id="rl-sign_up-max" type="number" min="1" max="1000" class="fc" style="width:68px;text-align:center" value="5"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">/ hour</span></div>
-                <div style="display:flex;align-items:center;gap:6px"><input id="rl-sign_up-window" type="number" min="1" max="1440" class="fc" style="width:68px;text-align:center" value="60"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">min window</span></div>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
-                <div><div style="font-size:13px;font-weight:500">Admin sign in</div><div style="font-size:11px;color:var(--text3);margin-top:2px">Login attempts on this admin panel</div></div>
-                <div style="display:flex;align-items:center;gap:6px"><input id="rl-admin_sign_in-max" type="number" min="1" max="1000" class="fc" style="width:68px;text-align:center" value="10"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">/ hour</span></div>
-                <div style="display:flex;align-items:center;gap:6px"><input id="rl-admin_sign_in-window" type="number" min="1" max="1440" class="fc" style="width:68px;text-align:center" value="60"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">min window</span></div>
-              </div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <button class="btn primary" onclick="saveRateLimits()">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                Save rate limits
-              </button>
-              <button class="btn" onclick="loadRateLimits()">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-                Refresh
-              </button>
-              <span style="font-size:11px;color:var(--text3)" id="rl-saved-msg"></span>
-            </div>
-          </div>
-
         </div>
       </div>
     </div>
@@ -835,7 +805,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <select id="nt-priority" class="fc"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="critical">Critical</option></select>
       </div>
       <div class="fg"><label class="fl">Category</label>
-        <select id="nt-category" class="fc"></select>
+        <select id="nt-category" class="fc"><option value="Billing">Billing</option><option value="Technical">Technical</option><option value="Account">Account</option><option value="General">General</option></select>
       </div>
     </div>
     <div class="fg"><label class="fl">Organisation</label><select id="nt-company" class="fc"><option value="">— Select company —</option></select></div>
@@ -871,7 +841,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       </div>
     </div>
     <div class="fg"><label class="fl">Notes</label><textarea id="au-notes" class="fc" placeholder="Any additional notes about this user…" style="min-height:60px;resize:none"></textarea></div>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:4px;line-height:1.6">A profile row will be created. To also grant login access, invite the user via your Supabase Auth dashboard.</p>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:4px;line-height:1.6">A profile row will be created. To also grant login access, invite the user via <a href="https://supabase.com/dashboard/project/gtcrmqbmlvtlyiwnshma/auth/users" target="_blank" style="color:var(--accent)">Supabase Auth →</a></p>
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-add-user')">Cancel</button>
       <button class="btn primary" onclick="addUser()">Add user</button>
@@ -1005,7 +975,7 @@ const timeAgo  = iso => { if(!iso) return '—'; const m=Math.floor((Date.now()-
 const sLabel   = s => ({open:'Open',in_progress:'In progress',waiting:'Waiting',resolved:'Resolved'}[s]||s);
 const profileById = id => profiles.find(p=>p.id===id);
 function toast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
-function openModal(id){document.getElementById(id).classList.add('open'); if(id==='modal-new-ticket') populateCategoryDropdown();}
+function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
 
@@ -1018,7 +988,9 @@ async function connectSupabase() {
     sbClient = window.supabase.createClient(url, key);
     const {error} = await sbClient.from('profiles').select('id').limit(1);
     if (error) throw error;
-    showAuthScreen();
+    localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
+    document.getElementById('cfg-screen').classList.remove('active');
+    document.getElementById('auth-screen').classList.add('active');
   } catch(e) { alert('Connection failed: '+e.message); }
 }
 function loadDemo() {
@@ -1043,22 +1015,10 @@ async function ensureProfile(user) {
 
 async function signIn() {
   if (!sbClient) { loadDemo(); return; }
-  const recaptchaToken = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse(_rcWidgetId) : '';
-  if (!recaptchaToken) {
-    document.getElementById('auth-err').textContent = 'Please complete the reCAPTCHA check.';
-    return;
-  }
-  document.getElementById('auth-err').textContent = '';
-  const rl = await checkRateLimit('admin_sign_in');
-  if (rl !== true) {
-    if (typeof grecaptcha !== 'undefined') grecaptcha.reset(_rcWidgetId);
-    document.getElementById('auth-err').textContent = rl.message;
-    return;
-  }
   const email = document.getElementById('auth-email').value;
   const pass  = document.getElementById('auth-password').value;
   const {data,error} = await sbClient.auth.signInWithPassword({email,password:pass});
-  if (error) { if (typeof grecaptcha !== 'undefined') grecaptcha.reset(_rcWidgetId); document.getElementById('auth-err').textContent = error.message; return; }
+  if (error) { document.getElementById('auth-err').textContent = error.message; return; }
   currentUser = data.user;
   const prof = await ensureProfile(currentUser);
   currentProfile = prof;
@@ -1069,11 +1029,11 @@ async function signIn() {
   document.getElementById('db-label').textContent = 'Supabase connected';
   document.getElementById('topbar-user').textContent = prof?.full_name||email;
   const rb = document.getElementById('topbar-role-badge'); if(rb) rb.textContent = prof?.role==='super_admin'?'Super Admin':'Admin';
-  document.getElementById('settings-url').value = SB_URL;
-  loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadCategoriesFromSupabase().then(populateCategoryDropdown);
+  document.getElementById('settings-url').value = localStorage.getItem('sb_url')||'';
+  loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime();
 }
 async function signOut() { if(realtimeChannel && sbClient) sbClient.removeChannel(realtimeChannel); if(sbClient) await sbClient.auth.signOut(); location.reload(); }
-function clearCreds() { location.reload(); }
+function clearCreds() { localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key'); location.reload(); }
 
 /* ── Data ── */
 async function loadTickets() {
@@ -1083,7 +1043,7 @@ async function loadTickets() {
     .select('*, requester:profiles!requester_id(id,full_name,company), assignee:profiles!assignee_id(id,full_name,company)')
     .order('updated_at',{ascending:false});
   if (error) { toast('Error: '+error.message); return; }
-  tickets = data||[]; renderTable(); updateStats(); updateBadges(); renderDashboard();
+  tickets = data||[]; renderTable(); updateStats(); updateBadges(); renderDashboard(); if(document.getElementById('page-settings')?.classList.contains('active')) renderTicketCompanies();
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
 }
 async function loadProfiles() {
@@ -1500,6 +1460,7 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 async function initSupabase() {
   if (!window.supabase) { console.error('Supabase SDK not loaded'); return; }
   const url = SB_URL, key = SB_KEY;
+  localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
   const cfgUrl = document.getElementById('cfg-url');
   const cfgKey = document.getElementById('cfg-key');
   if (cfgUrl) cfgUrl.value = url;
@@ -1520,7 +1481,8 @@ async function initSupabase() {
       // Block client accounts from accessing admin
       if (!prof?.role || prof?.role === 'client') {
         await sbClient.auth.signOut();
-        showAuthScreen();
+        document.getElementById('cfg-screen').classList.remove('active');
+        document.getElementById('auth-screen').classList.add('active');
         document.getElementById('auth-err').textContent = 'Access denied. Client accounts must use the client portal.';
         return;
       }
@@ -1530,14 +1492,16 @@ async function initSupabase() {
       const rb = document.getElementById('topbar-role-badge');
       if (rb) rb.textContent = prof?.role === 'super_admin' ? 'Super Admin' : 'Admin';
       document.getElementById('app').style.display = 'flex';
-      loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadCategoriesFromSupabase().then(populateCategoryDropdown); startIdleTimeout();
+      loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime();
     } else {
-      showAuthScreen();
+      document.getElementById('cfg-screen').classList.remove('active');
+      document.getElementById('auth-screen').classList.add('active');
       loadVersion();
     }
   } catch(e) {
     console.error('Session restore error:', e);
-    showAuthScreen();
+    document.getElementById('cfg-screen').classList.remove('active');
+    document.getElementById('auth-screen').classList.add('active');
   }
 }
 
@@ -1585,7 +1549,7 @@ function renderUsersTable() {
           <div class="avatar ${avColor(p.id)}" style="width:30px;height:30px;font-size:11px">${initials(p.full_name||'?')}</div>
           <div>
             <div style="font-weight:500;font-size:13px">${esc(p.full_name)||'—'}</div>
-            <div style="font-size:11px;margin-top:2px">${p.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email) ? `<a href="mailto:${esc(p.email)}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${esc(p.email)}</a>` : p.email ? `<span style="font-family:var(--mono)">${esc(p.email)}</span>` : `<span style="color:var(--text3);font-family:var(--mono)">${p.id.slice(0,8)}…</span>`}</div>
+            <div style="font-size:11px;margin-top:2px">${p.email ? `<a href="mailto:${esc(p.email)}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${esc(p.email)}</a>` : `<span style="color:var(--text3);font-family:var(--mono)">${p.id.slice(0,8)}…</span>`}</div>
           </div>
         </div>
       </td>
@@ -1715,31 +1679,6 @@ async function addUser() {
   logSystemEvent('user_created',`${payload.full_name} (${payload.email}) | Role: ${payload.role}${payload.company?' | Org: '+payload.company:''}`);
 }
 
-/* ── Categories ── */
-async function loadCategoriesFromSupabase() {
-  if (demoMode || !sbClient) return;
-  try {
-    const { data } = await sbClient.from('settings').select('value').eq('key','categories').single();
-    if (data?.value) localStorage.setItem('app_categories', data.value);
-  } catch { /* use defaults */ }
-}
-
-function getCategories() {
-  const raw = localStorage.getItem('app_categories') || '';
-  const list = raw.split('\n').map(s => s.trim()).filter(Boolean);
-  return list.length ? list : ['Technical','Billing','Account','General'];
-}
-
-function populateCategoryDropdown() {
-  const sel = document.getElementById('nt-category');
-  if (!sel) return;
-  const cats = getCategories();
-  const current = sel.value || cats[0];
-  sel.innerHTML = cats.map(c =>
-    `<option value="${c}" ${c === current ? 'selected' : ''}>${c}</option>`
-  ).join('');
-}
-
 /* ── Backup ── */
 async function loadBackupStats() {
   if (demoMode) {
@@ -1760,10 +1699,6 @@ async function loadBackupStats() {
 }
 
 async function runBackup() {
-  if (!demoMode && currentProfile?.role !== 'super_admin') {
-    toast('Backup restricted to Super Admins only.');
-    return;
-  }
   const btn = document.getElementById('btn-backup');
   const progress = document.getElementById('backup-progress');
   const msg = document.getElementById('backup-progress-msg');
@@ -1971,6 +1906,108 @@ async function loadUserCount() {
   const { count } = await sbClient.from('profiles').select('*', { count: 'exact', head: true });
   const fuc = document.getElementById('footer-user-count');
   if (fuc && count !== null) fuc.textContent = count;
+}
+
+/* ── Ticket Companies ── */
+function renderTicketCompanies() {
+  const el = document.getElementById('ticket-companies-list');
+  if (!el) return;
+
+  // Build a map of company → { total, open } from the loaded tickets array
+  const map = {};
+  tickets.forEach(t => {
+    const req = demoMode ? profileById(t.requester_id) : (t.requester || {});
+    const co  = req?.company?.trim();
+    if (!co) return;
+    if (!map[co]) map[co] = { total: 0, open: 0 };
+    map[co].total++;
+    if (!['resolved','closed'].includes(t.status)) map[co].open++;
+  });
+
+  const entries = Object.entries(map).sort((a, b) => b[1].total - a[1].total);
+
+  if (!entries.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:4px 0">No company data found in tickets.</div>';
+    return;
+  }
+
+  const maxTotal = Math.max(...entries.map(([, v]) => v.total), 1);
+
+  el.innerHTML = entries.map(([co, { total, open }]) => {
+    const resolved = total - open;
+    const pct      = Math.round(total / maxTotal * 100);
+    const inOrgs   = companiesList.map(c => c.toLowerCase()).includes(co.toLowerCase());
+    return `
+    <div style="padding:9px 0;border-bottom:1px solid var(--border)" class="ticket-co-row">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <div style="flex:1;min-width:0">
+          <span style="font-size:13px;font-weight:500;cursor:pointer;color:var(--accent)"
+                onclick="filterTicketsByCompany('${esc(co)}')"
+                title="Filter tickets by this company">${esc(co)}</span>
+          ${inOrgs
+            ? '<span style="font-size:10px;color:var(--success);margin-left:6px;font-weight:600">✓ in orgs</span>'
+            : `<button onclick="addSingleCompanyToOrgs('${esc(co)}')" class="btn sm" style="font-size:10px;padding:1px 7px;margin-left:6px" title="Add to Organisations list">+ add to orgs</button>`
+          }
+        </div>
+        <div style="display:flex;gap:10px;font-size:11px;color:var(--text3);white-space:nowrap">
+          <span style="color:var(--accent);font-weight:600">${open} open</span>
+          <span>${resolved} resolved</span>
+          <span style="font-weight:500;color:var(--text2)">${total} total</span>
+        </div>
+      </div>
+      <div style="height:5px;background:var(--bg);border-radius:4px;overflow:hidden;border:1px solid var(--border)">
+        <div style="display:flex;height:100%">
+          ${open     ? `<div style="width:${Math.round(open/total*pct)}%;background:var(--accent);transition:width .3s"></div>` : ''}
+          ${resolved ? `<div style="width:${Math.round(resolved/total*pct)}%;background:var(--success-l);transition:width .3s"></div>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterTicketsByCompany(company) {
+  // Navigate to All Tickets and filter by company name in search
+  const allNavEl = document.querySelector("[onclick*='adminNav'][onclick*=\"'all'\"]");
+  if (allNavEl) adminNav(allNavEl, 'all');
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) {
+    searchInput.value = company;
+    renderTable();
+  }
+}
+
+async function addSingleCompanyToOrgs(company) {
+  if (companiesList.map(c => c.toLowerCase()).includes(company.toLowerCase())) {
+    toast(`"${company}" is already in Organisations`);
+    return;
+  }
+  companiesList.push(company);
+  companiesList.sort((a, b) => a.localeCompare(b));
+  populateCompanySelects();
+  renderOrgList();
+  renderTicketCompanies();
+  await persistOrgs();
+  toast(`"${company}" added to Organisations`);
+}
+
+async function importTicketCompaniesToOrgs() {
+  const ticketCompanies = [...new Set(
+    tickets.map(t => {
+      const req = demoMode ? profileById(t.requester_id) : (t.requester || {});
+      return req?.company?.trim();
+    }).filter(Boolean)
+  )];
+  const newOnes = ticketCompanies.filter(
+    c => !companiesList.map(x => x.toLowerCase()).includes(c.toLowerCase())
+  );
+  if (!newOnes.length) { toast('All companies already in Organisations list'); return; }
+  companiesList.push(...newOnes);
+  companiesList.sort((a, b) => a.localeCompare(b));
+  populateCompanySelects();
+  renderOrgList();
+  renderTicketCompanies();
+  await persistOrgs();
+  toast(`${newOnes.length} company${newOnes.length > 1 ? 's' : ''} added to Organisations`);
 }
 
 /* ── Companies ── */
@@ -2351,112 +2388,6 @@ async function saveVersion() {
   applyVersion(v);
   toast('Version updated to v' + v);
   const prevV=document.getElementById('footer-version')?.textContent||'unknown'; logSystemEvent('version_updated',`${prevV} → v${v}`);
-}
-
-/* ── reCAPTCHA explicit render ── */
-let _rcWidgetId = null;
-function showAuthScreen() {
-  document.getElementById('cfg-screen').classList.remove('active');
-  document.getElementById('auth-screen').classList.add('active');
-  // Wait for the screen to be painted (visible) before rendering the widget.
-  // grecaptcha.render fails silently on display:none containers, so we must
-  // wait at least one animation frame after making the screen visible.
-  requestAnimationFrame(() => {
-    const poll = setInterval(() => {
-      if (typeof grecaptcha !== 'undefined' && typeof grecaptcha.render === 'function') {
-        clearInterval(poll);
-        if (_rcWidgetId === null) {
-          _rcWidgetId = grecaptcha.render('admin-recaptcha', {
-            sitekey: '6LcDeAAtAAAAADep9JhT8Tgf5HoXDxn_VZ1JFjSQ',
-            theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
-          });
-        } else {
-          grecaptcha.reset(_rcWidgetId);
-        }
-      }
-    }, 50);
-  });
-}
-
-/* ── Rate limit check ── */
-async function checkRateLimit(action) {
-  if (demoMode) return true;
-  try {
-    const res = await fetch(`${SB_URL}/functions/v1/rate-limit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
-      body: JSON.stringify({ action }),
-    });
-    if (res.status === 429) {
-      const d = await res.json().catch(() => ({}));
-      const wait = d.retryAfter ? Math.ceil(d.retryAfter / 60) : 60;
-      return { allowed: false, message: `Too many attempts. Please try again in ${wait} minute${wait === 1 ? '' : 's'}.` };
-    }
-    if (!res.ok) { console.warn('[rate-limit] non-429 error, failing open:', res.status); return true; }
-    const d = await res.json();
-    return d.allowed !== false ? true : { allowed: false, message: 'Too many attempts. Please try again later.' };
-  } catch(e) { console.warn('[rate-limit] check failed (failing open):', e); return true; }
-}
-
-/* ── Rate Limits settings ── */
-const RL_ACTIONS = ['ticket_submit', 'sign_in', 'sign_up', 'admin_sign_in'];
-const RL_KEY = 'rl_limits';
-async function loadRateLimits() {
-  const badge = document.getElementById('rl-status-badge');
-  if (badge) { badge.textContent = 'Loading…'; badge.className = 'sb s-waiting'; }
-  const defaults = { ticket_submit:{max:10,windowSeconds:3600}, sign_in:{max:15,windowSeconds:3600}, sign_up:{max:5,windowSeconds:3600}, admin_sign_in:{max:10,windowSeconds:3600} };
-  if (demoMode) { applyRateLimitFields(defaults); if (badge) { badge.textContent='Demo mode'; badge.className='sb s-closed'; } return; }
-  try {
-    const { data, error } = await sbClient.from('app_settings').select('value').eq('key', RL_KEY).maybeSingle();
-    const limits = (!error && data?.value) ? JSON.parse(data.value) : defaults;
-    applyRateLimitFields({ ...defaults, ...limits });
-    if (badge) { badge.textContent = data?.value ? 'Loaded from DB' : 'Using defaults'; badge.className = 'sb s-resolved'; }
-  } catch(e) { applyRateLimitFields(defaults); if (badge) { badge.textContent='Using defaults'; badge.className='sb s-waiting'; } }
-}
-function applyRateLimitFields(limits) {
-  RL_ACTIONS.forEach(action => {
-    const cfg = limits[action] || {};
-    const maxEl = document.getElementById(`rl-${action}-max`);
-    const winEl = document.getElementById(`rl-${action}-window`);
-    if (maxEl) maxEl.value = cfg.max ?? '';
-    if (winEl) winEl.value = cfg.windowSeconds ? Math.round(cfg.windowSeconds / 60) : 60;
-  });
-}
-async function saveRateLimits() {
-  const msg = document.getElementById('rl-saved-msg');
-  const badge = document.getElementById('rl-status-badge');
-  const limits = {};
-  for (const action of RL_ACTIONS) {
-    const maxVal = parseInt(document.getElementById(`rl-${action}-max`)?.value);
-    const winVal = parseInt(document.getElementById(`rl-${action}-window`)?.value);
-    if (isNaN(maxVal)||maxVal<1) { toast(`Invalid max for ${action}`); return; }
-    if (isNaN(winVal)||winVal<1) { toast(`Invalid window for ${action}`); return; }
-    limits[action] = { max: maxVal, windowSeconds: winVal * 60 };
-  }
-  if (demoMode) { if(msg) msg.textContent='✓ Saved (demo only)'; if(badge){badge.textContent='Saved';badge.className='sb s-resolved';} toast('Rate limits saved (demo)'); setTimeout(()=>{if(msg)msg.textContent='';},3000); return; }
-  const { error } = await sbClient.from('app_settings').upsert({ key: RL_KEY, value: JSON.stringify(limits) }, { onConflict: 'key' });
-  if (error) { toast('Error saving: '+error.message); if(badge){badge.textContent='Save failed';badge.className='sb s-closed';} return; }
-  if(msg){msg.textContent='✓ Saved at '+new Date().toLocaleTimeString();}
-  if(badge){badge.textContent='Saved';badge.className='sb s-resolved';}
-  toast('Rate limits saved');
-  setTimeout(()=>{if(msg)msg.textContent='';},4000);
-}
-
-/* ── Idle session timeout (L3) ── */
-function startIdleTimeout() {
-  let idleTimer;
-  const IDLE_MS = 30 * 60 * 1000; // 30 minutes
-  function resetIdle() {
-    clearTimeout(idleTimer);
-    idleTimer = setTimeout(async () => {
-      if (sbClient) await sbClient.auth.signOut();
-      location.reload();
-    }, IDLE_MS);
-  }
-  ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'].forEach(e =>
-    document.addEventListener(e, resetIdle, { passive: true })
-  );
-  resetIdle();
 }
 
 document.addEventListener('DOMContentLoaded', initSupabase);
