@@ -351,7 +351,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         Users
       </div>
-      <div class="nav-item" onclick="adminNav(this,'reports')">
+      <div class="nav-item" onclick="adminNav(this,'reports');renderTicketCompanies()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="4" height="11"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="3" width="4" height="18"/></svg>
         Reports
       </div>
@@ -363,7 +363,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         System log
       </div>
-      <div class="nav-item" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList();renderTicketCompanies()">
+      <div class="nav-item" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </div>
@@ -554,6 +554,23 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </div>
           <div id="report-agent-performance"></div>
         </div>
+
+        <!-- Companies in tickets section -->
+          <div class="table-card" style="padding:20px;margin-top:16px" id="ticket-companies-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <div style="font-size:13px;font-weight:600">Companies in tickets</div>
+              <button class="btn sm" onclick="renderTicketCompanies()" style="padding:3px 8px">
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+              </button>
+            </div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
+              Companies derived from current ticket data. Click a company to filter tickets, or
+              <button onclick="importTicketCompaniesToOrgs()" class="btn sm" style="padding:2px 8px;font-size:11px;margin-left:2px">import all to Organisations</button>
+            </div>
+            <div id="ticket-companies-list">
+              <div style="font-size:12px;color:var(--text3);padding:4px 0">Loading…</div>
+            </div>
+          </div>
       </div>
 
       <!-- Activity Log -->
@@ -637,8 +654,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <div class="page-header"><div><h1>Settings</h1><p>System configuration</p></div></div>
         <div class="settings-grid">
 
-          <!-- Col 1: General + Version -->
-          <div style="display:flex;flex-direction:column;gap:16px">
           <!-- General settings -->
           <div class="table-card" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:14px">General</div>
@@ -671,8 +686,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
             <button class="btn primary" onclick="saveVersion()">Save version</button>
           </div>
 
-          </div><!-- /col1 -->
-
           <!-- Organisations section -->
           <div class="table-card" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Organisations</div>
@@ -688,24 +701,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
                 <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
                 Add
               </button>
-            </div>
-          </div>
-
-
-          <!-- Companies in tickets section -->
-          <div class="table-card" style="padding:20px" id="ticket-companies-card">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-              <div style="font-size:13px;font-weight:600">Companies in tickets</div>
-              <button class="btn sm" onclick="renderTicketCompanies()" style="padding:3px 8px">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-              </button>
-            </div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
-              Companies derived from current ticket data. Click a company to filter tickets, or
-              <button onclick="importTicketCompaniesToOrgs()" class="btn sm" style="padding:2px 8px;font-size:11px;margin-left:2px">import all to Organisations</button>
-            </div>
-            <div id="ticket-companies-list">
-              <div style="font-size:12px;color:var(--text3);padding:4px 0">Loading…</div>
             </div>
           </div>
 
@@ -753,7 +748,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </div>
 
           <!-- Logs download section -->
-          <div class="table-card" style="padding:20px;margin-top:16px">
+          <div class="table-card" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Download logs</div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Export activity and system logs as JSON files for auditing or offline analysis.
@@ -1043,7 +1038,7 @@ async function loadTickets() {
     .select('*, requester:profiles!requester_id(id,full_name,company), assignee:profiles!assignee_id(id,full_name,company)')
     .order('updated_at',{ascending:false});
   if (error) { toast('Error: '+error.message); return; }
-  tickets = data||[]; renderTable(); updateStats(); updateBadges(); renderDashboard(); if(document.getElementById('page-settings')?.classList.contains('active')) renderTicketCompanies();
+  tickets = data||[]; renderTable(); updateStats(); updateBadges(); renderDashboard(); if(document.getElementById('page-reports')?.classList.contains('active')) renderTicketCompanies();
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
 }
 async function loadProfiles() {
