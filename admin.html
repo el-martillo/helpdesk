@@ -214,7 +214,18 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .tid { font-family: var(--mono); font-size: 11px; color: var(--text3); }
 .flex-c { display: flex; align-items: center; gap: 6px; }
 .attach-thumb { max-width:100%;max-height:220px;border-radius:var(--radius);border:1px solid var(--border);display:block;margin-bottom:4px; }
-.attach-thumb-sm { width:48px;height:48px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:pointer; }
+.attach-thumb-sm { width:48px;height:48px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:zoom-in; }
+#lb-overlay { position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;padding:16px; }
+#lb-overlay.open { display:flex; }
+#lb-img { max-width:min(92vw,1200px);max-height:88vh;object-fit:contain;border-radius:var(--radius);box-shadow:0 8px 40px rgba(0,0,0,.6);display:block; }
+#lb-close { position:fixed;top:16px;right:20px;color:#fff;font-size:28px;cursor:pointer;opacity:.8;background:none;border:none;font-family:var(--font);line-height:1; }
+#lb-close:hover { opacity:1; }
+#lb-prev,#lb-next { position:fixed;top:50%;transform:translateY(-50%);color:#fff;cursor:pointer;background:rgba(0,0,0,.4);border:none;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:28px;opacity:.8;transition:all .15s; }
+#lb-prev:hover,#lb-next:hover { opacity:1;background:rgba(0,0,0,.65); }
+#lb-prev { left:12px; }
+#lb-next { right:12px; }
+#lb-counter { position:fixed;bottom:18px;left:50%;transform:translateX(-50%);color:#fff;font-size:12px;opacity:.7;background:rgba(0,0,0,.4);padding:4px 12px;border-radius:10px;pointer-events:none; }
+#lb-caption { position:fixed;bottom:46px;left:50%;transform:translateX(-50%);color:#fff;font-size:12px;opacity:.75;max-width:80vw;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none; }
 .cat-badge { display:inline-flex; align-items:center; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:600; white-space:nowrap; }
 .cat-billing   { background:#EAF3DE; color:#3B6D11; }
 .cat-technical { background:#E6F1FB; color:#185FA5; }
@@ -1160,7 +1171,7 @@ function renderTable(statusFilter) {
       <td><span class="tid">#${t.ticket_number}</span></td>
       <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${esc(req?.full_name)||'—'}</span></div></td>
       <td style="font-size:12px;color:var(--text2);white-space:nowrap">${esc(req?.company)||'—'}</td>
-      <td style="max-width:200px"><div style="display:flex;align-items:center;gap:6px">${(()=>{const urls=t.attachment_urls?JSON.parse(t.attachment_urls):(t.attachment_url?[t.attachment_url]:[]);return urls.length?`<div style="position:relative;flex-shrink:0"><img src="${urls[0]}" class="attach-thumb-sm" title="${urls.length} attachment${urls.length>1?'s':''}" onclick="event.stopPropagation();window.open('${urls[0]}','_blank')"/>${urls.length>1?`<span style="position:absolute;bottom:2px;right:2px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 4px;line-height:1">${urls.length}</span>`:''}</div>`:'';})()}  <div style="min-width:0"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.subject)}</div><span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}" style="margin-top:3px">${esc(t.category||'General')}</span></div></div></td>
+      <td style="max-width:200px"><div style="display:flex;align-items:center;gap:6px">${(()=>{const urls=t.attachment_urls?JSON.parse(t.attachment_urls):(t.attachment_url?[t.attachment_url]:[]);return urls.length?`<div style="position:relative;flex-shrink:0"><img src="${urls[0]}" class="attach-thumb-sm" title="${urls.length} attachment${urls.length>1?'s':''}" onclick="event.stopPropagation();openLightbox(urls,0)"/>${urls.length>1?`<span style="position:absolute;bottom:2px;right:2px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 4px;line-height:1">${urls.length}</span>`:''}</div>`:'';})()}  <div style="min-width:0"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.subject)}</div><span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}" style="margin-top:3px">${esc(t.category||'General')}</span></div></div></td>
       <td><span class="sb s-${t.status}">${sLabel(t.status)}</span></td>
       <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
       <td style="font-size:12px;color:var(--text2)">${esc(asgn?.full_name)||'—'}</td>
@@ -1270,7 +1281,9 @@ async function openTicketDetail(id) {
     ${(()=>{
       const urls=t.attachment_urls?JSON.parse(t.attachment_urls):(t.attachment_url?[t.attachment_url]:[]);
       if(!urls.length) return '';
-      const thumbs=urls.map((u,i)=>`<div style="position:relative"><a href="${u}" target="_blank" rel="noopener"><img src="${u}" class="attach-thumb" style="max-height:180px;margin-top:0" alt="attachment ${i+1}"/></a><a href="${u}" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent);display:block;margin-top:4px">Open full size ↗</a></div>`).join('');
+      const _urlsForLb = urls;
+      const thumbs=urls.map((u,i)=>`<div style="position:relative"><img src="${u}" class="attach-thumb" style="max-height:180px;margin-top:0;cursor:zoom-in" alt="attachment ${i+1}" onclick="openLightbox(_lbTicketUrls,${i})"/><a href="${u}" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent);display:block;margin-top:4px">Open full size ↗</a></div>`).join('');
+      window._lbTicketUrls = urls;
       return `<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">Attachments (${urls.length})</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">${thumbs}</div></div>`;
     })()}
     <div class="activity">
@@ -2518,6 +2531,50 @@ async function saveVersion() {
   const prevV=document.getElementById('footer-version')?.textContent||'unknown'; logSystemEvent('version_updated',`${prevV} → v${v}`);
 }
 
+/* ── Lightbox ── */
+let _lbUrls = [], _lbIdx = 0;
+
+function openLightbox(urls, startIdx) {
+  _lbUrls = Array.isArray(urls) ? urls : [urls];
+  _lbIdx  = startIdx || 0;
+  lbShow();
+  document.addEventListener('keydown', lbKeyHandler);
+}
+
+function lbShow() {
+  const url = _lbUrls[_lbIdx];
+  document.getElementById('lb-img').src = url;
+  document.getElementById('lb-caption').textContent = url.split('/').pop().split('?')[0] || '';
+  const counter = document.getElementById('lb-counter');
+  counter.textContent = _lbUrls.length > 1 ? (_lbIdx + 1) + ' / ' + _lbUrls.length : '';
+  document.getElementById('lb-prev').style.display = _lbUrls.length > 1 ? 'flex' : 'none';
+  document.getElementById('lb-next').style.display = _lbUrls.length > 1 ? 'flex' : 'none';
+  document.getElementById('lb-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  document.getElementById('lb-overlay').classList.remove('open');
+  document.getElementById('lb-img').src = '';
+  document.body.style.overflow = '';
+  document.removeEventListener('keydown', lbKeyHandler);
+}
+
+function lbClose(e) {
+  if (e.target === document.getElementById('lb-overlay')) closeLightbox();
+}
+
+function lbNav(dir) {
+  _lbIdx = (_lbIdx + dir + _lbUrls.length) % _lbUrls.length;
+  lbShow();
+}
+
+function lbKeyHandler(e) {
+  if (e.key === 'Escape')     closeLightbox();
+  if (e.key === 'ArrowRight') lbNav(1);
+  if (e.key === 'ArrowLeft')  lbNav(-1);
+}
+
 document.addEventListener('DOMContentLoaded', initSupabase);
 </script>
 <style>
@@ -2556,5 +2613,15 @@ document.addEventListener('DOMContentLoaded', initSupabase);
   <span id="footer-version">v1.0.0</span>
 </div>
 
+
+<!-- Lightbox -->
+<div id="lb-overlay" onclick="lbClose(event)">
+  <button id="lb-close" onclick="closeLightbox()">&#x2715;</button>
+  <img id="lb-img" src="" alt=""/>
+  <button id="lb-prev" onclick="lbNav(-1)">&#8249;</button>
+  <button id="lb-next" onclick="lbNav(1)">&#8250;</button>
+  <div id="lb-caption"></div>
+  <div id="lb-counter"></div>
+</div>
 </body>
 </html>
