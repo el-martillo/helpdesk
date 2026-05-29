@@ -522,13 +522,19 @@ textarea.fc { resize: vertical; min-height: 80px; }
           <div class="table-toolbar">
             <div class="search-wrap">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input type="text" id="users-search" placeholder="Search users…" oninput="renderUsersTable()"/>
+              <input type="text" id="users-search" placeholder="Search users…" oninput="usersPerPage=parseInt(document.getElementById('users-per-page')?.value||'25');renderUsersTable()"/>
             </div>
-            <select class="filter-sel" id="users-role-filter" onchange="renderUsersTable()">
+            <select class="filter-sel" id="users-role-filter" onchange="usersPerPage=parseInt(document.getElementById('users-per-page')?.value||'25');renderUsersTable()">
               <option value="">All roles</option>
               <option value="super_admin">Super Admin</option>
               <option value="admin">Admin</option>
               <option value="client">Client</option>
+            </select>
+            <select class="filter-sel" id="users-per-page" onchange="usersPerPage=parseInt(this.value);renderUsersTable()" style="font-size:12px">
+              <option value="10">10 / page</option>
+              <option value="25" selected>25 / page</option>
+              <option value="50">50 / page</option>
+              <option value="99999">All</option>
             </select>
             <button class="btn sm" onclick="loadAllProfiles()">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
@@ -621,6 +627,12 @@ textarea.fc { resize: vertical; min-height: 80px; }
               <option value="failed">Failed</option>
               <option value="blocked">Blocked</option>
             </select>
+            <select class="filter-sel" id="activity-per-page" onchange="activityPerPage=parseInt(this.value);renderActivityTable()" style="font-size:12px">
+              <option value="25">25 / page</option>
+              <option value="50" selected>50 / page</option>
+              <option value="100">100 / page</option>
+              <option value="99999">All</option>
+            </select>
             <button class="btn sm" onclick="loadActivityLog()">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
               Refresh
@@ -631,7 +643,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           <div class="table-toolbar">
             <div class="search-wrap">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input type="text" id="activity-search" placeholder="Search by user or action…" oninput="renderActivityTable()"/>
+              <input type="text" id="activity-search" placeholder="Search by user or action…" oninput="activityPerPage=parseInt(document.getElementById('activity-per-page')?.value||'50');renderActivityTable()"/>
             </div>
           </div>
           <table>
@@ -659,6 +671,12 @@ textarea.fc { resize: vertical; min-height: 80px; }
               <option value="orgs_updated">Organisations updated</option>
               <option value="backup_created">Backup created</option>
             </select>
+            <select class="filter-sel" id="syslog-per-page" onchange="syslogPerPage=parseInt(this.value);renderSysLogTable()" style="font-size:12px">
+              <option value="25">25 / page</option>
+              <option value="50" selected>50 / page</option>
+              <option value="100">100 / page</option>
+              <option value="99999">All</option>
+            </select>
             <button class="btn sm" onclick="loadSysLog()">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
               Refresh
@@ -669,7 +687,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           <div class="table-toolbar">
             <div class="search-wrap">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input type="text" id="syslog-search" placeholder="Search by user or details…" oninput="renderSysLogTable()"/>
+              <input type="text" id="syslog-search" placeholder="Search by user or details…" oninput="syslogPerPage=parseInt(document.getElementById('syslog-per-page')?.value||'50');renderSysLogTable()"/>
             </div>
           </div>
           <table>
@@ -1265,6 +1283,94 @@ function updateBadges() {
   document.getElementById('badge-waiting').textContent= tickets.filter(t=>t.status==='waiting').length;
 }
 
+/* ── Per-page state for all tables ── */
+let usersPerPage    = 25;
+let activityPerPage = 50;
+let syslogPerPage   = 50;
+
+/* ── Filtered status pages sort state ── */
+const fltSort = {}; // keyed by status page name
+
+function setFltSort(page, key) {
+  if (!fltSort[page]) fltSort[page] = { key: 'updated_at', dir: 'desc' };
+  const s = fltSort[page];
+  if (s.key === key) { s.dir = s.dir === 'asc' ? 'desc' : 'asc'; }
+  else { s.key = key; s.dir = key === 'updated_at' ? 'desc' : 'asc'; }
+  // Update header indicators
+  document.querySelectorAll(`[id^="flt-th-${page}-"]`).forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    const col = th.id.replace(`flt-th-${page}-`,'');
+    const keyMap = { id:'ticket_number', client:'client', company:'company', subject:'subject', priority:'priority', assignee:'assignee', updated:'updated_at' };
+    if (keyMap[col] === s.key) th.classList.add(s.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+  });
+  renderFilteredPage(page);
+}
+
+function renderFilteredPage(page) {
+  const tbody    = document.getElementById('flt-tbody-' + page);
+  const countEl  = document.getElementById('flt-count-' + page);
+  if (!tbody) return;
+
+  const q   = (document.getElementById('flt-search-' + page)?.value || '').toLowerCase();
+  const pf  = document.getElementById('flt-priority-' + page)?.value || '';
+  const pp  = parseInt(document.getElementById('flt-pp-' + page)?.value || '25');
+
+  if (!fltSort[page]) fltSort[page] = { key: 'updated_at', dir: 'desc' };
+  const { key: sk, dir: sd } = fltSort[page];
+
+  let list = tickets.filter(t => t.status === page);
+  if (pf) list = list.filter(t => t.priority === pf);
+  if (q)  list = list.filter(t =>
+    (t.ticket_number + '').includes(q) ||
+    t.subject.toLowerCase().includes(q) ||
+    getReqName(t).toLowerCase().includes(q) ||
+    (demoMode ? profileById(t.assignee_id)?.full_name : t.assignee?.full_name || '')?.toLowerCase().includes(q)
+  );
+
+  // Sort
+  const PRIORITY_ORDER = { critical:0, high:1, medium:2, low:3 };
+  list = [...list].sort((a, b) => {
+    let av, bv;
+    if (sk === 'ticket_number') { av = a.ticket_number; bv = b.ticket_number; }
+    else if (sk === 'client')   { av = getReqName(a).toLowerCase(); bv = getReqName(b).toLowerCase(); }
+    else if (sk === 'company')  { av = (demoMode?profileById(a.requester_id)?.company:a.requester?.company||'').toLowerCase(); bv = (demoMode?profileById(b.requester_id)?.company:b.requester?.company||'').toLowerCase(); }
+    else if (sk === 'subject')  { av = a.subject.toLowerCase(); bv = b.subject.toLowerCase(); }
+    else if (sk === 'priority') { av = PRIORITY_ORDER[a.priority]??9; bv = PRIORITY_ORDER[b.priority]??9; }
+    else if (sk === 'assignee') { av = (demoMode?profileById(a.assignee_id)?.full_name:a.assignee?.full_name||'').toLowerCase(); bv = (demoMode?profileById(b.assignee_id)?.full_name:b.assignee?.full_name||'').toLowerCase(); }
+    else { av = a.updated_at||''; bv = b.updated_at||''; }
+    const cmp = typeof av==='number' ? av-bv : String(av).localeCompare(String(bv));
+    return sd === 'asc' ? cmp : -cmp;
+  });
+
+  if (countEl) countEl.textContent = list.length + ' ticket' + (list.length !== 1 ? 's' : '');
+
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="8">No tickets found</td></tr>'; return; }
+
+  const visible   = list.slice(0, pp);
+  const remaining = list.length - visible.length;
+  const THUMB = (t) => { const urls=t.attachment_urls?JSON.parse(t.attachment_urls):(t.attachment_url?[t.attachment_url]:[]); return urls.length?`<div style="position:relative;flex-shrink:0;margin-right:6px"><img src="${urls[0]}" class="attach-thumb-sm" title="${urls.length} attachment${urls.length>1?'s':''}" onclick="event.stopPropagation();openLightbox(urls,0)"/>${urls.length>1?`<span style="position:absolute;bottom:2px;right:2px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 4px;line-height:1">${urls.length}</span>`:''}</div>`:''; };
+
+  tbody.innerHTML = visible.map(t => {
+    const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
+    const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
+    return `<tr onclick="openTicketDetail('${t.id}')">
+      <td><span class="tid">#${t.ticket_number}</span></td>
+      <td style="font-size:12px">${esc(req?.full_name)||'—'}</td>
+      <td style="font-size:12px;color:var(--text2);white-space:nowrap">${esc(req?.company)||'—'}</td>
+      <td style="max-width:200px"><div style="display:flex;align-items:center">${THUMB(t)}<div style="min-width:0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.subject)}</div></div></td>
+      <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${esc(asgn?.full_name)||'—'}</td>
+      <td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td>
+      <td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td>
+    </tr>`;
+  }).join('') + (remaining > 0
+    ? `<tr><td colspan="8" style="text-align:center;padding:12px;border-top:1px solid var(--border)">
+        <span style="font-size:12px;color:var(--text3);margin-right:10px">Showing ${visible.length} of ${list.length}</span>
+        <button class="btn sm" onclick="(function(){const s=document.getElementById('flt-pp-${page}');const np=Math.min(parseInt(s.value||'25')+25,list.length);s.value=np>=list.length?99999:np;renderFilteredPage('${page}')})()">Show ${Math.min(remaining,25)} more</button>
+       </td></tr>`
+    : list.length > 25 ? `<tr><td colspan="8" style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">All ${list.length} tickets shown</td></tr>` : '');
+}
+
 /* ── Navigation ── */
 function adminNav(el, page) {
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -1274,14 +1380,50 @@ function adminNav(el, page) {
   if (!pg) return;
   pg.classList.add('active');
   if (['open','in_progress','waiting','resolved'].includes(page)) {
-    const filtered = sortTickets(tickets.filter(t=>t.status===page));
-    pg.innerHTML = `<div class="page-header"><div><h1>${sLabel(page)} tickets</h1><p>${filtered.length} tickets</p></div></div>
-    <div class="table-card"><table><thead><tr><th>ID</th><th>Client</th><th>Organisation</th><th>Subject</th><th>Priority</th><th>Tech assigned</th><th>Updated</th><th></th></tr></thead>
-    <tbody>${filtered.length ? filtered.map(t=>{
-      const req=demoMode?profileById(t.requester_id):(t.requester||{});
-      const asgn=demoMode?profileById(t.assignee_id):(t.assignee||{});
-      return `<tr onclick="openTicketDetail('${t.id}')"><td><span class="tid">#${t.ticket_number}</span></td><td style="font-size:12px">${esc(req?.full_name)||'—'}</td><td style="font-size:12px;color:var(--text2);white-space:nowrap">${esc(req?.company)||'—'}</td><td style="max-width:200px"><div style="display:flex;align-items:center">${(()=>{const urls=t.attachment_urls?JSON.parse(t.attachment_urls):(t.attachment_url?[t.attachment_url]:[]);return urls.length?`<div style="position:relative;flex-shrink:0;margin-right:6px"><img src="${urls[0]}" class="attach-thumb-sm" title="${urls.length} attachment${urls.length>1?'s':''}" onclick="event.stopPropagation();openLightbox(urls,0)"/>${urls.length>1?`<span style="position:absolute;bottom:2px;right:2px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 4px;line-height:1">${urls.length}</span>`:''}</div>`:'';})()}<div style="min-width:0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.subject)}</div></div></td><td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td><td style="font-size:12px;color:var(--text2)">${esc(asgn?.full_name)||'—'}</td><td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td><td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td></tr>`;
-    }).join('') : '<tr class="empty-row"><td colspan="7">No tickets in this status</td></tr>'}</tbody></table></div>`;
+    pg.innerHTML = `
+      <div class="page-header">
+        <div><h1>${sLabel(page)} tickets</h1><p id="flt-count-${page}"></p></div>
+      </div>
+      <div class="table-card">
+        <div class="table-toolbar">
+          <div class="search-wrap">
+            ${SEARCH_ICON}
+            <input type="text" id="flt-search-${page}" placeholder="Search tickets…" oninput="renderFilteredPage('${page}')"/>
+          </div>
+          <select class="filter-sel" id="flt-priority-${page}" onchange="renderFilteredPage('${page}')">
+            <option value="">All priorities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <select class="filter-sel" id="flt-pp-${page}" onchange="renderFilteredPage('${page}')" style="font-size:12px">
+            <option value="10">10 / page</option>
+            <option value="25" selected>25 / page</option>
+            <option value="50">50 / page</option>
+            <option value="100">100 / page</option>
+            <option value="99999">All</option>
+          </select>
+          <button class="btn sm" onclick="loadTickets()">
+            ${REFRESH_ICON}
+            Refresh
+          </button>
+        </div>
+        <table>
+          <thead><tr>
+            <th class="sortable" onclick="setFltSort('${page}','ticket_number')" id="flt-th-${page}-id">ID</th>
+            <th class="sortable" onclick="setFltSort('${page}','client')"        id="flt-th-${page}-client">Client</th>
+            <th class="sortable" onclick="setFltSort('${page}','company')"       id="flt-th-${page}-company">Organisation</th>
+            <th class="sortable" onclick="setFltSort('${page}','subject')"       id="flt-th-${page}-subject">Subject</th>
+            <th class="sortable" onclick="setFltSort('${page}','priority')"      id="flt-th-${page}-priority">Priority</th>
+            <th class="sortable" onclick="setFltSort('${page}','assignee')"      id="flt-th-${page}-assignee">Tech assigned</th>
+            <th class="sortable sort-desc" onclick="setFltSort('${page}','updated_at')" id="flt-th-${page}-updated">Updated</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="flt-tbody-${page}"></tbody>
+        </table>
+      </div>`;
+    renderFilteredPage('${page}');
   }
   if (page==='reports') renderReports();
 }
@@ -1832,14 +1974,30 @@ function renderUsersTable() {
   const staff   = list.filter(p => p.role === 'super_admin' || p.role === 'admin');
   const clients = list.filter(p => p.role === 'client');
 
+  // Apply per-page to the combined flat list (staff first, then clients)
+  const allRows  = [...staff, ...clients];
+  const visible  = allRows.slice(0, usersPerPage);
+  const remaining = allRows.length - visible.length;
+
+  const visStaff   = visible.filter(p => p.role === 'super_admin' || p.role === 'admin');
+  const visClients = visible.filter(p => p.role === 'client');
+
   let html = '';
-  if (staff.length) {
+  if (visStaff.length) {
     html += sectionHeader('Staff — Admins & Agents', staff.length);
-    html += staff.map(renderRow).join('');
+    html += visStaff.map(renderRow).join('');
   }
-  if (clients.length) {
+  if (visClients.length) {
     html += sectionHeader('Clients', clients.length);
-    html += clients.map(renderRow).join('');
+    html += visClients.map(renderRow).join('');
+  }
+  if (remaining > 0) {
+    html += `<tr><td colspan="3" style="text-align:center;padding:12px;border-top:1px solid var(--border)">
+      <span style="font-size:12px;color:var(--text3);margin-right:10px">Showing ${visible.length} of ${allRows.length}</span>
+      <button class="btn sm" onclick="usersPerPage+=25;document.getElementById('users-per-page').value=usersPerPage<=50?usersPerPage:99999;renderUsersTable()">Show ${Math.min(remaining,25)} more</button>
+     </td></tr>`;
+  } else if (allRows.length > 25) {
+    html += `<tr><td colspan="3" style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">All ${allRows.length} users shown</td></tr>`;
   }
   tbody.innerHTML = html;
 }
@@ -2096,6 +2254,46 @@ async function runBackup() {
     btn.disabled = false;
     progress.style.display = 'none';
   }
+}
+
+
+function downloadCSV(rows, headers, filename) {
+  // rows: array of objects, headers: [[colKey, displayLabel], ...]
+  const escape = v => {
+    if (v === null || v === undefined) return '';
+    const s = String(v);
+    return s.includes(',') || s.includes('"') || s.includes('\n')
+      ? '"' + s.replace(/"/g, '""') + '"'
+      : s;
+  };
+  const fmtDate = iso => {
+    if (!iso) return '';
+    try {
+      return new Date(iso).toLocaleString('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+    } catch { return iso; }
+  };
+  const lines = [
+    headers.map(([, label]) => escape(label)).join(','),
+    ...rows.map(row =>
+      headers.map(([key]) => {
+        const v = row[key];
+        // Auto-format ISO date strings
+        if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v)) return escape(fmtDate(v));
+        return escape(v);
+      }).join(',')
+    )
+  ];
+  const bom  = '\uFEFF'; // UTF-8 BOM so Excel opens correctly
+  const blob = new Blob([bom + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function downloadJSON(data, filename) {
@@ -2576,13 +2774,18 @@ function renderSysLogTable() {
     admin:       '<span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;background:var(--purple-l);color:var(--purple)">Admin</span>',
   }[r] || '');
 
-  tbody.innerHTML = list.map(a => `
+  const sysVisible   = list.slice(0, syslogPerPage);
+  const sysRemaining = list.length - sysVisible.length;
+  tbody.innerHTML = sysVisible.map(a => `
     <tr>
       <td style="font-size:12px;color:var(--text3);white-space:nowrap">${timeAgo(a.created_at)}<div style="font-size:10px;margin-top:1px">${a.created_at ? new Date(a.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</div></td>
       <td><div style="font-size:13px;font-weight:500">${esc(a.actor_name)||'—'}</div><div style="margin-top:3px">${rolePill(a.actor_role)}</div></td>
       <td>${actionBadge(a.action)}</td>
       <td style="font-size:12px;color:var(--text2)">${esc(a.details)||'—'}</td>
-    </tr>`).join('');
+    </tr>`).join('')
+  + (sysRemaining > 0
+    ? `<tr><td colspan="4" style="text-align:center;padding:12px;border-top:1px solid var(--border)"><span style="font-size:12px;color:var(--text3);margin-right:10px">Showing ${sysVisible.length} of ${list.length}</span><button class="btn sm" onclick="syslogPerPage+=50;document.getElementById('syslog-per-page').value=syslogPerPage<=100?syslogPerPage:99999;renderSysLogTable()">Show ${Math.min(sysRemaining,50)} more</button></td></tr>`
+    : list.length > 50 ? `<tr><td colspan="4" style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">All ${list.length} events shown</td></tr>` : '');
 }
 
 /* ── Activity Log ── */
@@ -2654,7 +2857,9 @@ function renderActivityTable() {
     blocked: '<span class="sb" style="background:var(--danger-l);color:var(--danger)">Blocked</span>',
   }[s] || `<span class="sb s-closed">${s}</span>`);
 
-  tbody.innerHTML = list.map(a => `
+  const actVisible   = list.slice(0, activityPerPage);
+  const actRemaining = list.length - actVisible.length;
+  tbody.innerHTML = actVisible.map(a => `
     <tr>
       <td style="font-size:12px;color:var(--text3);white-space:nowrap">${timeAgo(a.created_at)}<div style="font-size:10px;margin-top:1px">${a.created_at ? new Date(a.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</div></td>
       <td><div style="font-size:13px;font-weight:500">${esc(a.user_name)||'—'}</div></td>
@@ -2662,7 +2867,10 @@ function renderActivityTable() {
       <td>${actionLabel(a.action)}</td>
       <td>${statusLabel(a.status)}</td>
       <td style="font-size:12px;color:var(--text2);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.details)||'—'}</td>
-    </tr>`).join('');
+    </tr>`).join('')
+  + (actRemaining > 0
+    ? `<tr><td colspan="6" style="text-align:center;padding:12px;border-top:1px solid var(--border)"><span style="font-size:12px;color:var(--text3);margin-right:10px">Showing ${actVisible.length} of ${list.length}</span><button class="btn sm" onclick="activityPerPage+=50;document.getElementById('activity-per-page').value=activityPerPage<=100?activityPerPage:99999;renderActivityTable()">Show ${Math.min(actRemaining,50)} more</button></td></tr>`
+    : list.length > 50 ? `<tr><td colspan="6" style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">All ${list.length} events shown</td></tr>` : '');
 }
 
 /* ── Log downloads ── */
@@ -2687,8 +2895,15 @@ async function downloadActivityLog() {
   const { data, error } = await sbClient.from('user_activity').select('*').order('created_at', { ascending: false });
   if (error) { toast('Error: ' + error.message); return; }
   const date = new Date().toISOString().slice(0, 10);
-  downloadJSON({ exported_at: new Date().toISOString(), total: data.length, events: data }, `activity-log-${date}.json`);
-  toast('Activity log downloaded');
+  downloadCSV(data, [
+    ['created_at',  'Date / Time'],
+    ['user_name',   'User'],
+    ['user_email',  'Email'],
+    ['action',      'Action'],
+    ['status',      'Status'],
+    ['details',     'Details'],
+  ], `activity-log-${date}.csv`);
+  toast('Activity log downloaded (' + data.length + ' events)');
   logSystemEvent('backup_created', `Activity log exported: ${data.length} events`);
 }
 
@@ -2698,8 +2913,14 @@ async function downloadSysLog() {
   const { data, error } = await sbClient.from('system_log').select('*').order('created_at', { ascending: false });
   if (error) { toast('Error: ' + error.message); return; }
   const date = new Date().toISOString().slice(0, 10);
-  downloadJSON({ exported_at: new Date().toISOString(), total: data.length, events: data }, `system-log-${date}.json`);
-  toast('System log downloaded');
+  downloadCSV(data, [
+    ['created_at',  'Date / Time'],
+    ['actor_name',  'Admin / Agent'],
+    ['actor_role',  'Role'],
+    ['action',      'Action'],
+    ['details',     'Details'],
+  ], `system-log-${date}.csv`);
+  toast('System log downloaded (' + data.length + ' events)');
   logSystemEvent('backup_created', `System log exported: ${data.length} events`);
 }
 
