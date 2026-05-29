@@ -1138,6 +1138,29 @@ async function ensureProfile(user) {
   return created || { id: user.id, full_name: name, role: 'client' };
 }
 
+/* ── Rate limit check ── */
+async function checkRateLimit(action) {
+  if (demoMode) return true;
+  try {
+    const url = typeof SB_URL !== 'undefined' ? SB_URL : '';
+    const key = typeof SB_KEY !== 'undefined' ? SB_KEY : '';
+    if (!url) return true;
+    const res = await fetch(`${url}/functions/v1/rate-limit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': key, 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({ action }),
+    });
+    if (res.status === 429) {
+      const d = await res.json().catch(() => ({}));
+      const wait = d.retryAfter ? Math.ceil(d.retryAfter / 60) : 60;
+      return { allowed: false, message: `Too many attempts. Please try again in ${wait} minute${wait === 1 ? '' : 's'}.` };
+    }
+    if (!res.ok) { console.warn('[rate-limit] non-429 error, failing open:', res.status); return true; }
+    const d = await res.json();
+    return d.allowed !== false ? true : { allowed: false, message: 'Too many attempts. Please try again later.' };
+  } catch(e) { console.warn('[rate-limit] check failed (failing open):', e); return true; }
+}
+
 async function signIn() {
   if (!sbClient) { loadDemo(); return; }
   const recaptchaToken = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse(_rcWidgetId) : '';
