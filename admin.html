@@ -626,7 +626,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
             </div>
           </div>
           <table>
-            <thead><tr><th>Time</th><th>User</th><th>Email</th><th>Action</th><th>Status</th><th>Details</th></tr></thead>
+            <thead><tr><th class="sortable sort-desc" id="act-th-time"     onclick="setLogSort('activity','time')"     data-sort="time">Time</th><th class="sortable"           id="act-th-user"     onclick="setLogSort('activity','user')"     data-sort="user">User</th><th class="sortable"           id="act-th-email"    onclick="setLogSort('activity','email')"    data-sort="email">Email</th><th class="sortable"           id="act-th-action"   onclick="setLogSort('activity','action')"   data-sort="action">Action</th><th class="sortable"           id="act-th-status"   onclick="setLogSort('activity','status')"   data-sort="status">Status</th><th class="sortable"           id="act-th-details"  onclick="setLogSort('activity','details')"  data-sort="details">Details</th></tr></thead>
             <tbody id="activity-tbody"></tbody>
           </table>
         </div>
@@ -664,7 +664,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
             </div>
           </div>
           <table>
-            <thead><tr><th>Time</th><th>Admin / Agent</th><th>Action</th><th>Details</th></tr></thead>
+            <thead><tr><th class="sortable sort-desc" id="sys-th-time"    onclick="setLogSort('syslog','time')"    data-sort="time">Time</th><th class="sortable"           id="sys-th-actor"   onclick="setLogSort('syslog','actor')"   data-sort="actor">Admin / Agent</th><th class="sortable"           id="sys-th-action"  onclick="setLogSort('syslog','action')"  data-sort="action">Action</th><th class="sortable"           id="sys-th-details" onclick="setLogSort('syslog','details')" data-sort="details">Details</th></tr></thead>
             <tbody id="syslog-tbody"></tbody>
           </table>
         </div>
@@ -1236,7 +1236,7 @@ function adminNav(el, page) {
     <tbody>${filtered.length ? filtered.map(t=>{
       const req=demoMode?profileById(t.requester_id):(t.requester||{});
       const asgn=demoMode?profileById(t.assignee_id):(t.assignee||{});
-      return `<tr onclick="openTicketDetail('${t.id}')"><td><span class="tid">#${t.ticket_number}</span></td><td style="font-size:12px">${esc(req?.full_name)||'—'}</td><td style="font-size:12px;color:var(--text2);white-space:nowrap">${esc(req?.company)||'—'}</td><td style="font-weight:500;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.subject)}</td><td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td><td style="font-size:12px;color:var(--text2)">${esc(asgn?.full_name)||'—'}</td><td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td><td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td></tr>`;
+      return `<tr onclick="openTicketDetail('${t.id}')"><td><span class="tid">#${t.ticket_number}</span></td><td style="font-size:12px">${esc(req?.full_name)||'—'}</td><td style="font-size:12px;color:var(--text2);white-space:nowrap">${esc(req?.company)||'—'}</td><td style="max-width:200px"><div style="display:flex;align-items:center">${(()=>{const urls=t.attachment_urls?JSON.parse(t.attachment_urls):(t.attachment_url?[t.attachment_url]:[]);return urls.length?`<div style="position:relative;flex-shrink:0;margin-right:6px"><img src="${urls[0]}" class="attach-thumb-sm" title="${urls.length} attachment${urls.length>1?'s':''}" onclick="event.stopPropagation();openLightbox(urls,0)"/>${urls.length>1?`<span style="position:absolute;bottom:2px;right:2px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 4px;line-height:1">${urls.length}</span>`:''}</div>`:'';})()}<div style="min-width:0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.subject)}</div></div></td><td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td><td style="font-size:12px;color:var(--text2)">${esc(asgn?.full_name)||'—'}</td><td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td><td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td></tr>`;
     }).join('') : '<tr class="empty-row"><td colspan="7">No tickets in this status</td></tr>'}</tbody></table></div>`;
   }
   if (page==='reports') renderReports();
@@ -1954,7 +1954,7 @@ function renderDashboard() {
       <td><span class="tid">#${t.ticket_number}</span></td>
       <td style="font-size:12px">${esc(req?.full_name)||'—'}</td>
       <td style="font-size:12px;color:var(--text2);white-space:nowrap">${esc(req?.company)||'—'}</td>
-      <td style="max-width:180px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.subject)}</td>
+      <td style="max-width:180px"><div style="display:flex;align-items:center">${(()=>{const urls=t.attachment_urls?JSON.parse(t.attachment_urls):(t.attachment_url?[t.attachment_url]:[]);return urls.length?`<div style="position:relative;flex-shrink:0;margin-right:6px"><img src="${urls[0]}" class="attach-thumb-sm" title="${urls.length} attachment${urls.length>1?'s':''}" onclick="event.stopPropagation();openLightbox(urls,0)"/>${urls.length>1?`<span style="position:absolute;bottom:2px;right:2px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 4px;line-height:1">${urls.length}</span>`:''}</div>`:'';})()}<div style="min-width:0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.subject)}</div></div></td>
       <td><span class="sb s-${t.status}">${sLabel(t.status)}</span></td>
       <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
       <td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td>
@@ -2316,6 +2316,43 @@ async function loadSysLog() {
   renderSysLogTable();
 }
 
+/* ── Log table sort state ── */
+let activitySort = { key: 'time', dir: 'desc' };
+let syslogSort   = { key: 'time', dir: 'desc' };
+
+function setLogSort(table, key) {
+  const state = table === 'activity' ? activitySort : syslogSort;
+  const prefix = table === 'activity' ? 'act' : 'sys';
+  if (state.key === key) {
+    state.dir = state.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    state.key = key;
+    state.dir = key === 'time' ? 'desc' : 'asc'; // time defaults desc, others asc
+  }
+  // Update header indicators — only touch this table's headers
+  document.querySelectorAll(`#${prefix}-th-time, #${prefix}-th-${key === 'actor' ? 'actor' : key}`)
+    .forEach(th => { th.classList.remove('sort-asc','sort-desc'); });
+  const allPrefix = `[id^="${prefix}-th-"]`;
+  document.querySelectorAll(allPrefix).forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    if (th.dataset.sort === state.key) th.classList.add(state.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+  });
+  if (table === 'activity') renderActivityTable();
+  else                       renderSysLogTable();
+}
+
+function sortLogList(list, state, getters) {
+  const { key, dir } = state;
+  const get = getters[key] || (r => r[key] || '');
+  return [...list].sort((a, b) => {
+    const av = get(a), bv = get(b);
+    const cmp = typeof av === 'number' && typeof bv === 'number'
+      ? av - bv
+      : String(av).localeCompare(String(bv), undefined, { sensitivity: 'base' });
+    return dir === 'asc' ? cmp : -cmp;
+  });
+}
+
 function renderSysLogTable() {
   const q  = (document.getElementById('syslog-search')?.value || '').toLowerCase();
   const af = document.getElementById('syslog-action-filter')?.value || '';
@@ -2326,6 +2363,12 @@ function renderSysLogTable() {
     (a.action||'').toLowerCase().includes(q) ||
     (a.details||'').toLowerCase().includes(q)
   );
+  list = sortLogList(list, syslogSort, {
+    time:    r => r.created_at || '',
+    actor:   r => (r.actor_name || '').toLowerCase(),
+    action:  r => r.action || '',
+    details: r => (r.details || '').toLowerCase(),
+  });
   const tbody = document.getElementById('syslog-tbody');
   if (!tbody) return;
   if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No events found</td></tr>'; return; }
@@ -2401,6 +2444,14 @@ function renderActivityTable() {
     (a.action||'').toLowerCase().includes(q) ||
     (a.details||'').toLowerCase().includes(q)
   );
+  list = sortLogList(list, activitySort, {
+    time:    r => r.created_at || '',
+    user:    r => (r.user_name  || '').toLowerCase(),
+    email:   r => (r.user_email || '').toLowerCase(),
+    action:  r => r.action  || '',
+    status:  r => r.status  || '',
+    details: r => (r.details || '').toLowerCase(),
+  });
   const tbody = document.getElementById('activity-tbody');
   if (!tbody) return;
   if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No activity found</td></tr>'; return; }
