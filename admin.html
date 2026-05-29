@@ -453,9 +453,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
             New ticket
           </button>
         </div>
-        <div class="stats-grid">
+        <div class="stats-grid" style="grid-template-columns:repeat(5,1fr)">
           <div class="stat-card" onclick="document.getElementById('filter-status').value='open';adminPerPage=25;renderTable()" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'" onmouseout="this.style.boxShadow=''"><div class="label">Open</div><div class="value" id="stat-open" style="color:var(--accent)">—</div><div class="sub"></div></div>
           <div class="stat-card" onclick="document.getElementById('filter-status').value='in_progress';adminPerPage=25;renderTable()" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--purple)'" onmouseout="this.style.boxShadow=''"><div class="label">In progress</div><div class="value" id="stat-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to tech</div></div>
+          <div class="stat-card" onclick="document.getElementById('filter-status').value='waiting';adminPerPage=25;renderTable()" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--warn)'" onmouseout="this.style.boxShadow=''"><div class="label">Waiting</div><div class="value" id="stat-waiting" style="color:var(--warn)">—</div><div class="sub">Pending response</div></div>
           <div class="stat-card" onclick="document.getElementById('filter-status').value='resolved';adminPerPage=25;renderTable()" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--success)'" onmouseout="this.style.boxShadow=''"><div class="label">Resolved</div><div class="value" id="stat-resolved" style="color:var(--success)">—</div><div class="sub"></div></div>
           <div class="stat-card" onclick="document.getElementById('filter-status').value='';adminPerPage=25;renderTable()" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--border2)'" onmouseout="this.style.boxShadow=''"><div class="label">Total</div><div class="value" id="stat-total">—</div><div class="sub">All time</div></div>
         </div>
@@ -1297,10 +1298,11 @@ function refreshCurrentPage() {
 }
 
 function updateStats() {
-  document.getElementById('stat-open').textContent    = tickets.filter(t=>t.status==='open').length;
-  document.getElementById('stat-inprog').textContent  = tickets.filter(t=>t.status==='in_progress').length;
-  document.getElementById('stat-resolved').textContent= tickets.filter(t=>t.status==='resolved').length;
-  document.getElementById('stat-total').textContent   = tickets.length;
+  document.getElementById('stat-open').textContent     = tickets.filter(t=>t.status==='open').length;
+  document.getElementById('stat-inprog').textContent   = tickets.filter(t=>t.status==='in_progress').length;
+  const statWait = document.getElementById('stat-waiting'); if(statWait) statWait.textContent = tickets.filter(t=>t.status==='waiting').length;
+  document.getElementById('stat-resolved').textContent = tickets.filter(t=>t.status==='resolved').length;
+  document.getElementById('stat-total').textContent    = tickets.length;
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
   const fc = document.getElementById('footer-ticket-count');
   if (fc) fc.textContent = tickets.length;
@@ -2087,7 +2089,7 @@ async function deleteUser(id) {
     closeModal('modal-edit-user'); renderUsersTable(); toast('User deleted'); return;
   }
   // Call the database function that hard-deletes from both profiles and auth.users
-  const { error } = await sbClient.rpc('delete_user_hard', { user_id: id });
+  const { error } = await sbClient.rpc('delete_user_hard', { p_user_id: id });
   if (error) {
     // Fallback: delete profile only if RPC not available
     if (error.message.includes('function') || error.code === '42883') {
