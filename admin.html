@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>El Martillo I.T. Ticketing System — Admin</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://www.google.com/recaptcha/api.js?render=explicit" async defer></script>
 <link rel="icon" type="image/x-icon" href="favicon.ico"/>
 <link rel="icon" type="image/png" sizes="32x32" href="logo.png"/>
 <link rel="apple-touch-icon" href="logo.png"/>
@@ -298,8 +299,9 @@ textarea.fc { resize: vertical; min-height: 80px; }
     </div>
     <h2>Admin sign in</h2>
     <p class="desc">Sign in with your admin account.</p>
-    <div class="fg"><label class="fl">Email</label><input id="auth-email" class="fc" type="email" placeholder="admin@example.com"/></div>
-    <div class="fg"><label class="fl">Password</label><input id="auth-password" class="fc" type="password" placeholder="••••••••"/></div>
+    <div class="fg"><label class="fl">Email</label><input id="auth-email" class="fc" type="email" placeholder="admin@example.com" onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()"/></div>
+    <div class="fg"><label class="fl">Password</label><input id="auth-password" class="fc" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')signIn()"/></div>
+    <div style="margin-bottom:14px;display:flex;justify-content:center"><div id="admin-recaptcha"></div></div>
     <button class="btn primary" style="width:100%;justify-content:center" onclick="signIn()">Sign in</button>
     <div id="auth-err" style="text-align:center;margin-top:10px;font-size:12px;color:var(--danger)"></div>
     <div style="text-align:center;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
@@ -403,11 +405,11 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </button>
         </div>
         <div class="stats-grid" style="margin-bottom:20px;grid-template-columns:repeat(5,1fr)">
-          <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='all']'),'all')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'" onmouseout="this.style.boxShadow=''"><div class="label">Open</div><div class="value" id="dash-open" style="color:var(--accent)">—</div><div class="sub">Awaiting action</div></div>
-          <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='in_progress']'),'in_progress')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--purple)'" onmouseout="this.style.boxShadow=''"><div class="label">In progress</div><div class="value" id="dash-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to tech</div></div>
-          <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='waiting']'),'waiting')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--warn)'" onmouseout="this.style.boxShadow=''"><div class="label">Waiting</div><div class="value" id="dash-waiting" style="color:var(--warn)">—</div><div class="sub">Pending response</div></div>
-          <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='resolved']'),'resolved')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--success)'" onmouseout="this.style.boxShadow=''"><div class="label">Resolved</div><div class="value" id="dash-resolved" style="color:var(--success)">—</div><div class="sub">All time</div></div>
-          <div class="stat-card" onclick="adminNav(document.querySelector('[onclick*='all']'),'all')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--border2)'" onmouseout="this.style.boxShadow=''"><div class="label">Total</div><div class="value" id="dash-total">—</div><div class="sub">All tickets</div></div>
+          <div class="stat-card" onclick="navTo('open')"       style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'"  onmouseout="this.style.boxShadow=''"><div class="label">Open</div><div class="value" id="dash-open" style="color:var(--accent)">—</div><div class="sub">Awaiting action</div></div>
+          <div class="stat-card" onclick="navTo('in_progress')" style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--purple)'" onmouseout="this.style.boxShadow=''"><div class="label">In progress</div><div class="value" id="dash-inprog" style="color:var(--purple)">—</div><div class="sub">Assigned to tech</div></div>
+          <div class="stat-card" onclick="navTo('waiting')"    style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--warn)'"   onmouseout="this.style.boxShadow=''"><div class="label">Waiting</div><div class="value" id="dash-waiting" style="color:var(--warn)">—</div><div class="sub">Pending response</div></div>
+          <div class="stat-card" onclick="navTo('resolved')"   style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--success)'" onmouseout="this.style.boxShadow=''"><div class="label">Resolved</div><div class="value" id="dash-resolved" style="color:var(--success)">—</div><div class="sub">All time</div></div>
+          <div class="stat-card" onclick="navTo('all')"        style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--border2)'" onmouseout="this.style.boxShadow=''"><div class="label">Total</div><div class="value" id="dash-total">—</div><div class="sub">All tickets</div></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
           <div class="table-card" style="padding:18px">
@@ -1113,8 +1115,7 @@ async function connectSupabase() {
     const {error} = await sbClient.from('profiles').select('id').limit(1);
     if (error) throw error;
     localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
-    document.getElementById('cfg-screen').classList.remove('active');
-    document.getElementById('auth-screen').classList.add('active');
+    showAuthScreen();
   } catch(e) { alert('Connection failed: '+e.message); }
 }
 function loadDemo() {
@@ -1139,10 +1140,15 @@ async function ensureProfile(user) {
 
 async function signIn() {
   if (!sbClient) { loadDemo(); return; }
+  const recaptchaToken = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse(_rcWidgetId) : '';
+  if (!recaptchaToken) { document.getElementById('auth-err').textContent = 'Please complete the reCAPTCHA check.'; return; }
+  document.getElementById('auth-err').textContent = '';
+  const rl = await checkRateLimit('admin_sign_in');
+  if (rl !== true) { if (typeof grecaptcha !== 'undefined') grecaptcha.reset(_rcWidgetId); document.getElementById('auth-err').textContent = rl.message; return; }
   const email = document.getElementById('auth-email').value;
   const pass  = document.getElementById('auth-password').value;
   const {data,error} = await sbClient.auth.signInWithPassword({email,password:pass});
-  if (error) { document.getElementById('auth-err').textContent = error.message; return; }
+  if (error) { if (typeof grecaptcha !== 'undefined') grecaptcha.reset(_rcWidgetId); document.getElementById('auth-err').textContent = error.message; return; }
   currentUser = data.user;
   const prof = await ensureProfile(currentUser);
   currentProfile = prof;
@@ -1369,6 +1375,15 @@ function renderFilteredPage(page) {
         <button class="btn sm" onclick="(function(){const s=document.getElementById('flt-pp-${page}');const np=Math.min(parseInt(s.value||'25')+25,list.length);s.value=np>=list.length?99999:np;renderFilteredPage('${page}')})()">Show ${Math.min(remaining,25)} more</button>
        </td></tr>`
     : list.length > 25 ? `<tr><td colspan="8" style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">All ${list.length} tickets shown</td></tr>` : '');
+}
+
+/* ── navTo: safe navigation from stat cards ── */
+function navTo(page) {
+  // Find the matching sidebar nav item by its onclick attribute value
+  const navItem = Array.from(document.querySelectorAll('.nav-item')).find(el =>
+    el.getAttribute('onclick')?.includes("'" + page + "'")
+  );
+  adminNav(navItem || document.querySelector('.nav-item'), page);
 }
 
 /* ── Navigation ── */
@@ -1887,8 +1902,7 @@ async function initSupabase() {
       // Block client accounts from accessing admin
       if (!prof?.role || prof?.role === 'client') {
         await sbClient.auth.signOut();
-        document.getElementById('cfg-screen').classList.remove('active');
-        document.getElementById('auth-screen').classList.add('active');
+        showAuthScreen();
         document.getElementById('auth-err').textContent = 'Access denied. Client accounts must use the client portal.';
         return;
       }
@@ -1900,14 +1914,12 @@ async function initSupabase() {
       document.getElementById('app').style.display = 'flex';
       loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout();
     } else {
-      document.getElementById('cfg-screen').classList.remove('active');
-      document.getElementById('auth-screen').classList.add('active');
+      showAuthScreen();
       loadVersion();
     }
   } catch(e) {
     console.error('Session restore error:', e);
-    document.getElementById('cfg-screen').classList.remove('active');
-    document.getElementById('auth-screen').classList.add('active');
+    showAuthScreen();
   }
 }
 
@@ -3098,6 +3110,28 @@ function restartIdleTimer() {
 function stopIdleTimer() {
   clearTimeout(_idleTimer);
   _idleTimer = null;
+}
+
+/* ── reCAPTCHA explicit render ── */
+let _rcWidgetId = null;
+function showAuthScreen() {
+  document.getElementById('cfg-screen').classList.remove('active');
+  document.getElementById('auth-screen').classList.add('active');
+  requestAnimationFrame(() => {
+    const poll = setInterval(() => {
+      if (typeof grecaptcha !== 'undefined' && typeof grecaptcha.render === 'function') {
+        clearInterval(poll);
+        if (_rcWidgetId === null) {
+          _rcWidgetId = grecaptcha.render('admin-recaptcha', {
+            sitekey: '6LcDeAAtAAAAADep9JhT8Tgf5HoXDxn_VZ1JFjSQ',
+            theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+          });
+        } else {
+          grecaptcha.reset(_rcWidgetId);
+        }
+      }
+    }, 50);
+  });
 }
 
 document.addEventListener('DOMContentLoaded', initSupabase);

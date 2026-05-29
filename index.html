@@ -8,6 +8,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="logo.png"/>
 <link rel="apple-touch-icon" href="logo.png"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit" async defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
 <style>
@@ -417,6 +418,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
     <div class="tab-page active" id="auth-signin">
       <div class="fg"><label class="fl">Email</label><input id="si-email" class="fc" type="email" placeholder="you@example.com"/></div>
       <div class="fg"><label class="fl">Password</label><input id="si-password" class="fc" type="password" placeholder="••••••••"/></div>
+      <div style="margin-bottom:14px;display:flex;justify-content:center"><div id="recaptcha-signin"></div></div>
       <button class="btn primary" style="width:100%;justify-content:center" onclick="signIn()">Sign in</button>
       <div class="err" id="si-err"></div>
     </div>
@@ -439,6 +441,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <label class="fl">Repeat password *</label>
         <input id="su-password2" class="fc" type="password" placeholder="••••••••"/>
       </div>
+      <div style="margin-bottom:14px;display:flex;justify-content:center"><div id="recaptcha-signup"></div></div>
       <button class="btn primary" style="width:100%;justify-content:center" onclick="signUp()">Create account</button>
       <div class="err" id="su-err"></div>
     </div>
@@ -783,6 +786,11 @@ async function ensureProfile(user, fallbackName) {
 
 async function signIn() {
   if (!sbClient){loadDemo();return;}
+  const recaptchaToken = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse(window._siWidgetId) : '';
+  if (!recaptchaToken) { document.getElementById('si-err').textContent='Please complete the reCAPTCHA check.'; return; }
+  document.getElementById('si-err').textContent='';
+  const rl = await checkRateLimit('sign_in');
+  if (rl !== true) { if(typeof grecaptcha!=='undefined') grecaptcha.reset(window._siWidgetId); document.getElementById('si-err').textContent=rl.message; return; }
   const email=document.getElementById('si-email').value, pass=document.getElementById('si-password').value;
   const {data,error}=await sbClient.auth.signInWithPassword({email,password:pass});
   if (error){
@@ -804,6 +812,10 @@ async function signIn() {
 }
 async function signUp() {
   if (!sbClient){loadDemo();return;}
+  const recaptchaToken = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse(window._suWidgetId) : '';
+  if (!recaptchaToken) { document.getElementById('su-err').style.color='var(--danger)'; document.getElementById('su-err').textContent='Please complete the reCAPTCHA check.'; return; }
+  const rl = await checkRateLimit('sign_up');
+  if (rl !== true) { if(typeof grecaptcha!=='undefined') grecaptcha.reset(window._suWidgetId); document.getElementById('su-err').style.color='var(--danger)'; document.getElementById('su-err').textContent=rl.message; return; }
   const name    = document.getElementById('su-name').value.trim();
   const email   = document.getElementById('su-email').value.trim();
   const phone   = document.getElementById('su-phone').value.trim();
@@ -1598,6 +1610,13 @@ function _startIdxIdleTimer(minutes) {
     document.addEventListener(e, reset, { passive: true })
   );
   reset();
+}
+
+/* ── reCAPTCHA explicit render ── */
+function onRecaptchaLoad() {
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  window._siWidgetId = grecaptcha.render('recaptcha-signin', { sitekey: '6LcDeAAtAAAAADep9JhT8Tgf5HoXDxn_VZ1JFjSQ', theme: dark });
+  window._suWidgetId = grecaptcha.render('recaptcha-signup', { sitekey: '6LcDeAAtAAAAADep9JhT8Tgf5HoXDxn_VZ1JFjSQ', theme: dark });
 }
 
 document.addEventListener('DOMContentLoaded', initSupabase);
