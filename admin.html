@@ -377,7 +377,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         System log
       </div>
-      <div class="nav-item" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList();loadRateLimits()">
+      <div class="nav-item" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList();loadRateLimits();loadSessionTimeout()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </div>
@@ -691,6 +691,30 @@ textarea.fc { resize: vertical; min-height: 80px; }
             <div style="display:flex;gap:8px;margin-top:8px">
               <button class="btn primary" onclick="toast('Settings saved')">Save settings</button>
               <button class="btn" onclick="clearCreds()">Disconnect Supabase</button>
+            </div>
+          </div>
+
+
+          <!-- Session timeout section -->
+          <div class="table-card" style="padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Session timeout</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+              Automatically sign out inactive users after this many minutes. Applies to both the admin panel and the client portal. Changes take effect on the next login.
+            </div>
+            <div class="fg" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <div style="display:flex;align-items:center;gap:8px">
+                <input id="settings-timeout" class="fc" type="number" min="1" max="1440"
+                  style="width:90px;text-align:center" value="30" placeholder="30"/>
+                <span style="font-size:13px;color:var(--text2)">minutes</span>
+              </div>
+              <span style="font-size:11px;color:var(--text3)">(1 – 1440 · default 30)</span>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
+              <button class="btn primary" onclick="saveSessionTimeout()">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save
+              </button>
+              <span id="timeout-saved-msg" style="font-size:11px;color:var(--text3)"></span>
             </div>
           </div>
 
@@ -1092,7 +1116,7 @@ async function signIn() {
   document.getElementById('topbar-user').textContent = prof?.full_name||email;
   const rb = document.getElementById('topbar-role-badge'); if(rb) rb.textContent = prof?.role==='super_admin'?'Super Admin':'Admin';
   document.getElementById('settings-url').value = localStorage.getItem('sb_url')||'';
-  loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime();
+  loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout();
 }
 async function signOut() { if(realtimeChannel && sbClient) sbClient.removeChannel(realtimeChannel); if(sbClient) await sbClient.auth.signOut(); location.reload(); }
 function clearCreds() { localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key'); location.reload(); }
@@ -1571,7 +1595,7 @@ async function initSupabase() {
       const rb = document.getElementById('topbar-role-badge');
       if (rb) rb.textContent = prof?.role === 'super_admin' ? 'Super Admin' : 'Admin';
       document.getElementById('app').style.display = 'flex';
-      loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime();
+      loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout();
     } else {
       document.getElementById('cfg-screen').classList.remove('active');
       document.getElementById('auth-screen').classList.add('active');
@@ -2624,6 +2648,74 @@ function lbKeyHandler(e) {
   if (e.key === 'Escape')     closeLightbox();
   if (e.key === 'ArrowRight') lbNav(1);
   if (e.key === 'ArrowLeft')  lbNav(-1);
+}
+
+/* ── Session / Idle Timeout ── */
+const TIMEOUT_KEY    = 'session_timeout_minutes';
+const TIMEOUT_DEFAULT = 30;
+let   _idleTimer     = null;
+let   _idleMinutes   = TIMEOUT_DEFAULT;
+
+async function loadSessionTimeout() {
+  const el = document.getElementById('settings-timeout');
+  if (demoMode) { if (el) el.value = TIMEOUT_DEFAULT; return; }
+  try {
+    const { data } = await sbClient.from('app_settings').select('value').eq('key', TIMEOUT_KEY).maybeSingle();
+    const mins = data?.value ? parseInt(data.value) : TIMEOUT_DEFAULT;
+    _idleMinutes = isNaN(mins) ? TIMEOUT_DEFAULT : mins;
+    if (el) el.value = _idleMinutes;
+  } catch { _idleMinutes = TIMEOUT_DEFAULT; }
+}
+
+async function saveSessionTimeout() {
+  const el  = document.getElementById('settings-timeout');
+  const msg = document.getElementById('timeout-saved-msg');
+  const mins = parseInt(el?.value);
+  if (isNaN(mins) || mins < 1 || mins > 1440) { toast('Enter a value between 1 and 1440 minutes'); return; }
+  if (demoMode) {
+    _idleMinutes = mins;
+    restartIdleTimer();
+    if (msg) msg.textContent = '✓ Saved (demo only)';
+    toast('Session timeout saved (demo)');
+    setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
+    return;
+  }
+  const { error } = await sbClient.from('app_settings')
+    .upsert({ key: TIMEOUT_KEY, value: String(mins) }, { onConflict: 'key' });
+  if (error) { toast('Error saving: ' + error.message); return; }
+  _idleMinutes = mins;
+  restartIdleTimer();
+  if (msg) { msg.textContent = '✓ Saved at ' + new Date().toLocaleTimeString(); }
+  toast('Session timeout updated to ' + mins + ' minutes');
+  setTimeout(() => { if (msg) msg.textContent = ''; }, 4000);
+}
+
+function startIdleTimeout() {
+  loadSessionTimeout().then(() => restartIdleTimer());
+}
+
+function restartIdleTimer() {
+  stopIdleTimer();
+  const ms = _idleMinutes * 60 * 1000;
+  const reset = () => {
+    clearTimeout(_idleTimer);
+    _idleTimer = setTimeout(async () => {
+      toast('Session timed out due to inactivity');
+      await new Promise(r => setTimeout(r, 1200));
+      if (realtimeChannel && sbClient) sbClient.removeChannel(realtimeChannel);
+      if (sbClient) await sbClient.auth.signOut();
+      location.reload();
+    }, ms);
+  };
+  ['click','keydown','mousemove','scroll','touchstart'].forEach(e =>
+    document.addEventListener(e, reset, { passive: true })
+  );
+  reset();
+}
+
+function stopIdleTimer() {
+  clearTimeout(_idleTimer);
+  _idleTimer = null;
 }
 
 document.addEventListener('DOMContentLoaded', initSupabase);

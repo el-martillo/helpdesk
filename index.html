@@ -180,6 +180,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .cat-account   { background:#EEEDFE; color:#534AB7; }
 .cat-general   { background:#F1EFE8; color:#5F5E5A; }
 .ticket-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+.ticket-card-thumb { width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--border);flex-shrink:0;cursor:zoom-in; }
 .empty-state { text-align: center; padding: 48px 24px; color: var(--text3); }
 .empty-state .icon { font-size: 36px; margin-bottom: 12px; }
 .empty-state p { font-size: 13px; line-height: 1.6; }
@@ -973,6 +974,7 @@ function startRealtime() {
 }
 
 async function signOut() {
+  clearTimeout(_idxIdleTimer);
   if (realtimeChannel && sbClient) sbClient.removeChannel(realtimeChannel);
   if (sbClient) {
     await trackUserActivity('logout', 'success', '');
@@ -987,6 +989,7 @@ function showApp() {
   updateUserHeader();
   loadClientTickets();
   startRealtime();
+  loadAndStartIdleTimeout();
 }
 function updateUserHeader() {
   const name = currentProfile?.full_name || 'User';
@@ -1042,6 +1045,7 @@ function renderTickets() {
     const asgn=demoMode?profileById(t.assignee_id):(t.assignee||null);
     const catColors = {Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'};
     const catClass = catColors[t.category] || 'cat-general';
+    const _tcUrls = t.attachment_urls ? JSON.parse(t.attachment_urls) : (t.attachment_url ? [t.attachment_url] : []);
     return `<div class="ticket-card" onclick="openTicketDetail('${t.id}')">
       <div class="ticket-card-left">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
@@ -1050,6 +1054,7 @@ function renderTickets() {
         </div>
         <p><span class="tid">#${t.ticket_number}</span> · Updated ${timeAgo(t.updated_at)}${asgn?' · '+asgn.full_name:''}</p>
       </div>
+      ${_tcUrls.length ? `<img src="${_tcUrls[0]}" class="ticket-card-thumb" alt="attachment" onclick="event.stopPropagation();openImgPreview(${JSON.stringify(_tcUrls).replace(/"/g,'&quot;')})"/>` : ''}
       <div class="ticket-card-right">
         <span class="sb s-${t.status}">${sLabel(t.status)}</span>
         <span style="font-size:11px;color:var(--text3)"><span class="pdot ${t.priority}"></span>${t.priority}</span>
@@ -1156,6 +1161,10 @@ async function addReply(ticketId) {
   document.getElementById('reply-text').value=''; toast('Reply sent'); openTicketDetail(ticketId);
 }
 
+function openImgPreview(urls) {
+  // Simple lightbox for client side — open first image in new tab if no lightbox built-in
+  if (Array.isArray(urls) && urls.length) window.open(urls[0], '_blank');
+}
 async function reopenTicket(ticketId) {
   if (demoMode){const t=myTickets.find(x=>x.id===ticketId);if(t){t.status='open';t.updated_at=new Date().toISOString();}renderTickets();closeModal('modal-ticket-detail');toast('Ticket reopened');return;}
   await sbClient.from('tickets').update({status:'open'}).eq('id',ticketId);
@@ -1553,6 +1562,42 @@ async function loadVersion() {
     const el = document.getElementById('footer-version');
     if (el) el.textContent = 'v' + v;
   } catch(e) {}
+}
+
+/* ── Session / Idle Timeout ── */
+const IDX_TIMEOUT_KEY     = 'session_timeout_minutes';
+const IDX_TIMEOUT_DEFAULT = 30;
+let   _idxIdleTimer       = null;
+let   _idxIdleMinutes     = IDX_TIMEOUT_DEFAULT;
+
+async function loadAndStartIdleTimeout() {
+  if (demoMode || !sbClient) { _startIdxIdleTimer(IDX_TIMEOUT_DEFAULT); return; }
+  try {
+    const { data } = await sbClient.from('app_settings').select('value').eq('key', IDX_TIMEOUT_KEY).maybeSingle();
+    const mins = data?.value ? parseInt(data.value) : IDX_TIMEOUT_DEFAULT;
+    _idxIdleMinutes = isNaN(mins) ? IDX_TIMEOUT_DEFAULT : mins;
+  } catch {
+    _idxIdleMinutes = IDX_TIMEOUT_DEFAULT;
+  }
+  _startIdxIdleTimer(_idxIdleMinutes);
+}
+
+function _startIdxIdleTimer(minutes) {
+  clearTimeout(_idxIdleTimer);
+  const ms = minutes * 60 * 1000;
+  const reset = () => {
+    clearTimeout(_idxIdleTimer);
+    _idxIdleTimer = setTimeout(async () => {
+      toast('Session timed out due to inactivity');
+      await new Promise(r => setTimeout(r, 1200));
+      if (sbClient) await sbClient.auth.signOut();
+      location.reload();
+    }, ms);
+  };
+  ['click','keydown','mousemove','scroll','touchstart'].forEach(e =>
+    document.addEventListener(e, reset, { passive: true })
+  );
+  reset();
 }
 
 document.addEventListener('DOMContentLoaded', initSupabase);
