@@ -7,7 +7,7 @@
 <link rel="icon" type="image/x-icon" href="favicon.ico"/>
 <link rel="icon" type="image/png" sizes="32x32" href="logo.png"/>
 <link rel="apple-touch-icon" href="logo.png"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
 <style>
@@ -296,7 +296,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 /* ── Config — same as admin.html ── */
 const SB_URL = localStorage.getItem('sb_url') || 'https://gtcrmqbmlvtlyiwnshma.supabase.co';
 const SB_KEY = localStorage.getItem('sb_key') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
-const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
 
 const COMPANY_COLORS = {
   "El Martillo":"#5a9e1f","Metalrok":"#1565c0","ORC / TARIK":"#00796b",
@@ -327,32 +327,48 @@ function esc(s) {
 
 async function loadEntries() {
   try {
-    const { data, error } = await sb
-      .from('directory_entries')
-      .select('*')
-      .order('sort_order', { ascending: true })
-      .order('name', { ascending: true });
-    if (error) throw error;
-    allEntries = data || [];
+    const res = await fetch(
+      `${SB_URL}/rest/v1/directory_entries?select=*&order=sort_order.asc,name.asc`,
+      { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+    allEntries = await res.json();
   } catch(e) {
-    console.error('Directory load error:', e);
-    allEntries = [];
+    console.error('Directory query error:', e.message);
   }
+  await loadStandaloneCompanies().catch(() => {});
   buildCompanyTabs();
   renderDir();
 }
 
+
+let standaloneCompanies = [];
+
+async function loadStandaloneCompanies() {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/app_settings?key=eq.directory_standalone_companies&select=value`,
+      { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }
+    );
+    const rows = await res.json();
+    standaloneCompanies = rows?.[0]?.value ? JSON.parse(rows[0].value) : [];
+  } catch(e) { standaloneCompanies = []; }
+}
+
 function buildCompanyTabs() {
-  const companies = ['All', ...new Set(allEntries.map(e => e.company))];
+  const fromEntries = allEntries.map(e => e.company);
+  const companies = ['All', ...new Set([...fromEntries, ...standaloneCompanies]).keys()].sort();
+  // re-sort keeping All first
+  const sorted = ['All', ...[...new Set([...fromEntries, ...standaloneCompanies])].sort()];
   const tabs = document.getElementById('co-tabs');
-  tabs.innerHTML = companies.map(c => `
+  tabs.innerHTML = sorted.map(c => `
     <button class="co-tab${c===activeCompany?' active':''}" onclick="filterCompany('${esc(c)}')">${esc(c)}</button>
   `).join('');
 }
 
 function filterCompany(c) {
   activeCompany = c;
-  document.querySelectorAll('.co-tab').forEach(t => t.classList.toggle('active', t.textContent===c));
+  document.querySelectorAll('.co-tab').forEach(t => t.classList.toggle('active', t.textContent.trim()===c));
   renderDir();
 }
 
@@ -443,73 +459,78 @@ function renderDir() {
 
 async function loadVersion() {
   try {
-    const { data } = await sb.from('app_settings').select('value').eq('key','app_version').single();
-    if (data) document.getElementById('footer-version').textContent = 'v'+data.value;
-  } catch(e){}
+    const res = await fetch(
+      `${SB_URL}/rest/v1/app_settings?key=eq.app_version&select=value`,
+      { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }
+    );
+    const rows = await res.json();
+    if (rows?.[0]?.value) document.getElementById('footer-version').textContent = 'v' + rows[0].value;
+  } catch(e) {}
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadEntries();
-  loadVersion();
+  loadEntries().catch(e => console.error('loadEntries failed:', e.message));
+  loadVersion().catch(() => {});
+  setTimeout(() => initSharedNav().catch(() => {}), 0);
 });
 
 
 /* ── Shared nav ─────────────────────────────────────────────────────────── */
-(async function initSharedNav() {
-  const SB_URL = 'https://gtcrmqbmlvtlyiwnshma.supabase.co';
-  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
-  const _sb = window.supabase.createClient(SB_URL, SB_KEY);
-
-  const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
-  function navAvColor(id) {
-    if (!id) return 'av-blue';
-    let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-    return AV_COLORS[h % AV_COLORS.length];
-  }
-  function navInitials(name) {
-    const w = (name||'').trim().split(/\s+/);
-    return w.length < 2 ? (w[0]||'?').slice(0,2).toUpperCase() : (w[0][0]+w[w.length-1][0]).toUpperCase();
-  }
-
+async function initSharedNav() {
   try {
-    const { data: { session } } = await _sb.auth.getSession();
-    if (!session) return; // not logged in — keep logged-out nav visible
-
-    const { data: prof } = await _sb
-      .from('profiles')
-      .select('full_name, role')
-      .eq('id', session.user.id)
-      .single();
-
-    const name = prof?.full_name || session.user.email || 'User';
-    const role = prof?.role || 'client';
-    const isAdmin = role === 'admin' || role === 'super_admin';
-
-    // Show logged-in nav, hide logged-out nav
+    const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
+    function navAvColor(id) {
+      let h = 0; for (const c of String(id||'')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+      return AV_COLORS[h % AV_COLORS.length];
+    }
+    function navInitials(name) {
+      const w = (name||'').trim().split(/\s+/);
+      return w.length < 2 ? (w[0]||'?').slice(0,2).toUpperCase() : (w[0][0]+w[w.length-1][0]).toUpperCase();
+    }
+    // Read session from localStorage - no BroadcastChannel triggered
+    const storageKey = Object.keys(localStorage).find(k => k.includes('auth-token') && k.includes('supabase'));
+    if (!storageKey) return;
+    let session;
+    try { session = JSON.parse(localStorage.getItem(storageKey)); } catch(e) { return; }
+    const accessToken = session?.access_token;
+    const userId = session?.user?.id;
+    if (!accessToken || !userId) return;
+    // Fetch profile via REST
+    const res = await fetch(
+      `${SB_URL}/rest/v1/profiles?id=eq.${userId}&select=full_name,role&limit=1`,
+      { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${accessToken}` } }
+    );
+    const rows = await res.json();
+    const prof = rows?.[0];
+    const name = prof?.full_name || session?.user?.email || 'User';
+    const isAdmin = prof?.role === 'admin' || prof?.role === 'super_admin';
     const li = document.getElementById('nav-loggedin');
     const lo = document.getElementById('nav-loggedout');
     if (li) { li.style.display = 'flex'; li.style.alignItems = 'center'; li.style.gap = '10px'; }
     if (lo) lo.style.display = 'none';
-
-    // Populate user pill
     const av = document.getElementById('nav-avatar');
     const un = document.getElementById('nav-username');
-    if (av) { av.textContent = navInitials(name); av.className = 'avatar ' + navAvColor(session.user.id); }
+    if (av) { av.textContent = navInitials(name); av.className = 'avatar ' + navAvColor(userId); }
     if (un) un.textContent = name;
-
-    // Show admin links only for admin/super_admin
     ['nav-admin-link','mobile-nav-admin-link'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = isAdmin ? (id.startsWith('mobile') ? 'flex' : 'inline') : 'none';
     });
-  } catch(e) { /* silently ignore — nav stays in logged-out state */ }
-})();
+  } catch(e) { /* stay in logged-out state */ }
+}
 
 async function sharedSignOut() {
-  const SB_URL = 'https://gtcrmqbmlvtlyiwnshma.supabase.co';
-  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
-  const _sb = window.supabase.createClient(SB_URL, SB_KEY);
-  try { await _sb.auth.signOut(); } catch(e) {}
+  try {
+    const storageKey = Object.keys(localStorage).find(k => k.includes('auth-token') && k.includes('supabase'));
+    const token = storageKey ? JSON.parse(localStorage.getItem(storageKey))?.access_token : null;
+    if (token) {
+      await fetch(`${SB_URL}/auth/v1/logout`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${token}` }
+      });
+    }
+    if (storageKey) localStorage.removeItem(storageKey);
+  } catch(e) {}
   window.location.href = 'index.html';
 }
 
