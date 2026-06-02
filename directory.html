@@ -76,7 +76,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .dir-table th{padding:8px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)}
 .dir-table td{padding:9px 14px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
 .dir-table tr:last-child td{border-bottom:none}
-.dir-table tbody tr:hover td{background:var(--surface2)}
+.dir-table tbody tr:hover td{background:rgba(0,0,0,.04)}
 .td-name{font-weight:500;color:var(--text1)}
 .td-name.queue{color:var(--text3);font-style:italic;font-weight:400}
 .dept-tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;background:var(--accent-l);color:var(--accent)}
@@ -394,12 +394,7 @@ function renderDir() {
     content.innerHTML = Object.entries(grouped).map(([company, people]) => {
       const color = COMPANY_COLORS[company]||'#888';
       const bg = COMPANY_BG[company]||'#f8f8f8';
-      const rows = people.map(p => `<tr>
-        <td><span class="td-name${p.is_queue?' queue':''}">${esc(p.name)}</span></td>
-        <td>${p.department?`<span class="dept-tag" style="background:${color}18;color:${color}">${esc(p.department)}</span>`:''}</td>
-        <td>${p.email?`<a class="eml" href="mailto:${esc(p.email)}">${esc(p.email)}</a>`:'—'}</td>
-        <td><span class="ext-val">${esc(p.extension)||'—'}</span></td>
-      </tr>`).join('');
+      const rows = people.map((p, i) => `<tr style="${i%2===1?`background:${color}0d`:''}">\n        <td><span class="td-name${p.is_queue?' queue':''}">${esc(p.name)}</span></td>\n        <td>${p.department?`<span class="dept-tag" style="background:${color}18;color:${color}">${esc(p.department)}</span>`:''}</td>\n        <td>${p.email?`<a class="eml" href="mailto:${esc(p.email)}">${esc(p.email)}</a>`:'—'}</td>\n        <td><span class="ext-val">${esc(p.extension)||'—'}</span></td>\n      </tr>`).join('');
 
       return `<div class="co-section" style="background:${bg};border-color:${color}40">
         <div class="co-section-head">
