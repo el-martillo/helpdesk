@@ -2299,6 +2299,7 @@ async function deleteUser(id) {
     allProfiles = allProfiles.filter(x => x.id !== id);
     closeModal('modal-edit-user'); renderUsersTable(); toast('User deleted'); return;
   }
+  const delP = allProfiles.find(x => x.id === id);
   // Call the database function that hard-deletes from both profiles and auth.users
   const { error } = await sbClient.rpc('delete_user_hard', { p_user_id: id });
   if (error) {
@@ -2312,8 +2313,12 @@ async function deleteUser(id) {
       return;
     }
   } else {
-    const delP=allProfiles.find(x=>x.id===id); toast('User permanently deleted');
-  logSystemEvent('user_deleted',`${delP?.full_name||'Unknown'} (${delP?.email||id}) | Role: ${delP?.role||'?'}${delP?.company?' | Org: '+delP.company:''}`);
+    toast('User permanently deleted');
+    logSystemEvent('user_deleted', `${delP?.full_name||'Unknown'} (${delP?.email||id}) | Role: ${delP?.role||'?'}${delP?.company?' | Org: '+delP.company:''}`);
+  }
+  // Also remove any matching directory entries by email
+  if (delP?.email) {
+    await sbClient.from('directory_entries').delete().ilike('email', delP.email);
   }
   closeModal('modal-edit-user');
   loadAllProfiles(); loadProfiles();
@@ -3387,6 +3392,7 @@ const DIR_CO_COLORS = {
 
 async function loadDirPage() {
   await loadDirCoColors();
+  await loadDirStandaloneCompanies();
   const tbody = document.getElementById('dir-admin-tbody');
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="7" style="padding:32px;text-align:center;color:var(--text3)"><div class="loader"></div></td></tr>';
@@ -3400,7 +3406,7 @@ async function loadDirPage() {
   dirEntries = error ? [] : (data || []);
 
   // Populate company filter
-  const companies = [...new Set(dirEntries.map(e => e.company))];
+  const companies = [...new Set([...dirEntries.map(e => e.company), ...dirStandaloneCompanies])];
   const coFilter = document.getElementById('dir-admin-co-filter');
   if (coFilter) {
     const current = coFilter.value;
@@ -3485,6 +3491,12 @@ function openDirModal(id) {
   document.getElementById('dir-f-email').value = entry?.email || '';
   document.getElementById('dir-f-ext').value = entry?.extension || '';
   document.getElementById('dir-f-queue').value = entry?.is_queue ? 'true' : 'false';
+  // Always refresh the company datalist from current entries
+  const dl = document.getElementById('dir-company-list');
+  if (dl) {
+    const companies = [...new Set([...dirEntries.map(e => e.company), ...dirStandaloneCompanies])].sort();
+    dl.innerHTML = companies.map(c => `<option value="${escH(c)}">`).join('');
+  }
   document.getElementById('modal-dir-entry').classList.add('open');
 }
 
@@ -3587,6 +3599,28 @@ const DIR_CO_PRESET_COLORS = [
 let dirCoColors = { ...DIR_CO_COLORS }; // live copy, loaded from app_settings
 let dirCoEditTarget = null; // company name currently being edited
 
+let dirStandaloneCompanies = []; // companies with no entries yet, stored in app_settings
+
+async function loadDirStandaloneCompanies() {
+  try {
+    const { data } = await sbClient
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'directory_standalone_companies')
+      .single();
+    dirStandaloneCompanies = data?.value ? JSON.parse(data.value) : [];
+  } catch(e) { dirStandaloneCompanies = []; }
+}
+
+async function saveDirStandaloneCompanies() {
+  // Remove any that now have real entries
+  const withEntries = new Set(dirEntries.map(e => e.company));
+  dirStandaloneCompanies = dirStandaloneCompanies.filter(c => !withEntries.has(c));
+  await sbClient
+    .from('app_settings')
+    .upsert({ key: 'directory_standalone_companies', value: JSON.stringify(dirStandaloneCompanies) }, { onConflict: 'key' });
+}
+
 async function loadDirCoColors() {
   try {
     const { data } = await sbClient
@@ -3611,6 +3645,7 @@ async function saveDirCoColors() {
 
 async function openDirCompanies() {
   await loadDirCoColors();
+  await loadDirStandaloneCompanies();
   document.getElementById('modal-dir-companies').classList.add('open');
   document.getElementById('dir-co-edit-panel').style.display = 'none';
   dirCoEditTarget = null;
@@ -3622,7 +3657,8 @@ function closeDirCompanies() {
 }
 
 function renderDirCoList() {
-  const companies = [...new Set(dirEntries.map(e => e.company))].sort();
+  const fromEntries = [...new Set(dirEntries.map(e => e.company))];
+  const companies = [...new Set([...fromEntries, ...dirStandaloneCompanies])].sort();
   const list = document.getElementById('dir-co-list');
   if (!list) return;
   if (!companies.length) {
@@ -3729,11 +3765,18 @@ async function deleteDirCompany() {
     : `Delete company "${dirCoEditTarget}"?`;
   if (!confirm(msg)) return;
 
-  const { error } = await sbClient
-    .from('directory_entries')
-    .delete()
-    .eq('company', dirCoEditTarget);
-  if (error) { toast('Error: ' + error.message, true); return; }
+  // Delete all directory entries for this company
+  if (count > 0) {
+    const { error } = await sbClient
+      .from('directory_entries')
+      .delete()
+      .eq('company', dirCoEditTarget);
+    if (error) { toast('Error: ' + error.message, true); return; }
+  }
+
+  // Remove from standalone company list
+  dirStandaloneCompanies = dirStandaloneCompanies.filter(c => c !== dirCoEditTarget);
+  await saveDirStandaloneCompanies();
 
   // Remove colour
   delete dirCoColors[dirCoEditTarget];
@@ -3751,17 +3794,15 @@ async function addDirCompany() {
   const name = input?.value.trim();
   if (!name) return;
   const existing = [...new Set(dirEntries.map(e => e.company))];
-  if (existing.map(c=>c.toLowerCase()).includes(name.toLowerCase())) {
+  // Also check the standalone company list
+  const allCos = [...new Set([...existing, ...dirStandaloneCompanies])];
+  if (allCos.map(c=>c.toLowerCase()).includes(name.toLowerCase())) {
     toast('Company already exists'); return;
   }
-  // Insert a placeholder so company appears immediately; user adds real entries after
-  const { error } = await sbClient
-    .from('directory_entries')
-    .insert({ company: name, name: '(placeholder — edit or delete)', department: '', email: '', extension: '', is_queue: false, sort_order: 9999 });
-  if (error) { toast('Error: ' + error.message, true); return; }
+  dirStandaloneCompanies.push(name);
+  await saveDirStandaloneCompanies();
   toast(`"${name}" added`);
   if (input) input.value = '';
-  await loadDirPage();
   renderDirCoList();
 }
 </script>
