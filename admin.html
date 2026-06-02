@@ -925,6 +925,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <select id="dir-admin-co-filter" class="fc" style="width:160px" onchange="renderAdminDir()">
         <option value="">All companies</option>
       </select>
+      <button class="btn" onclick="openDirCompanies()">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="4"/><rect x="14" y="3" width="7" height="4"/><rect x="3" y="10" width="7" height="4"/><rect x="14" y="10" width="7" height="4"/><rect x="3" y="17" width="7" height="4"/><rect x="14" y="17" width="7" height="4"/></svg>
+        Companies
+      </button>
       <button class="btn primary" onclick="openDirModal(null)">
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
         Add entry
@@ -1138,64 +1142,60 @@ textarea.fc { resize: vertical; min-height: 80px; }
   </div>
 </div>
 
-<div id="modal-dir-entry" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeDirModal()">
-  <div class="modal-box" style="max-width:480px">
-    <div class="modal-header">
-      <span id="dir-modal-title">Add entry</span>
-      <button class="modal-close" onclick="closeDirModal()">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </button>
+<div id="modal-dir-entry" class="overlay" onclick="if(event.target===this)closeDirModal()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="dir-modal-title">Add entry</div>
+      </div>
+      <button class="close-x" onclick="closeDirModal()">✕</button>
     </div>
-    <div class="modal-body" style="display:flex;flex-direction:column;gap:0">
-      <input type="hidden" id="dir-entry-id"/>
+    <input type="hidden" id="dir-entry-id"/>
+    <div class="fg">
+      <label class="fl">Name *</label>
+      <input id="dir-f-name" class="fc" type="text" placeholder="Full name or line label"/>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div class="fg">
-        <label class="fl">Name *</label>
-        <input id="dir-f-name" class="fc" type="text" placeholder="Full name or line label"/>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div class="fg">
-          <label class="fl">Company *</label>
-          <input id="dir-f-company" class="fc" type="text" placeholder="e.g. El Martillo" list="dir-company-list"/>
-          <datalist id="dir-company-list"></datalist>
-        </div>
-        <div class="fg">
-          <label class="fl">Department</label>
-          <input id="dir-f-dept" class="fc" type="text" placeholder="e.g. Accounts"/>
-        </div>
+        <label class="fl">Company *</label>
+        <input id="dir-f-company" class="fc" type="text" placeholder="e.g. El Martillo" list="dir-company-list"/>
+        <datalist id="dir-company-list"></datalist>
       </div>
       <div class="fg">
-        <label class="fl">Email</label>
-        <input id="dir-f-email" class="fc" type="email" placeholder="name@company.com"/>
-      </div>
-      <div class="fg">
-        <label class="fl">Extension / Phone</label>
-        <input id="dir-f-ext" class="fc" type="text" placeholder="e.g. 301 or +350 200 00000"/>
-      </div>
-      <div class="fg" style="margin-bottom:0">
-        <label class="fl">Type</label>
-        <select id="dir-f-queue" class="fc">
-          <option value="false">Person / Staff</option>
-          <option value="true">Queue / Main Line</option>
-        </select>
+        <label class="fl">Department</label>
+        <input id="dir-f-dept" class="fc" type="text" placeholder="e.g. Accounts"/>
       </div>
     </div>
-    <div class="form-footer">
+    <div class="fg">
+      <label class="fl">Email</label>
+      <input id="dir-f-email" class="fc" type="email" placeholder="name@company.com"/>
+    </div>
+    <div class="fg">
+      <label class="fl">Extension / Phone</label>
+      <input id="dir-f-ext" class="fc" type="text" placeholder="e.g. 301 or +350 200 00000"/>
+    </div>
+    <div class="fg" style="margin-bottom:0">
+      <label class="fl">Type</label>
+      <select id="dir-f-queue" class="fc">
+        <option value="false">Person / Staff</option>
+        <option value="true">Queue / Main Line</option>
+      </select>
+    </div>
+    <div class="form-footer" style="margin-top:20px">
       <button class="btn" onclick="closeDirModal()">Cancel</button>
-      <button id="dir-modal-save-btn" class="btn primary" onclick="saveDirEntry()">Save entry</button>
+      <button id="dir-modal-save-btn" class="btn primary" onclick="saveDirEntry()">Add entry</button>
     </div>
   </div>
 </div>
 
-<div id="modal-dir-delete" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeDirDeleteModal()">
-  <div class="modal-box" style="max-width:380px;text-align:center">
-    <div class="modal-header">
-      <span>Remove entry</span>
-      <button class="modal-close" onclick="closeDirDeleteModal()">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </button>
+<div id="modal-dir-delete" class="overlay" onclick="if(event.target===this)closeDirDeleteModal()">
+  <div class="modal" style="max-width:380px;text-align:center">
+    <div class="modal-head">
+      <div class="modal-title">Remove entry</div>
+      <button class="close-x" onclick="closeDirDeleteModal()">✕</button>
     </div>
-    <div class="modal-body" style="padding:24px">
-      <div style="font-size:32px;margin-bottom:12px">🗑️</div>
+    <div style="padding:12px 0 20px">
+      <div style="font-size:28px;margin-bottom:10px">🗑️</div>
       <div style="font-size:14px;color:var(--text1);line-height:1.6">
         Remove <strong id="dir-del-name"></strong> from the directory?<br/>
         <span style="font-size:12px;color:var(--text3)">This cannot be undone.</span>
@@ -1204,6 +1204,27 @@ textarea.fc { resize: vertical; min-height: 80px; }
     <div class="form-footer" style="justify-content:center">
       <button class="btn" onclick="closeDirDeleteModal()">Cancel</button>
       <button class="btn danger" onclick="confirmDirDelete()">Yes, remove</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="modal-dir-companies" class="overlay" onclick="if(event.target===this)closeDirCompanies()">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Manage companies</div>
+        <div class="modal-sub">Companies available in the directory</div>
+      </div>
+      <button class="close-x" onclick="closeDirCompanies()">✕</button>
+    </div>
+    <div id="dir-co-list" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;margin-bottom:16px;padding-right:2px"></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input id="dir-new-co-input" class="fc" type="text" placeholder="New company name…" onkeydown="if(event.key==='Enter')addDirCompany()"/>
+      <button class="btn primary" style="white-space:nowrap" onclick="addDirCompany()">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Add
+      </button>
     </div>
   </div>
 </div>
@@ -3431,11 +3452,11 @@ function openDirModal(id) {
   document.getElementById('dir-f-email').value = entry?.email || '';
   document.getElementById('dir-f-ext').value = entry?.extension || '';
   document.getElementById('dir-f-queue').value = entry?.is_queue ? 'true' : 'false';
-  document.getElementById('modal-dir-entry').style.display = 'flex';
+  document.getElementById('modal-dir-entry').classList.add('open');
 }
 
 function closeDirModal() {
-  document.getElementById('modal-dir-entry').style.display = 'none';
+  document.getElementById('modal-dir-entry').classList.remove('open');
 }
 
 async function saveDirEntry() {
@@ -3485,11 +3506,11 @@ function openDirDelete(id) {
   if (!entry) return;
   dirDeleteId = id;
   document.getElementById('dir-del-name').textContent = entry.name;
-  document.getElementById('modal-dir-delete').style.display = 'flex';
+  document.getElementById('modal-dir-delete').classList.add('open');
 }
 
 function closeDirDeleteModal() {
-  document.getElementById('modal-dir-delete').style.display = 'none';
+  document.getElementById('modal-dir-delete').classList.remove('open');
   dirDeleteId = null;
 }
 
@@ -3519,6 +3540,84 @@ function applyRoleUI(role) {
     if (el) el.style.display = isSuperAdmin ? '' : 'none';
   });
 }
+
+/* ── Directory — company management ── */
+async function openDirCompanies() {
+  document.getElementById('modal-dir-companies').classList.add('open');
+  renderDirCoList();
+}
+
+function closeDirCompanies() {
+  document.getElementById('modal-dir-companies').classList.remove('open');
+}
+
+function renderDirCoList() {
+  const companies = [...new Set(dirEntries.map(e => e.company))].sort();
+  const list = document.getElementById('dir-co-list');
+  if (!list) return;
+  if (!companies.length) {
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">No companies yet</div>';
+    return;
+  }
+  list.innerHTML = companies.map(co => {
+    const count = dirEntries.filter(e => e.company === co).length;
+    const color = DIR_CO_COLORS[co] || '#888';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)">
+      <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></div>
+      <span style="flex:1;font-size:13px;font-weight:500">${escH(co)}</span>
+      <span style="font-size:11px;color:var(--text3)">${count} ${count===1?'entry':'entries'}</span>
+      <button class="btn sm" onclick="renameDirCompany('${escH(co)}')" title="Rename">✎</button>
+      ${count === 0 ? `<button class="btn sm danger" onclick="deleteDirCompany('${escH(co)}')" title="Delete">✕</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function addDirCompany() {
+  const input = document.getElementById('dir-new-co-input');
+  const name = input?.value.trim();
+  if (!name) return;
+  const existing = [...new Set(dirEntries.map(e => e.company))];
+  if (existing.map(c=>c.toLowerCase()).includes(name.toLowerCase())) {
+    toast('Company already exists'); return;
+  }
+  // Add a placeholder entry so company appears; user can rename and add real entries
+  const { error } = await sbClient
+    .from('directory_entries')
+    .insert({ company: name, name: '(placeholder)', department: '', email: '', extension: '', is_queue: false, sort_order: 9999 });
+  if (error) { toast('Error: ' + error.message, true); return; }
+  toast('Company added');
+  if (input) input.value = '';
+  await loadDirPage();
+  renderDirCoList();
+}
+
+async function renameDirCompany(oldName) {
+  const newName = prompt(`Rename "${oldName}" to:`, oldName);
+  if (!newName || newName.trim() === oldName) return;
+  const trimmed = newName.trim();
+  const { error } = await sbClient
+    .from('directory_entries')
+    .update({ company: trimmed })
+    .eq('company', oldName);
+  if (error) { toast('Error: ' + error.message, true); return; }
+  toast(`Renamed to "${trimmed}"`);
+  await loadDirPage();
+  renderDirCoList();
+}
+
+async function deleteDirCompany(name) {
+  if (!confirm(`Delete company "${name}"? This only works if it has no entries.`)) return;
+  const { error } = await sbClient
+    .from('directory_entries')
+    .delete()
+    .eq('company', name)
+    .eq('name', '(placeholder)');
+  if (error) { toast('Error: ' + error.message, true); return; }
+  toast('Company removed');
+  await loadDirPage();
+  renderDirCoList();
+}
+
 </script>
 <style>
 .footer {
