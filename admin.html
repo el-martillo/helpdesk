@@ -1158,7 +1158,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div class="fg">
         <label class="fl">Company *</label>
-        <input id="dir-f-company" class="fc" type="text" placeholder="e.g. El Martillo" list="dir-company-list"/>
+        <select id="dir-f-company-select" class="fc" onchange="onDirCompanySelectChange()"></select>
+        <input id="dir-f-company" class="fc" type="text" placeholder="Type new company name…" style="display:none;margin-top:6px"/>
       </div>
       <div class="fg">
         <label class="fl">Department</label>
@@ -3490,12 +3491,8 @@ function openDirModal(id) {
   document.getElementById('dir-f-email').value = entry?.email || '';
   document.getElementById('dir-f-ext').value = entry?.extension || '';
   document.getElementById('dir-f-queue').value = entry?.is_queue ? 'true' : 'false';
-  // Always refresh the company datalist from current entries
-  const dl = document.getElementById('dir-company-list');
-  if (dl) {
-    const companies = [...new Set([...dirEntries.map(e => e.company), ...dirStandaloneCompanies])].sort();
-    dl.innerHTML = companies.map(c => `<option value="${escH(c)}">`).join('');
-  }
+  // Populate company select
+  populateDirCompanySelect(entry?.company || '');
   document.getElementById('modal-dir-entry').classList.add('open');
 }
 
@@ -3506,7 +3503,7 @@ function closeDirModal() {
 async function saveDirEntry() {
   const id = document.getElementById('dir-entry-id').value;
   const name = document.getElementById('dir-f-name').value.trim();
-  const company = document.getElementById('dir-f-company').value.trim();
+  const company = getDirCompanyValue();
   if (!name || !company) { toast('Name and company are required'); return; }
 
   const payload = {
@@ -3803,6 +3800,45 @@ async function addDirCompany() {
   toast(`"${name}" added`);
   if (input) input.value = '';
   renderDirCoList();
+}
+
+/* ── Directory company select helpers ── */
+function populateDirCompanySelect(currentValue) {
+  const sel = document.getElementById('dir-f-company-select');
+  const inp = document.getElementById('dir-f-company');
+  if (!sel) return;
+  const companies = [...new Set([...dirEntries.map(e => e.company), ...dirStandaloneCompanies])].sort();
+  sel.innerHTML = companies.map(c =>
+    `<option value="${escH(c)}"${c === currentValue ? ' selected' : ''}>${escH(c)}</option>`
+  ).join('') + '<option value="__new__">+ New company…</option>';
+  // If current value not in list, show text input
+  if (currentValue && !companies.includes(currentValue)) {
+    sel.style.display = 'none';
+    inp.style.display = '';
+    inp.value = currentValue;
+  } else {
+    sel.style.display = '';
+    inp.style.display = 'none';
+    inp.value = '';
+  }
+}
+
+function onDirCompanySelectChange() {
+  const sel = document.getElementById('dir-f-company-select');
+  const inp = document.getElementById('dir-f-company');
+  if (sel.value === '__new__') {
+    sel.style.display = 'none';
+    inp.style.display = '';
+    inp.value = '';
+    inp.focus();
+  }
+}
+
+function getDirCompanyValue() {
+  const sel = document.getElementById('dir-f-company-select');
+  const inp = document.getElementById('dir-f-company');
+  if (inp && inp.style.display !== 'none') return inp.value.trim();
+  return sel ? sel.value : '';
 }
 </script>
 <style>
