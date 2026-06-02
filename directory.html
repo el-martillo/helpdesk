@@ -298,14 +298,14 @@ const SB_URL = localStorage.getItem('sb_url') || 'https://gtcrmqbmlvtlyiwnshma.s
 const SB_KEY = localStorage.getItem('sb_key') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
 
 
-const COMPANY_COLORS = {
+let COMPANY_COLORS = {
   "El Martillo":"#5a9e1f","Metalrok":"#1565c0","ORC / TARIK":"#00796b",
   "Gib Sun Club":"#d07000","Signtalk":"#6a1b9a","EWMS":"#2e7d32",
   "Hire-U-Shop":"#bf360c","CIAP":"#283593","S&P":"#880e4f","FOCUS":"#0d47a1",
   "BELILOS":"#004d40","ABC CLEANING":"#4e342e","DOLPHIN":"#01579b",
   "LOTTERY":"#558b2f","THE BULB":"#e65100","MISC":"#37474f"
 };
-const COMPANY_BG = {
+let COMPANY_BG = {
   "El Martillo":"#f0f9e6","Metalrok":"#e8f1fc","ORC / TARIK":"#e0f5f3",
   "Gib Sun Club":"#fdf4e0","Signtalk":"#f3eafa","EWMS":"#e8f5e9",
   "Hire-U-Shop":"#fbe9e7","CIAP":"#e8eaf6","S&P":"#fce4ec","FOCUS":"#e3f2fd",
@@ -337,6 +337,7 @@ async function loadEntries() {
     console.error('Directory query error:', e.message);
   }
   await loadStandaloneCompanies().catch(() => {});
+  await loadSavedColors().catch(() => {});
   buildCompanyTabs();
   renderDir();
 }
@@ -353,6 +354,35 @@ async function loadStandaloneCompanies() {
     const rows = await res.json();
     standaloneCompanies = rows?.[0]?.value ? JSON.parse(rows[0].value) : [];
   } catch(e) { standaloneCompanies = []; }
+}
+
+async function loadSavedColors() {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/app_settings?key=eq.directory_company_colors&select=value`,
+      { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }
+    );
+    const rows = await res.json();
+    if (!rows?.[0]?.value) return;
+    const saved = JSON.parse(rows[0].value);
+    // Merge saved colours into COMPANY_COLORS and auto-generate COMPANY_BG tints
+    Object.entries(saved).forEach(([company, hex]) => {
+      COMPANY_COLORS[company] = hex;
+      // Generate a light background tint from the hex colour
+      COMPANY_BG[company] = hexToTint(hex, 0.08);
+    });
+  } catch(e) {}
+}
+
+function hexToTint(hex, alpha) {
+  // Blend hex colour with white at given alpha to produce a light background
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  const tr = Math.round(r * alpha + 255 * (1 - alpha));
+  const tg = Math.round(g * alpha + 255 * (1 - alpha));
+  const tb = Math.round(b * alpha + 255 * (1 - alpha));
+  return `rgb(${tr},${tg},${tb})`;
 }
 
 function buildCompanyTabs() {
