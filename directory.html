@@ -148,7 +148,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
     </div>
     <div class="topbar-right">
       <a href="index.html" class="portal-link">← Client portal</a>
-      <a href="admin.html" class="btn sm">Admin panel</a>
+      <a href="admin.html" class="btn sm" id="admin-panel-link" style="display:none">Admin panel</a>
     </div>
   </div>
 
@@ -378,7 +378,24 @@ async function loadVersion() {
 document.addEventListener('DOMContentLoaded', () => {
   loadEntries();
   loadVersion();
+  checkAdminLink();
 });
+
+async function checkAdminLink() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    const { data: prof } = await sb
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+    if (prof?.role === 'admin' || prof?.role === 'super_admin') {
+      const link = document.getElementById('admin-panel-link');
+      if (link) link.style.display = '';
+    }
+  } catch(e) {}
+}
 </script>
 </body>
 </html>
