@@ -383,6 +383,15 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </div>
+      <div class="nav-item" onclick="adminNav(this,'directory');loadDirPage()">
+  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>
+  Directory
+</div>
+
       <div class="sep"></div>
       <a href="index.html" class="nav-item">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
@@ -901,6 +910,82 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
         </div>
       </div>
+
+<div class="page" id="page-directory">
+  <div class="page-header">
+    <div>
+      <h1>Staff Directory</h1>
+      <p>Manage the company-wide phone &amp; email directory</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div style="position:relative">
+        <svg style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="dir-admin-search" class="fc" type="text" placeholder="Search…" style="padding-left:28px;width:200px" oninput="renderAdminDir()"/>
+      </div>
+      <select id="dir-admin-co-filter" class="fc" style="width:160px" onchange="renderAdminDir()">
+        <option value="">All companies</option>
+      </select>
+      <button class="btn primary" onclick="openDirModal(null)">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Add entry
+      </button>
+      <a href="directory.html" target="_blank" class="btn">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        View live
+      </a>
+    </div>
+  </div>
+
+  <!-- Stats row -->
+  <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+    <div class="table-card" style="padding:14px 18px;flex:1;min-width:120px">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Total entries</div>
+      <div id="dir-stat-total" style="font-size:22px;font-weight:600">—</div>
+    </div>
+    <div class="table-card" style="padding:14px 18px;flex:1;min-width:120px">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Companies</div>
+      <div id="dir-stat-companies" style="font-size:22px;font-weight:600">—</div>
+    </div>
+    <div class="table-card" style="padding:14px 18px;flex:1;min-width:120px">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">People</div>
+      <div id="dir-stat-people" style="font-size:22px;font-weight:600">—</div>
+    </div>
+    <div class="table-card" style="padding:14px 18px;flex:1;min-width:120px">
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Queue lines</div>
+      <div id="dir-stat-queues" style="font-size:22px;font-weight:600">—</div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-toolbar" style="display:flex;align-items:center;gap:8px">
+      <span id="dir-admin-meta" style="font-size:12px;color:var(--text3)">Loading…</span>
+      <button class="btn sm" style="margin-left:auto" onclick="loadDirPage()">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Refresh
+      </button>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="background:var(--surface2)">
+            <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Name</th>
+            <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Company</th>
+            <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Department</th>
+            <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Email</th>
+            <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Extension</th>
+            <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);width:80px">Type</th>
+            <th style="padding:9px 14px;text-align:right;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);width:90px"></th>
+          </tr>
+        </thead>
+        <tbody id="dir-admin-tbody">
+          <tr><td colspan="7" style="padding:32px;text-align:center;color:var(--text3);font-size:13px"><div class="loader"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
     </div>
   </div>
 </div>
@@ -1049,6 +1134,76 @@ textarea.fc { resize: vertical; min-height: 80px; }
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-invite-agent')">Cancel</button>
       <button class="btn primary" onclick="inviteAgent()">Send invitation</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-dir-entry" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeDirModal()">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <span id="dir-modal-title">Add entry</span>
+      <button class="modal-close" onclick="closeDirModal()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:0">
+      <input type="hidden" id="dir-entry-id"/>
+      <div class="fg">
+        <label class="fl">Name *</label>
+        <input id="dir-f-name" class="fc" type="text" placeholder="Full name or line label"/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="fg">
+          <label class="fl">Company *</label>
+          <input id="dir-f-company" class="fc" type="text" placeholder="e.g. El Martillo" list="dir-company-list"/>
+          <datalist id="dir-company-list"></datalist>
+        </div>
+        <div class="fg">
+          <label class="fl">Department</label>
+          <input id="dir-f-dept" class="fc" type="text" placeholder="e.g. Accounts"/>
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">Email</label>
+        <input id="dir-f-email" class="fc" type="email" placeholder="name@company.com"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Extension / Phone</label>
+        <input id="dir-f-ext" class="fc" type="text" placeholder="e.g. 301 or +350 200 00000"/>
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label class="fl">Type</label>
+        <select id="dir-f-queue" class="fc">
+          <option value="false">Person / Staff</option>
+          <option value="true">Queue / Main Line</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-footer">
+      <button class="btn" onclick="closeDirModal()">Cancel</button>
+      <button id="dir-modal-save-btn" class="btn primary" onclick="saveDirEntry()">Save entry</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-dir-delete" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeDirDeleteModal()">
+  <div class="modal-box" style="max-width:380px;text-align:center">
+    <div class="modal-header">
+      <span>Remove entry</span>
+      <button class="modal-close" onclick="closeDirDeleteModal()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" style="padding:24px">
+      <div style="font-size:32px;margin-bottom:12px">🗑️</div>
+      <div style="font-size:14px;color:var(--text1);line-height:1.6">
+        Remove <strong id="dir-del-name"></strong> from the directory?<br/>
+        <span style="font-size:12px;color:var(--text3)">This cannot be undone.</span>
+      </div>
+    </div>
+    <div class="form-footer" style="justify-content:center">
+      <button class="btn" onclick="closeDirDeleteModal()">Cancel</button>
+      <button class="btn danger" onclick="confirmDirDelete()">Yes, remove</button>
     </div>
   </div>
 </div>
@@ -3160,6 +3315,197 @@ function showAuthScreen() {
 }
 
 document.addEventListener('DOMContentLoaded', initSupabase);
+
+/* ── Directory admin ──────────────────────────────────────── */
+/* ── Directory admin state ── */
+let dirEntries = [];
+let dirDeleteId = null;
+
+const DIR_CO_COLORS = {
+  "El Martillo":"#5a9e1f","Metalrok":"#1565c0","ORC / TARIK":"#00796b",
+  "Gib Sun Club":"#d07000","Signtalk":"#6a1b9a","EWMS":"#2e7d32",
+  "Hire-U-Shop":"#bf360c","CIAP":"#283593","S&P":"#880e4f","FOCUS":"#0d47a1",
+  "BELILOS":"#004d40","ABC CLEANING":"#4e342e","DOLPHIN":"#01579b",
+  "LOTTERY":"#558b2f","THE BULB":"#e65100","MISC":"#37474f"
+};
+
+async function loadDirPage() {
+  const tbody = document.getElementById('dir-admin-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7" style="padding:32px;text-align:center;color:var(--text3)"><div class="loader"></div></td></tr>';
+
+  const { data, error } = await sbClient
+    .from('directory_entries')
+    .select('*')
+    .order('sort_order', { ascending: true })
+    .order('name', { ascending: true });
+
+  dirEntries = error ? [] : (data || []);
+
+  // Populate company filter
+  const companies = [...new Set(dirEntries.map(e => e.company))];
+  const coFilter = document.getElementById('dir-admin-co-filter');
+  if (coFilter) {
+    const current = coFilter.value;
+    coFilter.innerHTML = '<option value="">All companies</option>' +
+      companies.map(c => `<option value="${escH(c)}"${c===current?' selected':''}>${escH(c)}</option>`).join('');
+  }
+
+  // Populate company datalist for modal
+  const dl = document.getElementById('dir-company-list');
+  if (dl) dl.innerHTML = companies.map(c => `<option value="${escH(c)}">`).join('');
+
+  loadDirStats();
+  renderAdminDir();
+}
+
+function loadDirStats() {
+  const total = dirEntries.length;
+  const companies = new Set(dirEntries.map(e=>e.company)).size;
+  const people = dirEntries.filter(e=>!e.is_queue).length;
+  const queues = dirEntries.filter(e=>e.is_queue).length;
+  const s = id => document.getElementById(id);
+  if(s('dir-stat-total')) s('dir-stat-total').textContent = total;
+  if(s('dir-stat-companies')) s('dir-stat-companies').textContent = companies;
+  if(s('dir-stat-people')) s('dir-stat-people').textContent = people;
+  if(s('dir-stat-queues')) s('dir-stat-queues').textContent = queues;
+}
+
+function renderAdminDir() {
+  const q = (document.getElementById('dir-admin-search')?.value||'').toLowerCase().trim();
+  const co = document.getElementById('dir-admin-co-filter')?.value||'';
+
+  const filtered = dirEntries.filter(e => {
+    if (co && e.company !== co) return false;
+    if (!q) return true;
+    return (e.name||'').toLowerCase().includes(q) ||
+           (e.email||'').toLowerCase().includes(q) ||
+           (e.company||'').toLowerCase().includes(q) ||
+           (e.department||'').toLowerCase().includes(q) ||
+           (e.extension||'').toLowerCase().includes(q);
+  });
+
+  const meta = document.getElementById('dir-admin-meta');
+  if (meta) meta.textContent = `${filtered.length} of ${dirEntries.length} entries`;
+
+  const tbody = document.getElementById('dir-admin-tbody');
+  if (!tbody) return;
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="padding:32px;text-align:center;color:var(--text3);font-size:13px">No entries found</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(e => {
+    const color = DIR_CO_COLORS[e.company] || '#888';
+    return `<tr class="dir-row">
+      <td style="font-weight:500">${escH(e.name)}</td>
+      <td><span class="co-badge" style="background:${color}18;color:${color}">${escH(e.company)}</span></td>
+      <td style="color:var(--text2)">${escH(e.department||'—')}</td>
+      <td>${e.email?`<a href="mailto:${escH(e.email)}" style="color:var(--accent);text-decoration:none;font-size:12px">${escH(e.email)}</a>`:'—'}</td>
+      <td style="font-family:var(--mono);font-size:12px">${escH(e.extension||'—')}</td>
+      <td>${e.is_queue
+        ? '<span class="queue-tag">Queue</span>'
+        : '<span class="person-tag">Person</span>'}</td>
+      <td>
+        <div class="row-actions">
+          <button class="ia ia-edit" onclick="openDirModal(${e.id})">✎ Edit</button>
+          <button class="ia ia-del" onclick="openDirDelete(${e.id})">✕</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openDirModal(id) {
+  const entry = id ? dirEntries.find(e=>e.id===id) : null;
+  document.getElementById('dir-modal-title').textContent = entry ? 'Edit entry' : 'Add entry';
+  document.getElementById('dir-modal-save-btn').textContent = entry ? 'Save changes' : 'Add entry';
+  document.getElementById('dir-entry-id').value = entry ? entry.id : '';
+  document.getElementById('dir-f-name').value = entry?.name || '';
+  document.getElementById('dir-f-company').value = entry?.company || '';
+  document.getElementById('dir-f-dept').value = entry?.department || '';
+  document.getElementById('dir-f-email').value = entry?.email || '';
+  document.getElementById('dir-f-ext').value = entry?.extension || '';
+  document.getElementById('dir-f-queue').value = entry?.is_queue ? 'true' : 'false';
+  document.getElementById('modal-dir-entry').style.display = 'flex';
+}
+
+function closeDirModal() {
+  document.getElementById('modal-dir-entry').style.display = 'none';
+}
+
+async function saveDirEntry() {
+  const id = document.getElementById('dir-entry-id').value;
+  const name = document.getElementById('dir-f-name').value.trim();
+  const company = document.getElementById('dir-f-company').value.trim();
+  if (!name || !company) { toast('Name and company are required'); return; }
+
+  const payload = {
+    name,
+    company,
+    department: document.getElementById('dir-f-dept').value.trim(),
+    email:      document.getElementById('dir-f-email').value.trim(),
+    extension:  document.getElementById('dir-f-ext').value.trim(),
+    is_queue:   document.getElementById('dir-f-queue').value === 'true',
+  };
+
+  const btn = document.getElementById('dir-modal-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  let error;
+  if (id) {
+    ({ error } = await sbClient.from('directory_entries').update(payload).eq('id', id));
+  } else {
+    const maxOrder = dirEntries.length ? Math.max(...dirEntries.map(e=>e.sort_order||0)) : 0;
+    payload.sort_order = maxOrder + 1;
+    ({ error } = await sbClient.from('directory_entries').insert(payload));
+  }
+
+  btn.disabled = false; btn.textContent = id ? 'Save changes' : 'Add entry';
+
+  if (error) { toast('Error: ' + error.message, true); return; }
+
+  toast(id ? 'Entry updated' : 'Entry added');
+  closeDirModal();
+  await loadDirPage();
+
+  // Log to system log if function available
+  if (typeof logSysEvent === 'function') {
+    logSysEvent(id ? 'directory_updated' : 'directory_created',
+      `${id?'Updated':'Created'} directory entry: ${name} (${company})`);
+  }
+}
+
+function openDirDelete(id) {
+  const entry = dirEntries.find(e=>e.id===id);
+  if (!entry) return;
+  dirDeleteId = id;
+  document.getElementById('dir-del-name').textContent = entry.name;
+  document.getElementById('modal-dir-delete').style.display = 'flex';
+}
+
+function closeDirDeleteModal() {
+  document.getElementById('modal-dir-delete').style.display = 'none';
+  dirDeleteId = null;
+}
+
+async function confirmDirDelete() {
+  if (!dirDeleteId) return;
+  const entry = dirEntries.find(e=>e.id===dirDeleteId);
+  const { error } = await sbClient.from('directory_entries').delete().eq('id', dirDeleteId);
+  if (error) { toast('Error: ' + error.message, true); return; }
+  toast('Entry removed');
+  closeDirDeleteModal();
+  await loadDirPage();
+  if (typeof logSysEvent === 'function' && entry) {
+    logSysEvent('directory_deleted', `Deleted directory entry: ${entry.name} (${entry.company})`);
+  }
+}
+
+function escH(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 </script>
 <style>
 .footer {
@@ -3183,6 +3529,21 @@ document.addEventListener('DOMContentLoaded', initSupabase);
 .footer-tickets { color: var(--text2); font-weight: 500; }
 /* Push scrollable content above the fixed footer */
 .content { padding-bottom: 56px !important; }
+
+/* ── Directory admin ──────────────────────────────────────── */
+/* Directory admin table rows */
+.dir-row td { padding:9px 14px; border-bottom:1px solid var(--border); font-size:13px; vertical-align:middle; }
+.dir-row:last-child td { border-bottom:none; }
+.dir-row:hover td { background:var(--surface2); }
+.dir-row .co-badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:500; }
+.dir-row .queue-tag { display:inline-block; padding:1px 7px; border-radius:4px; font-size:10px; font-weight:600; background:var(--warn-l); color:var(--warn); font-family:var(--mono); }
+.dir-row .person-tag { display:inline-block; padding:1px 7px; border-radius:4px; font-size:10px; font-weight:600; background:var(--success-l); color:var(--success); }
+.dir-row .row-actions { display:flex; gap:4px; justify-content:flex-end; }
+.dir-row .ia { padding:4px 8px; border-radius:6px; border:none; cursor:pointer; font-size:11px; font-weight:600; font-family:var(--font); transition:all .12s; }
+.dir-row .ia-edit { background:var(--accent-l); color:var(--accent); }
+.dir-row .ia-edit:hover { background:var(--accent); color:#fff; }
+.dir-row .ia-del { background:var(--danger-l); color:var(--danger); }
+.dir-row .ia-del:hover { background:var(--danger); color:#fff; }
 </style>
 
 <div id="app-footer" class="footer">

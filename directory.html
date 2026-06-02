@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Staff Directory — El Martillo I.T.</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico"/>
+<link rel="icon" type="image/png" sizes="32x32" href="logo.png"/>
+<link rel="apple-touch-icon" href="logo.png"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f5f4;--surface:#ffffff;--surface2:#f9f9f8;
+  --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.14);
+  --text1:#1a1917;--text2:#6b6963;--text3:#9e9a94;
+  --accent:#185FA5;--accent-l:#E6F1FB;
+  --radius:8px;--radius-l:12px;--font:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#111110;--surface:#1c1c1a;--surface2:#232320;
+    --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.14);
+    --text1:#e8e6e1;--text2:#9e9a94;--text3:#6b6963;--accent-l:#0c2a45}
+}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text1);font-size:14px}
+#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* Topbar */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px;flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border);gap:12px}
+.logo{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.portal-link{font-size:12px;font-weight:500;color:var(--accent);text-decoration:none;padding:5px 10px;border-radius:6px;border:1px solid var(--accent-l);background:var(--accent-l);transition:all .15s}
+.portal-link:hover{opacity:.8}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;font-size:13px;font-weight:500;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--text1);cursor:pointer;transition:all .12s;font-family:var(--font);line-height:1;text-decoration:none}
+.btn:hover{background:var(--bg)}
+.btn.sm{padding:4px 10px;font-size:12px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{opacity:.88}
+
+/* Layout */
+.layout{display:flex;flex:1;overflow:hidden}
+.main-content{flex:1;overflow-y:auto;padding:28px 24px 80px;background:var(--bg)}
+
+/* Dir header bar */
+.dir-topbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.dir-topbar h1{font-size:18px;font-weight:600;flex:1;min-width:0}
+.search-wrap{position:relative;flex:1;min-width:180px;max-width:300px}
+.search-wrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none}
+.search-wrap input{width:100%;padding:7px 10px 7px 30px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--surface);color:var(--text1);outline:none;font-family:var(--font)}
+.search-wrap input:focus{border-color:var(--accent)}
+.view-toggle{display:flex;border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden}
+.view-toggle button{padding:6px 12px;font-size:12px;font-weight:500;border:none;background:var(--surface);color:var(--text2);cursor:pointer;font-family:var(--font);transition:all .12s}
+.view-toggle button.active{background:var(--accent);color:#fff}
+
+/* Company tabs */
+.co-tabs{display:flex;gap:4px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-bottom:20px;padding-bottom:2px}
+.co-tabs::-webkit-scrollbar{display:none}
+.co-tab{padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .12s;font-family:var(--font)}
+.co-tab:hover{border-color:var(--accent);color:var(--accent)}
+.co-tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* Meta */
+.dir-meta{font-size:12px;color:var(--text3);margin-bottom:16px}
+
+/* Table view */
+.co-section{margin-bottom:24px;border-radius:var(--radius-l);overflow:hidden;border:1px solid var(--border2)}
+.co-section-head{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.co-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.co-title{font-size:13px;font-weight:600}
+.co-count{font-size:11px;color:var(--text3);margin-left:auto}
+.dir-table{width:100%;border-collapse:collapse;background:var(--surface)}
+.dir-table th{padding:8px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)}
+.dir-table td{padding:9px 14px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.dir-table tr:last-child td{border-bottom:none}
+.dir-table tbody tr:hover td{background:var(--surface2)}
+.td-name{font-weight:500;color:var(--text1)}
+.td-name.queue{color:var(--text3);font-style:italic;font-weight:400}
+.dept-tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;background:var(--accent-l);color:var(--accent)}
+.ext-val{font-family:var(--mono);font-size:12px;font-weight:500}
+.eml{color:var(--accent);text-decoration:none;font-size:12px}
+.eml:hover{text-decoration:underline}
+
+/* Card view */
+.co-cards-section{margin-bottom:24px}
+.co-cards-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--border)}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.dir-card{background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--co);border-radius:var(--radius-l);padding:14px;transition:box-shadow .15s}
+.dir-card:hover{box-shadow:var(--shadow)}
+.card-av{width:34px;height:34px;border-radius:50%;background:var(--co-l);border:2px solid var(--co);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--co);flex-shrink:0}
+.card-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.card-name{font-size:13px;font-weight:600;color:var(--text1);line-height:1.3}
+.card-dept{font-size:11px;color:var(--text2);margin-top:1px}
+.card-hr{height:1px;background:var(--border);margin-bottom:9px}
+.card-row{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);margin-bottom:5px}
+.card-row:last-child{margin-bottom:0}
+.card-ico{color:var(--text3);width:12px;flex-shrink:0}
+
+/* Queue indicator */
+.queue-badge{display:inline-block;padding:1px 7px;border-radius:4px;font-size:10px;font-weight:600;background:var(--surface2);color:var(--text3);border:1px solid var(--border);font-family:var(--mono)}
+
+/* Empty */
+.dir-empty{text-align:center;padding:60px 20px;color:var(--text3)}
+.dir-empty svg{margin-bottom:12px;opacity:.4}
+
+/* Skeleton */
+.skel{background:linear-gradient(90deg,var(--surface2) 25%,var(--border) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:4px;height:14px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Footer */
+.footer{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--surface);border-top:1px solid var(--border);padding:0 24px;height:40px;display:flex;align-items:center;justify-content:center;gap:24px;font-size:12px;color:var(--text3)}
+.footer a{color:var(--accent);text-decoration:none}
+.footer a:hover{text-decoration:underline}
+.footer-sep{color:var(--border2)}
+
+/* Print */
+@media print{
+  .topbar,.footer,.dir-topbar .btn,.view-toggle,.co-tabs,.dir-meta{display:none!important}
+  .main-content{padding:16px;overflow:visible!important}
+  #app{height:auto;overflow:visible}
+  .co-section{break-inside:avoid}
+  .co-cards-section{break-inside:avoid}
+}
+
+@media(max-width:768px){
+  .topbar{padding:0 12px}
+  .main-content{padding:16px 12px 80px}
+  .dir-topbar{flex-wrap:wrap}
+  .footer{flex-wrap:wrap;height:auto;padding:10px 16px;gap:6px 16px}
+  .footer-sep{display:none}
+}
+</style>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EHHF524M5T"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-EHHF524M5T');</script>
+</head>
+<body>
+<div id="app">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="logo">
+      <img src="logo.png" alt="Logo" style="height:28px;width:auto;display:block;"/>
+      <span>El Martillo I.T. Ticketing System</span>
+    </div>
+    <div class="topbar-right">
+      <a href="index.html" class="portal-link">← Client portal</a>
+      <a href="admin.html" class="btn sm">Admin panel</a>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="layout">
+    <div class="main-content" id="main">
+
+      <!-- Top bar -->
+      <div class="dir-topbar">
+        <h1>
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:6px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Staff Directory
+        </h1>
+        <div class="search-wrap">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="dir-search" placeholder="Search name, email, extension…" oninput="renderDir()"/>
+        </div>
+        <div class="view-toggle">
+          <button id="vt-table" class="active" onclick="setView('table')">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8h18M3 12h18M3 16h18"/></svg>
+            Table
+          </button>
+          <button id="vt-cards" onclick="setView('cards')">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Cards
+          </button>
+        </div>
+        <button class="btn sm" onclick="window.print()">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print
+        </button>
+      </div>
+
+      <!-- Company filter tabs -->
+      <div class="co-tabs" id="co-tabs"></div>
+
+      <!-- Meta -->
+      <div class="dir-meta" id="dir-meta"></div>
+
+      <!-- Content -->
+      <div id="dir-content">
+        <!-- Skeleton loader -->
+        <div class="co-section" style="padding:20px;display:flex;flex-direction:column;gap:12px">
+          <div class="skel" style="width:140px"></div>
+          <div class="skel" style="width:100%"></div>
+          <div class="skel" style="width:85%"></div>
+          <div class="skel" style="width:92%"></div>
+          <div class="skel" style="width:78%"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <span>Tel: <a href="tel:+35020050630">+350 200 50630</a></span>
+  <span class="footer-sep">|</span>
+  <span>Email: <a href="mailto:helpdesk@el-martillo.com">helpdesk@el-martillo.com</a></span>
+  <span class="footer-sep">|</span>
+  <span id="footer-version">v1.0.0</span>
+</div>
+
+<script>
+/* ── Config — same as admin.html ── */
+const SB_URL = localStorage.getItem('sb_url') || 'https://gtcrmqbmlvtlyiwnshma.supabase.co';
+const SB_KEY = localStorage.getItem('sb_key') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+const COMPANY_COLORS = {
+  "El Martillo":"#5a9e1f","Metalrok":"#1565c0","ORC / TARIK":"#00796b",
+  "Gib Sun Club":"#d07000","Signtalk":"#6a1b9a","EWMS":"#2e7d32",
+  "Hire-U-Shop":"#bf360c","CIAP":"#283593","S&P":"#880e4f","FOCUS":"#0d47a1",
+  "BELILOS":"#004d40","ABC CLEANING":"#4e342e","DOLPHIN":"#01579b",
+  "LOTTERY":"#558b2f","THE BULB":"#e65100","MISC":"#37474f"
+};
+const COMPANY_BG = {
+  "El Martillo":"#f0f9e6","Metalrok":"#e8f1fc","ORC / TARIK":"#e0f5f3",
+  "Gib Sun Club":"#fdf4e0","Signtalk":"#f3eafa","EWMS":"#e8f5e9",
+  "Hire-U-Shop":"#fbe9e7","CIAP":"#e8eaf6","S&P":"#fce4ec","FOCUS":"#e3f2fd",
+  "BELILOS":"#e0f2f1","ABC CLEANING":"#efebe9","DOLPHIN":"#e1f5fe",
+  "LOTTERY":"#f1f8e9","THE BULB":"#fff3e0","MISC":"#eceff1"
+};
+
+let allEntries = [];
+let activeCompany = 'All';
+let currentView = 'table';
+
+function initials(name) {
+  const w = name.trim().split(/\s+/);
+  return w.length === 1 ? w[0].slice(0,2).toUpperCase() : (w[0][0]+w[w.length-1][0]).toUpperCase();
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function loadEntries() {
+  try {
+    const { data, error } = await sb
+      .from('directory_entries')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .order('name', { ascending: true });
+    if (error) throw error;
+    allEntries = data || [];
+  } catch(e) {
+    console.error('Directory load error:', e);
+    allEntries = [];
+  }
+  buildCompanyTabs();
+  renderDir();
+}
+
+function buildCompanyTabs() {
+  const companies = ['All', ...new Set(allEntries.map(e => e.company))];
+  const tabs = document.getElementById('co-tabs');
+  tabs.innerHTML = companies.map(c => `
+    <button class="co-tab${c===activeCompany?' active':''}" onclick="filterCompany('${esc(c)}')">${esc(c)}</button>
+  `).join('');
+}
+
+function filterCompany(c) {
+  activeCompany = c;
+  document.querySelectorAll('.co-tab').forEach(t => t.classList.toggle('active', t.textContent===c));
+  renderDir();
+}
+
+function setView(v) {
+  currentView = v;
+  document.getElementById('vt-table').classList.toggle('active', v==='table');
+  document.getElementById('vt-cards').classList.toggle('active', v==='cards');
+  renderDir();
+}
+
+function renderDir() {
+  const q = (document.getElementById('dir-search').value || '').toLowerCase().trim();
+  const filtered = allEntries.filter(e => {
+    if (activeCompany !== 'All' && e.company !== activeCompany) return false;
+    if (!q) return true;
+    return (e.name||'').toLowerCase().includes(q) ||
+           (e.email||'').toLowerCase().includes(q) ||
+           (e.department||'').toLowerCase().includes(q) ||
+           (e.extension||'').toLowerCase().includes(q) ||
+           (e.company||'').toLowerCase().includes(q);
+  });
+
+  const meta = document.getElementById('dir-meta');
+  meta.textContent = `${filtered.length} ${filtered.length===1?'entry':'entries'}${activeCompany!=='All'?' · '+activeCompany:' · All companies'}${q?' · "'+q+'"':''}`;
+
+  const grouped = {};
+  filtered.forEach(e => { if (!grouped[e.company]) grouped[e.company]=[]; grouped[e.company].push(e); });
+
+  const content = document.getElementById('dir-content');
+  if (!filtered.length) {
+    content.innerHTML = `<div class="dir-empty">
+      <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <div>No results found</div>
+    </div>`;
+    return;
+  }
+
+  if (currentView === 'table') {
+    content.innerHTML = Object.entries(grouped).map(([company, people]) => {
+      const color = COMPANY_COLORS[company]||'#888';
+      const bg = COMPANY_BG[company]||'#f8f8f8';
+      const rows = people.map(p => `<tr>
+        <td><span class="td-name${p.is_queue?' queue':''}">${esc(p.name)}</span></td>
+        <td>${p.department?`<span class="dept-tag" style="background:${color}18;color:${color}">${esc(p.department)}</span>`:''}</td>
+        <td>${p.email?`<a class="eml" href="mailto:${esc(p.email)}">${esc(p.email)}</a>`:'—'}</td>
+        <td><span class="ext-val">${esc(p.extension)||'—'}</span></td>
+      </tr>`).join('');
+
+      return `<div class="co-section" style="background:${bg};border-color:${color}40">
+        <div class="co-section-head">
+          <div class="co-dot" style="background:${color}"></div>
+          <span class="co-title">${esc(company)}</span>
+          <span class="co-count">${people.length} entries</span>
+        </div>
+        <table class="dir-table">
+          <thead><tr>
+            <th>Name</th><th>Department</th><th>Email</th><th>Extension</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    }).join('');
+  } else {
+    content.innerHTML = Object.entries(grouped).map(([company, people]) => {
+      const color = COMPANY_COLORS[company]||'#888';
+      const bg = COMPANY_BG[company]||'#f8f8f8';
+      const nonQueue = people.filter(p => !p.is_queue);
+      if (!nonQueue.length) return '';
+      const cards = nonQueue.map(p => `
+        <div class="dir-card" style="--co:${color};--co-l:${color}18;background:${bg}">
+          <div class="card-top">
+            <div class="card-av">${initials(p.name)}</div>
+            <div>
+              <div class="card-name">${esc(p.name)}</div>
+              ${p.department?`<div class="card-dept">${esc(p.department)}</div>`:''}
+            </div>
+          </div>
+          <div class="card-hr"></div>
+          ${p.email?`<div class="card-row"><svg class="card-ico" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><a class="eml" href="mailto:${esc(p.email)}">${esc(p.email)}</a></div>`:''}
+          ${p.extension?`<div class="card-row"><svg class="card-ico" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.06 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6.29 6.29l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Ext. ${esc(p.extension)}</div>`:''}
+        </div>`).join('');
+      return `<div class="co-cards-section">
+        <div class="co-cards-head">
+          <div class="co-dot" style="background:${color}"></div>
+          <span class="co-title">${esc(company)}</span>
+          <span class="co-count" style="margin-left:auto">${nonQueue.length} people</span>
+        </div>
+        <div class="cards-grid">${cards}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+async function loadVersion() {
+  try {
+    const { data } = await sb.from('app_settings').select('value').eq('key','app_version').single();
+    if (data) document.getElementById('footer-version').textContent = 'v'+data.value;
+  } catch(e){}
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadEntries();
+  loadVersion();
+});
+</script>
+</body>
+</html>
