@@ -1210,15 +1210,47 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
 
 <div id="modal-dir-companies" class="overlay" onclick="if(event.target===this)closeDirCompanies()">
-  <div class="modal" style="max-width:440px">
+  <div class="modal" style="max-width:480px">
     <div class="modal-head">
       <div>
         <div class="modal-title">Manage companies</div>
-        <div class="modal-sub">Companies available in the directory</div>
+        <div class="modal-sub">Rename, recolour or remove companies</div>
       </div>
       <button class="close-x" onclick="closeDirCompanies()">✕</button>
     </div>
-    <div id="dir-co-list" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;margin-bottom:16px;padding-right:2px"></div>
+
+    <!-- Company list -->
+    <div id="dir-co-list" style="display:flex;flex-direction:column;gap:4px;max-height:280px;overflow-y:auto;margin-bottom:14px;padding-right:2px"></div>
+
+    <!-- Edit panel (hidden until a company row is clicked) -->
+    <div id="dir-co-edit-panel" style="display:none;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:14px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px" id="dir-co-edit-label">Editing: —</div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-bottom:10px">
+        <div class="fg" style="margin:0">
+          <label class="fl">Company name</label>
+          <input id="dir-co-edit-name" class="fc" type="text"/>
+        </div>
+        <button class="btn primary" onclick="saveDirCoName()" style="white-space:nowrap;height:34px">Save name</button>
+      </div>
+      <div class="fg" style="margin-bottom:10px">
+        <label class="fl">Accent colour</label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap" id="dir-co-colour-swatches"></div>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <input id="dir-co-custom-colour" type="color" style="width:34px;height:34px;border:1px solid var(--border2);border-radius:var(--radius);cursor:pointer;padding:2px;background:var(--surface)"/>
+          <span style="font-size:12px;color:var(--text2)">Custom colour</span>
+          <button class="btn sm" onclick="applyDirCoCustomColour()">Apply</button>
+        </div>
+      </div>
+      <div id="dir-co-delete-wrap">
+        <button class="btn danger" style="width:100%" onclick="deleteDirCompany()">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          Delete company &amp; all its entries
+        </button>
+        <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:5px" id="dir-co-delete-count"></div>
+      </div>
+    </div>
+
+    <!-- Add new company -->
     <div style="display:flex;gap:8px;align-items:center">
       <input id="dir-new-co-input" class="fc" type="text" placeholder="New company name…" onkeydown="if(event.key==='Enter')addDirCompany()"/>
       <button class="btn primary" style="white-space:nowrap" onclick="addDirCompany()">
@@ -3354,6 +3386,7 @@ const DIR_CO_COLORS = {
 };
 
 async function loadDirPage() {
+  await loadDirCoColors();
   const tbody = document.getElementById('dir-admin-tbody');
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="7" style="padding:32px;text-align:center;color:var(--text3)"><div class="loader"></div></td></tr>';
@@ -3421,7 +3454,7 @@ function renderAdminDir() {
   }
 
   tbody.innerHTML = filtered.map(e => {
-    const color = DIR_CO_COLORS[e.company] || '#888';
+    const color = dirCoColors[e.company] || DIR_CO_COLORS[e.company] || '#888';
     return `<tr class="dir-row">
       <td style="font-weight:500">${escH(e.name)}</td>
       <td><span class="co-badge" style="background:${color}18;color:${color}">${escH(e.company)}</span></td>
@@ -3542,8 +3575,45 @@ function applyRoleUI(role) {
 }
 
 /* ── Directory — company management ── */
+
+// Colour presets (bright enough for badges, readable on white backgrounds)
+const DIR_CO_PRESET_COLORS = [
+  '#5a9e1f','#1565c0','#00796b','#d07000','#6a1b9a','#2e7d32',
+  '#bf360c','#283593','#880e4f','#0d47a1','#004d40','#4e342e',
+  '#01579b','#558b2f','#e65100','#37474f','#6d4c41','#ad1457',
+  '#00838f','#c62828','#4527a0','#1b5e20','#f57f17','#3e2723',
+];
+
+let dirCoColors = { ...DIR_CO_COLORS }; // live copy, loaded from app_settings
+let dirCoEditTarget = null; // company name currently being edited
+
+async function loadDirCoColors() {
+  try {
+    const { data } = await sbClient
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'directory_company_colors')
+      .single();
+    if (data?.value) {
+      const saved = JSON.parse(data.value);
+      dirCoColors = { ...DIR_CO_COLORS, ...saved };
+    }
+  } catch(e) { /* use defaults */ }
+}
+
+async function saveDirCoColors() {
+  const json = JSON.stringify(dirCoColors);
+  const { error } = await sbClient
+    .from('app_settings')
+    .upsert({ key: 'directory_company_colors', value: json }, { onConflict: 'key' });
+  if (error) console.error('saveDirCoColors:', error);
+}
+
 async function openDirCompanies() {
+  await loadDirCoColors();
   document.getElementById('modal-dir-companies').classList.add('open');
+  document.getElementById('dir-co-edit-panel').style.display = 'none';
+  dirCoEditTarget = null;
   renderDirCoList();
 }
 
@@ -3561,15 +3631,119 @@ function renderDirCoList() {
   }
   list.innerHTML = companies.map(co => {
     const count = dirEntries.filter(e => e.company === co).length;
-    const color = DIR_CO_COLORS[co] || '#888';
-    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)">
-      <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></div>
+    const color = dirCoColors[co] || '#888';
+    const isActive = co === dirCoEditTarget;
+    return `<div onclick="selectDirCoEdit('${escH(co)}')"
+      style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius);border:1px solid ${isActive?'var(--accent)':'var(--border)'};background:${isActive?'var(--accent-l)':'var(--surface)'};cursor:pointer;transition:all .12s">
+      <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;border:2px solid ${color}44"></div>
       <span style="flex:1;font-size:13px;font-weight:500">${escH(co)}</span>
       <span style="font-size:11px;color:var(--text3)">${count} ${count===1?'entry':'entries'}</span>
-      <button class="btn sm" onclick="renameDirCompany('${escH(co)}')" title="Rename">✎</button>
-      ${count === 0 ? `<button class="btn sm danger" onclick="deleteDirCompany('${escH(co)}')" title="Delete">✕</button>` : ''}
+      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:var(--text3)"><path d="M9 18l6-6-6-6"/></svg>
     </div>`;
   }).join('');
+}
+
+function selectDirCoEdit(co) {
+  dirCoEditTarget = co;
+  const count = dirEntries.filter(e => e.company === co).length;
+  const color = dirCoColors[co] || '#888';
+
+  document.getElementById('dir-co-edit-label').textContent = `Editing: ${co}`;
+  document.getElementById('dir-co-edit-name').value = co;
+  document.getElementById('dir-co-custom-colour').value = color;
+  document.getElementById('dir-co-delete-count').textContent =
+    count > 0 ? `⚠ This will also delete ${count} ${count===1?'entry':'entries'}` : 'Company has no entries';
+  document.getElementById('dir-co-edit-panel').style.display = 'block';
+
+  // Render colour swatches
+  const swatches = document.getElementById('dir-co-colour-swatches');
+  swatches.innerHTML = DIR_CO_PRESET_COLORS.map(c => `
+    <div onclick="selectDirCoColor('${c}')"
+      style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;
+             border:3px solid ${c===color?'var(--accent)':'transparent'};
+             box-shadow:0 0 0 1px rgba(0,0,0,.15);transition:all .12s"
+      title="${c}"></div>`).join('');
+
+  renderDirCoList(); // re-render to show active highlight
+}
+
+function selectDirCoColor(hex) {
+  if (!dirCoEditTarget) return;
+  dirCoColors[dirCoEditTarget] = hex;
+  document.getElementById('dir-co-custom-colour').value = hex;
+  renderDirCoColourSwatches(hex);
+  saveDirCoColors();
+  renderDirCoList();
+  renderAdminDir(); // refresh table to show new colour
+  toast('Colour updated');
+}
+
+function applyDirCoCustomColour() {
+  const hex = document.getElementById('dir-co-custom-colour').value;
+  if (!dirCoEditTarget || !hex) return;
+  selectDirCoColor(hex);
+}
+
+function renderDirCoColourSwatches(activeColor) {
+  const swatches = document.getElementById('dir-co-colour-swatches');
+  if (!swatches) return;
+  swatches.innerHTML = DIR_CO_PRESET_COLORS.map(c => `
+    <div onclick="selectDirCoColor('${c}')"
+      style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;
+             border:3px solid ${c===activeColor?'var(--accent)':'transparent'};
+             box-shadow:0 0 0 1px rgba(0,0,0,.15);transition:all .12s"
+      title="${c}"></div>`).join('');
+}
+
+async function saveDirCoName() {
+  if (!dirCoEditTarget) return;
+  const newName = document.getElementById('dir-co-edit-name').value.trim();
+  if (!newName) { toast('Name cannot be empty'); return; }
+  if (newName === dirCoEditTarget) { toast('No change'); return; }
+
+  const { error } = await sbClient
+    .from('directory_entries')
+    .update({ company: newName })
+    .eq('company', dirCoEditTarget);
+  if (error) { toast('Error: ' + error.message, true); return; }
+
+  // Migrate colour key
+  if (dirCoColors[dirCoEditTarget]) {
+    dirCoColors[newName] = dirCoColors[dirCoEditTarget];
+    delete dirCoColors[dirCoEditTarget];
+    await saveDirCoColors();
+  }
+
+  toast(`Renamed to "${newName}"`);
+  dirCoEditTarget = newName;
+  await loadDirPage();
+  renderDirCoList();
+  selectDirCoEdit(newName);
+}
+
+async function deleteDirCompany() {
+  if (!dirCoEditTarget) return;
+  const count = dirEntries.filter(e => e.company === dirCoEditTarget).length;
+  const msg = count > 0
+    ? `Delete "${dirCoEditTarget}" and all ${count} ${count===1?'entry':'entries'}? This cannot be undone.`
+    : `Delete company "${dirCoEditTarget}"?`;
+  if (!confirm(msg)) return;
+
+  const { error } = await sbClient
+    .from('directory_entries')
+    .delete()
+    .eq('company', dirCoEditTarget);
+  if (error) { toast('Error: ' + error.message, true); return; }
+
+  // Remove colour
+  delete dirCoColors[dirCoEditTarget];
+  await saveDirCoColors();
+
+  toast('Company deleted');
+  dirCoEditTarget = null;
+  document.getElementById('dir-co-edit-panel').style.display = 'none';
+  await loadDirPage();
+  renderDirCoList();
 }
 
 async function addDirCompany() {
@@ -3580,67 +3754,16 @@ async function addDirCompany() {
   if (existing.map(c=>c.toLowerCase()).includes(name.toLowerCase())) {
     toast('Company already exists'); return;
   }
-  // Add a placeholder entry so company appears; user can rename and add real entries
+  // Insert a placeholder so company appears immediately; user adds real entries after
   const { error } = await sbClient
     .from('directory_entries')
-    .insert({ company: name, name: '(placeholder)', department: '', email: '', extension: '', is_queue: false, sort_order: 9999 });
+    .insert({ company: name, name: '(placeholder — edit or delete)', department: '', email: '', extension: '', is_queue: false, sort_order: 9999 });
   if (error) { toast('Error: ' + error.message, true); return; }
-  toast('Company added');
+  toast(`"${name}" added`);
   if (input) input.value = '';
   await loadDirPage();
   renderDirCoList();
 }
-
-async function renameDirCompany(oldName) {
-  const newName = prompt(`Rename "${oldName}" to:`, oldName);
-  if (!newName || newName.trim() === oldName) return;
-  const trimmed = newName.trim();
-  const { error } = await sbClient
-    .from('directory_entries')
-    .update({ company: trimmed })
-    .eq('company', oldName);
-  if (error) { toast('Error: ' + error.message, true); return; }
-  toast(`Renamed to "${trimmed}"`);
-  await loadDirPage();
-  renderDirCoList();
-}
-
-async function deleteDirCompany(name) {
-  if (!confirm(`Delete company "${name}"? This only works if it has no entries.`)) return;
-  const { error } = await sbClient
-    .from('directory_entries')
-    .delete()
-    .eq('company', name)
-    .eq('name', '(placeholder)');
-  if (error) { toast('Error: ' + error.message, true); return; }
-  toast('Company removed');
-  await loadDirPage();
-  renderDirCoList();
-}
-
-</script>
-<style>
-.footer {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  z-index: 100;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  padding: 0 24px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  font-size: 12px;
-  color: var(--text3);
-}
-.footer a { color: var(--accent); text-decoration: none; }
-.footer a:hover { text-decoration: underline; }
-.footer-sep { color: var(--border2); }
-.footer-tickets { color: var(--text2); font-weight: 500; }
-/* Push scrollable content above the fixed footer */
-.content { padding-bottom: 56px !important; }
 
 /* ── Directory admin ──────────────────────────────────────── */
 /* Directory admin table rows */
