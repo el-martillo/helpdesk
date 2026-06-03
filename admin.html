@@ -3793,8 +3793,12 @@ function escH(s) {
 /* ── Role-based UI visibility ── */
 function applyRoleUI(role) {
   const isSuperAdmin = role === 'super_admin';
-  // Nav items only super_admin should see
-  ['nav-users', 'nav-activity', 'nav-syslog', 'nav-settings'].forEach(id => {
+  const isAdmin      = role === 'admin' || isSuperAdmin;
+  // Users nav: visible to admin + super_admin
+  const navUsers = document.getElementById('nav-users');
+  if (navUsers) navUsers.style.display = isAdmin ? '' : 'none';
+  // These remain super_admin only
+  ['nav-activity', 'nav-syslog', 'nav-settings'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = isSuperAdmin ? '' : 'none';
   });
