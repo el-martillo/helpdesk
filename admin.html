@@ -3031,6 +3031,8 @@ function renderSysLogTable() {
     directory_company_renamed: '<span class="sb s-in_progress">Company renamed</span>',
     directory_company_deleted: '<span class="sb" style="background:var(--danger-l);color:var(--danger)">Company deleted</span>',
     directory_company_colour:  '<span class="sb s-closed">Company colour</span>',
+    directory_company_reordered: '<span class="sb s-closed">Company reordered</span>',
+    directory_column_break:    '<span class="sb s-closed">Column break</span>',
   }[a] || `<span class="sb s-closed">${a}</span>`);
 
   const rolePill = r => ({
@@ -3608,6 +3610,8 @@ const DIR_CO_PRESET_COLORS = [
 
 let dirCoColors = { ...DIR_CO_COLORS }; // live copy, loaded from app_settings
 let dirCoEditTarget = null; // company name currently being edited
+let dirCoOrder = []; // custom sort order for companies
+let dirCoColumnBreak = ''; // company name after which PDF column break is inserted
 
 let dirStandaloneCompanies = []; // companies with no entries yet, stored in app_settings
 
@@ -3653,9 +3657,33 @@ async function saveDirCoColors() {
   if (error) console.error('saveDirCoColors:', error);
 }
 
+async function loadDirCoOrder() {
+  try {
+    const { data } = await sbClient.from('app_settings').select('value').eq('key', 'directory_company_order').single();
+    dirCoOrder = data?.value ? JSON.parse(data.value) : [];
+  } catch(e) { dirCoOrder = []; }
+}
+
+async function saveDirCoOrder() {
+  await sbClient.from('app_settings').upsert({ key: 'directory_company_order', value: JSON.stringify(dirCoOrder) }, { onConflict: 'key' });
+}
+
+async function loadDirCoColumnBreak() {
+  try {
+    const { data } = await sbClient.from('app_settings').select('value').eq('key', 'directory_column_break').single();
+    dirCoColumnBreak = data?.value || '';
+  } catch(e) { dirCoColumnBreak = ''; }
+}
+
+async function saveDirCoColumnBreak() {
+  await sbClient.from('app_settings').upsert({ key: 'directory_column_break', value: dirCoColumnBreak }, { onConflict: 'key' });
+}
+
 async function openDirCompanies() {
   await loadDirCoColors();
   await loadDirStandaloneCompanies();
+  await loadDirCoOrder();
+  await loadDirCoColumnBreak();
   document.getElementById('modal-dir-companies').classList.add('open');
   document.getElementById('dir-co-edit-panel').style.display = 'none';
   dirCoEditTarget = null;
@@ -3666,27 +3694,85 @@ function closeDirCompanies() {
   document.getElementById('modal-dir-companies').classList.remove('open');
 }
 
-function renderDirCoList() {
+function getOrderedCompanies() {
   const fromEntries = [...new Set(dirEntries.map(e => e.company))];
-  const companies = [...new Set([...fromEntries, ...dirStandaloneCompanies])].sort();
+  const all = [...new Set([...fromEntries, ...dirStandaloneCompanies])];
+  // Apply saved order: ordered ones first, then alphabetical remainder
+  const ordered = dirCoOrder.filter(c => all.includes(c));
+  const remainder = all.filter(c => !ordered.includes(c)).sort();
+  return [...ordered, ...remainder];
+}
+
+function renderDirCoList() {
+  const companies = getOrderedCompanies();
   const list = document.getElementById('dir-co-list');
   if (!list) return;
   if (!companies.length) {
     list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">No companies yet</div>';
     return;
   }
-  list.innerHTML = companies.map(co => {
+
+  list.innerHTML = companies.map((co, idx) => {
     const count = dirEntries.filter(e => e.company === co).length;
     const color = dirCoColors[co] || '#888';
     const isActive = co === dirCoEditTarget;
-    return `<div onclick="selectDirCoEdit('${escH(co)}')"
-      style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius);border:1px solid ${isActive?'var(--accent)':'var(--border)'};background:${isActive?'var(--accent-l)':'var(--surface)'};cursor:pointer;transition:all .12s">
+    const isBreak = co === dirCoColumnBreak;
+    return `<div class="dir-co-row${isActive?' dir-co-row-active':''}" draggable="true"
+      data-co="${escH(co)}"
+      ondragstart="dirCoDragStart(event,'${escH(co)}')"
+      ondragover="dirCoDragOver(event)"
+      ondrop="dirCoDrop(event,'${escH(co)}')"
+      ondragend="dirCoDragEnd(event)"
+      style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--radius);border:1px solid ${isActive?'var(--accent)':'var(--border)'};background:${isActive?'var(--accent-l)':'var(--surface)'};cursor:default;user-select:none;transition:border-color .12s,background .12s">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:var(--text3);cursor:grab;flex-shrink:0" title="Drag to reorder"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg>
       <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;border:2px solid ${color}44"></div>
-      <span style="flex:1;font-size:13px;font-weight:500">${escH(co)}</span>
-      <span style="font-size:11px;color:var(--text3)">${count} ${count===1?'entry':'entries'}</span>
-      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:var(--text3)"><path d="M9 18l6-6-6-6"/></svg>
-    </div>`;
+      <span style="flex:1;font-size:13px;font-weight:500;cursor:pointer" onclick="selectDirCoEdit('${escH(co)}')">${escH(co)}</span>
+      <span style="font-size:11px;color:var(--text3)">${count}</span>
+      <button title="Column break after this company in PDF" onclick="toggleDirCoColumnBreak('${escH(co)}')"
+        style="padding:2px 7px;font-size:10px;font-weight:600;border-radius:4px;border:1px solid ${isBreak?'var(--accent)':'var(--border2)'};background:${isBreak?'var(--accent)':'transparent'};color:${isBreak?'#fff':'var(--text3)'};cursor:pointer;white-space:nowrap;transition:all .12s">
+        ${isBreak?'⏎ break':'break'}
+      </button>
+      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:var(--text3);cursor:pointer;flex-shrink:0" onclick="selectDirCoEdit('${escH(co)}')"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+    ${isBreak ? `<div style="display:flex;align-items:center;gap:8px;padding:3px 10px;font-size:10px;color:var(--accent);font-weight:600;letter-spacing:.04em"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M17 10H3M21 6H3M21 14H3M17 18H3"/></svg> COLUMN BREAK ↓</div>` : ''}`;
   }).join('');
+}
+
+let _dragSrc = null;
+function dirCoDragStart(e, co) {
+  _dragSrc = co;
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.style.opacity = '0.4';
+}
+function dirCoDragEnd(e) {
+  e.currentTarget.style.opacity = '';
+  document.querySelectorAll('.dir-co-row').forEach(r => r.style.borderTopColor = '');
+}
+function dirCoDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+}
+async function dirCoDrop(e, targetCo) {
+  e.preventDefault();
+  if (!_dragSrc || _dragSrc === targetCo) return;
+  const companies = getOrderedCompanies();
+  const from = companies.indexOf(_dragSrc);
+  const to   = companies.indexOf(targetCo);
+  companies.splice(from, 1);
+  companies.splice(to, 0, _dragSrc);
+  const movedCo = _dragSrc;
+  dirCoOrder = companies;
+  _dragSrc = null;
+  await saveDirCoOrder();
+  logSystemEvent('directory_company_reordered', `Moved "${movedCo}" to position ${to + 1}`);
+  renderDirCoList();
+}
+
+async function toggleDirCoColumnBreak(co) {
+  dirCoColumnBreak = dirCoColumnBreak === co ? '' : co;
+  await saveDirCoColumnBreak();
+  logSystemEvent('directory_column_break', dirCoColumnBreak ? `Column break after "${dirCoColumnBreak}"` : 'Column break removed');
+  renderDirCoList();
 }
 
 function selectDirCoEdit(co) {

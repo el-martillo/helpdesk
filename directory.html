@@ -498,7 +498,19 @@ function renderDir() {
   }
 }
 
-function generateDirectoryPDF() {
+async function generateDirectoryPDF() {
+  // Load saved order and column break from app_settings
+  let savedOrder = [], columnBreak = '';
+  try {
+    const [orderRes, breakRes] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/app_settings?key=eq.directory_company_order&select=value`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }),
+      fetch(`${SB_URL}/rest/v1/app_settings?key=eq.directory_column_break&select=value`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }),
+    ]);
+    const [orderData, breakData] = await Promise.all([orderRes.json(), breakRes.json()]);
+    if (orderData?.[0]?.value) savedOrder = JSON.parse(orderData[0].value);
+    if (breakData?.[0]?.value) columnBreak = breakData[0].value;
+  } catch(e) {}
+
   const grouped = {};
   allEntries.forEach(e => {
     if (!grouped[e.company]) grouped[e.company] = [];
@@ -531,9 +543,19 @@ function generateDirectoryPDF() {
   };
 
   const entries = Object.entries(grouped);
-  const half = Math.ceil(entries.length / 2);
-  const leftSections  = entries.slice(0, half).map(makeSection).join('');
-  const rightSections = entries.slice(half).map(makeSection).join('');
+  // Apply saved order
+  const orderedKeys = savedOrder.filter(k => grouped[k]);
+  const remainderKeys = entries.map(([k]) => k).filter(k => !orderedKeys.includes(k)).sort();
+  const orderedEntries = [...orderedKeys, ...remainderKeys].map(k => [k, grouped[k]]);
+
+  // Split at column break, or midpoint
+  let splitIdx = Math.ceil(orderedEntries.length / 2);
+  if (columnBreak) {
+    const breakIdx = orderedEntries.findIndex(([k]) => k === columnBreak);
+    if (breakIdx !== -1) splitIdx = breakIdx + 1;
+  }
+  const leftSections  = orderedEntries.slice(0, splitIdx).map(makeSection).join('');
+  const rightSections = orderedEntries.slice(splitIdx).map(makeSection).join('');
 
   const html = `<!DOCTYPE html>
 <html lang="en">
