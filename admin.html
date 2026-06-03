@@ -555,6 +555,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
                 <th>Role</th>
                 <th>Open tickets</th>
                 <th>Total tickets</th>
+                <th>Verified</th>
               </tr>
             </thead>
             <tbody id="users-tbody"></tbody>
@@ -2274,12 +2275,15 @@ async function initSupabase() {
 
 /* ── Users management ── */
 let allProfiles = [];
+let authVerifiedMap = {}; // email → true/false
 
 async function loadAllProfiles() {
   const tbody = document.getElementById('users-tbody');
   if (tbody) tbody.innerHTML = '<tr class="loading-row"><td colspan="5"><div class="loader"></div></td></tr>';
   if (demoMode) {
     allProfiles = [...DEMO_PROFILES];
+    authVerifiedMap = {};
+    DEMO_PROFILES.forEach(p => { authVerifiedMap[p.id] = true; });
     renderUsersTable();
     const fuc = document.getElementById('footer-user-count'); if(fuc) fuc.textContent = allProfiles.length;
     return;
@@ -2288,6 +2292,12 @@ async function loadAllProfiles() {
   const { data, error } = await sbClient.from('profiles').select('*').order('full_name');
   if (error) { toast('Error loading users: ' + error.message); return; }
   allProfiles = data || [];
+  // Fetch verified status via RPC
+  authVerifiedMap = {};
+  try {
+    const { data: authData } = await sbClient.rpc('get_users_verified_status');
+    if (authData) authData.forEach(r => { authVerifiedMap[r.user_id] = !!r.email_confirmed_at; });
+  } catch(e) { console.warn('Could not load verified status:', e.message); }
   renderUsersTable();
   const sub = document.getElementById('users-count-sub'); if(sub) sub.textContent = allProfiles.length + ' registered profiles';
   const fuc = document.getElementById('footer-user-count'); if(fuc) fuc.textContent = allProfiles.length;
@@ -2301,13 +2311,20 @@ function renderUsersTable() {
   if (q)  list = list.filter(p => (p.full_name||'').toLowerCase().includes(q) || (p.email||'').toLowerCase().includes(q));
   const tbody = document.getElementById('users-tbody');
   if (!tbody) return;
-  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No users found</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No users found</td></tr>'; return; }
 
   const roleBadge = r => ({
     super_admin: '<span class="sb" style="background:var(--danger-l);color:var(--danger)">Super Admin</span>',
     admin:       '<span class="sb s-in_progress">Admin</span>',
     client:      '<span class="sb s-closed">Client</span>',
   }[r] || r);
+  const verifiedBadge = id => {
+    if (demoMode) return '<span class="sb s-resolved">✓ Verified</span>';
+    if (!(id in authVerifiedMap)) return '<span style="font-size:12px;color:var(--text3)">—</span>';
+    return authVerifiedMap[id]
+      ? '<span class="sb s-resolved">✓ Verified</span>'
+      : '<span class="sb s-waiting">Pending</span>';
+  };
   const renderRow = p => {
     const openCount  = tickets.filter(t => t.requester_id === p.id && !['resolved','closed'].includes(t.status)).length;
     const totalCount = tickets.filter(t => t.requester_id === p.id).length;
@@ -2324,12 +2341,13 @@ function renderUsersTable() {
       <td>${roleBadge(p.role)}</td>
       <td style="font-size:13px;color:var(--text2)">${openCount || '—'}</td>
       <td style="font-size:13px;color:var(--text2)">${totalCount || '—'}</td>
+      <td>${verifiedBadge(p.id)}</td>
     </tr>`;
   };
 
   const sectionHeader = (label, count) =>
     `<tr style="background:var(--surface2)">
-      <td colspan="4" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">
+      <td colspan="5" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">
         ${label} <span style="font-weight:500;color:var(--text3);margin-left:4px">(${count})</span>
       </td>
     </tr>`;
@@ -2355,12 +2373,12 @@ function renderUsersTable() {
     html += visClients.map(renderRow).join('');
   }
   if (remaining > 0) {
-    html += `<tr><td colspan="3" style="text-align:center;padding:12px;border-top:1px solid var(--border)">
+    html += `<tr><td colspan="5" style="text-align:center;padding:12px;border-top:1px solid var(--border)">
       <span style="font-size:12px;color:var(--text3);margin-right:10px">Showing ${visible.length} of ${allRows.length}</span>
       <button class="btn sm" onclick="usersPerPage+=25;document.getElementById('users-per-page').value=usersPerPage<=50?usersPerPage:99999;renderUsersTable()">Show ${Math.min(remaining,25)} more</button>
      </td></tr>`;
   } else if (allRows.length > 25) {
-    html += `<tr><td colspan="3" style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">All ${allRows.length} users shown</td></tr>`;
+    html += `<tr><td colspan="5" style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">All ${allRows.length} users shown</td></tr>`;
   }
   tbody.innerHTML = html;
 }
