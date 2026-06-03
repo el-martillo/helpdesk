@@ -49,6 +49,8 @@
 }
 html, body { height: 100%; font-family: var(--font); background: var(--bg); color: var(--text1); font-size: 14px; }
 #app { display: flex; flex-direction: column; min-height: 100vh; }
+.main-bg { flex: 1; background: #dce8f5; display: flex; flex-direction: column; }
+@media (prefers-color-scheme: dark) { .main-bg { background: #0d1b2e; } }
 
 /* Topbar */
 .topbar {
@@ -494,6 +496,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
   </div>
   <div id="mobile-menu-backdrop" class="mobile-menu-backdrop" onclick="closeMobileMenu()"></div>
 
+  <div class="main-bg">
   <div class="main">
     <!-- Animated logo -->
     <div style="text-align:center;margin-bottom:24px;margin-top:8px">
@@ -570,6 +573,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <div style="text-align:center;padding:32px;color:var(--text3)"><div class="loader"></div></div>
     </div>
   </div>
+</div>
 </div>
 
 <!-- My Profile modal -->

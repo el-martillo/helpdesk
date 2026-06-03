@@ -91,7 +91,8 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
 .nav-badge { margin-left: auto; background: var(--accent); color: #fff; font-size: 10px; font-weight: 600; border-radius: 10px; padding: 1px 6px; }
 .nav-badge.warn { background: var(--warn); }
 .sep { height: 1px; background: var(--border); margin: 4px 8px; }
-.content { flex: 1; overflow-y: auto; padding: 24px; background: var(--bg); }
+.content { flex: 1; overflow-y: auto; padding: 24px; background: #dce8f5; }
+@media (prefers-color-scheme: dark) { .content { background: #0d1b2e; } }
 th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
 th.sortable:hover { color: var(--text1); background: var(--surface); }
 th.sort-asc::after  { content: ' ↑'; color: var(--accent); font-size: 10px; }
@@ -682,6 +683,15 @@ textarea.fc { resize: vertical; min-height: 80px; }
               <option value="version_updated">Version updated</option>
               <option value="orgs_updated">Organisations updated</option>
               <option value="backup_created">Backup created</option>
+              <optgroup label="Directory">
+                <option value="directory_entry_created">Dir entry added</option>
+                <option value="directory_entry_updated">Dir entry updated</option>
+                <option value="directory_entry_deleted">Dir entry deleted</option>
+                <option value="directory_company_created">Company added</option>
+                <option value="directory_company_renamed">Company renamed</option>
+                <option value="directory_company_deleted">Company deleted</option>
+                <option value="directory_company_colour">Company colour changed</option>
+              </optgroup>
             </select>
             <select class="filter-sel" id="syslog-per-page" onchange="syslogPerPage=parseInt(this.value);renderSysLogTable()" style="font-size:12px">
               <option value="25">25 / page</option>
@@ -3020,6 +3030,13 @@ function renderSysLogTable() {
     version_updated: '<span class="sb s-closed">Version updated</span>',
     orgs_updated:    '<span class="sb s-closed">Orgs updated</span>',
     backup_created:  '<span class="sb s-closed">Backup created</span>',
+    directory_entry_created:  '<span class="sb s-open">Dir entry added</span>',
+    directory_entry_updated:  '<span class="sb s-in_progress">Dir entry updated</span>',
+    directory_entry_deleted:  '<span class="sb" style="background:var(--danger-l);color:var(--danger)">Dir entry deleted</span>',
+    directory_company_created: '<span class="sb s-open">Company added</span>',
+    directory_company_renamed: '<span class="sb s-in_progress">Company renamed</span>',
+    directory_company_deleted: '<span class="sb" style="background:var(--danger-l);color:var(--danger)">Company deleted</span>',
+    directory_company_colour:  '<span class="sb s-closed">Company colour</span>',
   }[a] || `<span class="sb s-closed">${a}</span>`);
 
   const rolePill = r => ({
@@ -3535,11 +3552,12 @@ async function saveDirEntry() {
   closeDirModal();
   await loadDirPage();
 
-  // Log to system log if function available
-  if (typeof logSysEvent === 'function') {
-    logSysEvent(id ? 'directory_updated' : 'directory_created',
-      `${id?'Updated':'Created'} directory entry: ${name} (${company})`);
-  }
+  const action = id ? 'directory_entry_updated' : 'directory_entry_created';
+  const verb   = id ? 'Updated' : 'Created';
+  const dept   = payload.department ? ` · Dept: ${payload.department}` : '';
+  const ext    = payload.extension  ? ` · Ext: ${payload.extension}`   : '';
+  const type   = payload.is_queue   ? ' · [Queue]' : '';
+  logSystemEvent(action, `${verb} directory entry: ${name} (${company})${dept}${ext}${type}`);
 }
 
 function openDirDelete(id) {
@@ -3563,8 +3581,10 @@ async function confirmDirDelete() {
   toast('Entry removed');
   closeDirDeleteModal();
   await loadDirPage();
-  if (typeof logSysEvent === 'function' && entry) {
-    logSysEvent('directory_deleted', `Deleted directory entry: ${entry.name} (${entry.company})`);
+  if (entry) {
+    const dept = entry.department ? ` · Dept: ${entry.department}` : '';
+    const ext  = entry.extension  ? ` · Ext: ${entry.extension}`   : '';
+    logSystemEvent('directory_entry_deleted', `Deleted directory entry: ${entry.name} (${entry.company})${dept}${ext}`);
   }
 }
 
@@ -3706,8 +3726,9 @@ function selectDirCoColor(hex) {
   renderDirCoColourSwatches(hex);
   saveDirCoColors();
   renderDirCoList();
-  renderAdminDir(); // refresh table to show new colour
+  renderAdminDir();
   toast('Colour updated');
+  logSystemEvent('directory_company_colour', `Set colour for "${dirCoEditTarget}": ${hex}`);
 }
 
 function applyDirCoCustomColour() {
@@ -3746,11 +3767,13 @@ async function saveDirCoName() {
     await saveDirCoColors();
   }
 
+  const oldName = dirCoEditTarget;
   toast(`Renamed to "${newName}"`);
   dirCoEditTarget = newName;
   await loadDirPage();
   renderDirCoList();
   selectDirCoEdit(newName);
+  logSystemEvent('directory_company_renamed', `Renamed company: "${oldName}" → "${newName}"`);
 }
 
 async function deleteDirCompany() {
@@ -3779,10 +3802,12 @@ async function deleteDirCompany() {
   await saveDirCoColors();
 
   toast('Company deleted');
+  const deletedCo = dirCoEditTarget;
   dirCoEditTarget = null;
   document.getElementById('dir-co-edit-panel').style.display = 'none';
   await loadDirPage();
   renderDirCoList();
+  logSystemEvent('directory_company_deleted', `Deleted company: "${deletedCo}"${count > 0 ? ` and ${count} ${count===1?'entry':'entries'}` : ' (no entries)'}`);
 }
 
 async function addDirCompany() {
@@ -3800,6 +3825,7 @@ async function addDirCompany() {
   toast(`"${name}" added`);
   if (input) input.value = '';
   renderDirCoList();
+  logSystemEvent('directory_company_created', `Added company: "${name}"`);
 }
 
 /* ── Directory company select helpers ── */
