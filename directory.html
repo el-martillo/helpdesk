@@ -329,7 +329,7 @@ function initials(name) {
   return w.length === 1 ? w[0].slice(0,2).toUpperCase() : (w[0][0]+w[w.length-1][0]).toUpperCase();
 }
 function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 async function loadEntries() {
@@ -515,7 +515,7 @@ async function generateDirectoryPDF() {
     grouped[e.company].push(e);
   });
 
-  const escH = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const escH = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const date = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
   const totalPeople = allEntries.length;
   const totalCompanies = Object.keys(grouped).length;
