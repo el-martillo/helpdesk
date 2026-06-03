@@ -540,23 +540,25 @@ function generateDirectoryPDF() {
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; color: #1a1917; }
-  .no-print { display: none; }
-  @media screen { .no-print { display: flex; } }
+  .no-print { position: fixed; top: 0; left: 0; right: 0; z-index: 999; background: #E6F1FB; border-bottom: 1px solid #b3d4ef; padding: 8px 16px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #185FA5; }
+  .print-body { padding: 44px 14px 10px; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
   @media print {
     .no-print { display: none !important; }
+    .print-body { padding: 0; }
     @page { margin: 8mm 10mm; size: A4; marks: none; }
   }
 </style>
 </head>
 <body>
 
-<div class="no-print" style="background:#E6F1FB;border-bottom:1px solid #b3d4ef;padding:10px 16px;align-items:center;gap:10px;font-size:12px;color:#185FA5;margin-bottom:12px">
+<div class="no-print">
   <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-  In the print dialog select <strong>Save as PDF</strong> and turn <strong>Headers and footers Off</strong>.
+  In the print dialog select <strong>&nbsp;Save as PDF</strong> and turn <strong>&nbsp;Headers and footers Off</strong>.
   <button onclick="window.print()" style="margin-left:auto;padding:5px 12px;background:#185FA5;color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">Print / Save PDF</button>
 </div>
 
-<div style="padding:10px 14px 8px">
+<div class="print-body">
   <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">
     <div>
       <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#aaa">El Martillo I.T. &nbsp;·&nbsp; </span>
