@@ -3959,14 +3959,15 @@ async function addDirCompany() {
   const input = document.getElementById('dir-new-co-input');
   const name = input?.value.trim();
   if (!name) return;
-  const existing = [...new Set(dirEntries.map(e => e.company))];
-  // Also check the standalone company list
-  const allCos = [...new Set([...existing, ...dirStandaloneCompanies])];
+  const allCos = getOrderedCompanies();
   if (allCos.map(c=>c.toLowerCase()).includes(name.toLowerCase())) {
     toast('Company already exists'); return;
   }
   dirStandaloneCompanies.push(name);
-  await saveDirStandaloneCompanies();
+  const { error } = await sbClient
+    .from('app_settings')
+    .upsert({ key: 'directory_standalone_companies', value: JSON.stringify(dirStandaloneCompanies) }, { onConflict: 'key' });
+  if (error) { toast('Error saving: ' + error.message, true); dirStandaloneCompanies.pop(); return; }
   toast(`"${name}" added`);
   if (input) input.value = '';
   renderDirCoList();

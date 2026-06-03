@@ -522,7 +522,6 @@ async function generateDirectoryPDF() {
 
   const makeSection = ([company, people]) => {
     const color = COMPANY_COLORS[company] || '#444';
-    const needsPageBreak = company === pageBreak;
     const rows = people.map((p, i) => `
       <tr style="${i % 2 === 1 ? `background:${color}0e` : ''}">
         <td style="padding:2px 6px;font-size:9.5px;font-weight:${p.is_queue?'600':'400'};color:${p.is_queue?color:'#1a1917'};white-space:nowrap;width:1%">${escH(p.name)}${p.is_queue ? ` <span style="-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:8px;background:${color}20;color:${color};padding:0 3px;border-radius:2px;font-weight:700">Q</span>` : ''}</td>
@@ -530,7 +529,7 @@ async function generateDirectoryPDF() {
         <td style="padding:2px 6px;font-size:9px;color:#185FA5">${p.email ? `<a href="mailto:${escH(p.email)}" style="color:#185FA5;text-decoration:none">${escH(p.email)}</a>` : '<span style="color:#ccc">—</span>'}</td>
         <td style="padding:2px 6px 2px 10px;font-size:9px;color:#555;font-family:monospace;white-space:nowrap;width:1%;text-align:right">${escH(p.extension)||'<span style="color:#ccc">—</span>'}</td>
       </tr>`).join('');
-    return `<div style="margin-bottom:8px${needsPageBreak?';page-break-before:always':''}">
+    return `<div style="margin-bottom:8px">
       <div style="-webkit-print-color-adjust:exact;print-color-adjust:exact;display:flex;align-items:center;gap:6px;padding:3px 7px;background:${color}18;border-left:3px solid ${color}">
         <span style="font-size:9.5px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.03em">${escH(company)}</span>
         <span style="font-size:8px;color:#aaa;margin-left:auto">${people.length}</span>
@@ -547,14 +546,33 @@ async function generateDirectoryPDF() {
   const remainderKeys = entries.map(([k]) => k).filter(k => !orderedKeys.includes(k)).sort();
   const orderedEntries = [...orderedKeys, ...remainderKeys].map(k => [k, grouped[k]]);
 
-  // Split at column break, or midpoint
-  let splitIdx = Math.ceil(orderedEntries.length / 2);
-  if (columnBreak) {
-    const breakIdx = orderedEntries.findIndex(([k]) => k === columnBreak);
-    if (breakIdx !== -1) splitIdx = breakIdx + 1;
-  }
-  const leftSections  = orderedEntries.slice(0, splitIdx).map(makeSection).join('');
-  const rightSections = orderedEntries.slice(splitIdx).map(makeSection).join('');
+  // Split orderedEntries into page segments (each page break starts a new segment)
+  const pageSegments = [];
+  let current = [];
+  orderedEntries.forEach(entry => {
+    if (entry[0] === pageBreak && current.length > 0) {
+      pageSegments.push(current);
+      current = [];
+    }
+    current.push(entry);
+  });
+  pageSegments.push(current);
+
+  // For each segment, split at column break (or midpoint), render as a <tr>
+  const tableRows = pageSegments.map((segment, segIdx) => {
+    let splitIdx = Math.ceil(segment.length / 2);
+    if (columnBreak) {
+      const breakIdx = segment.findIndex(([k]) => k === columnBreak);
+      if (breakIdx !== -1) splitIdx = breakIdx + 1;
+    }
+    const leftSections  = segment.slice(0, splitIdx).map(makeSection).join('');
+    const rightSections = segment.slice(splitIdx).map(makeSection).join('');
+    const pageBreakStyle = segIdx > 0 ? 'page-break-before:always;' : '';
+    return `<tr style="${pageBreakStyle}">
+      <td style="width:50%;vertical-align:top;padding-right:4px">${leftSections}</td>
+      <td style="width:50%;vertical-align:top;padding-left:4px">${rightSections}</td>
+    </tr>`;
+  }).join('');
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -616,10 +634,7 @@ async function generateDirectoryPDF() {
     </tr>
   </tfoot>
   <tbody>
-    <tr>
-      <td style="width:50%;padding-right:4px">${leftSections}</td>
-      <td style="width:50%;padding-left:4px">${rightSections}</td>
-    </tr>
+    ${tableRows}
   </tbody>
 </table>
 
