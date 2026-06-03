@@ -115,6 +115,9 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 .footer a{color:var(--accent);text-decoration:none}
 .footer a:hover{text-decoration:underline}
 .footer-sep{color:var(--border2)}
+.scroll-top-btn{position:absolute;right:16px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;background:var(--surface2);border:1px solid var(--border2);color:var(--text2);cursor:pointer;transition:all .15s;text-decoration:none}
+.scroll-top-btn:hover{background:var(--accent-l);color:var(--accent);border-color:var(--accent)}
+@media(max-width:768px){.scroll-top-btn{display:none!important}}
 
 /* Print */
 @media print{
@@ -290,6 +293,9 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   <span>Email: <a href="mailto:helpdesk@el-martillo.com">helpdesk@el-martillo.com</a></span>
   <span class="footer-sep">|</span>
   <span id="footer-version">v1.0.0</span>
+  <a href="#" class="scroll-top-btn" onclick="(document.querySelector('.main-content')||document.documentElement).scrollTo({top:0,behavior:'smooth'});return false;" title="Back to top">
+    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>
+  </a>
 </div>
 
 <script>

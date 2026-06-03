@@ -3857,6 +3857,15 @@ function getDirCompanyValue() {
 .dir-row .ia-edit:hover { background:var(--accent); color:#fff; }
 .dir-row .ia-del { background:var(--danger-l); color:var(--danger); }
 .dir-row .ia-del:hover { background:var(--danger); color:#fff; }
+.footer { position:fixed; bottom:0; left:0; right:0; z-index:100; background:var(--surface); border-top:1px solid var(--border); padding:0 24px; height:40px; display:flex; align-items:center; justify-content:center; gap:24px; font-size:12px; color:var(--text3); }
+.footer a { color:var(--accent); text-decoration:none; }
+.footer a:hover { text-decoration:underline; }
+.footer-sep { color:var(--border2); }
+.footer-tickets { color:var(--text2); font-weight:500; }
+.content { padding-bottom:56px !important; }
+.scroll-top-btn { position:absolute; right:16px; display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:6px; background:var(--surface2); border:1px solid var(--border2); color:var(--text2); cursor:pointer; transition:all .15s; text-decoration:none; }
+.scroll-top-btn:hover { background:var(--accent-l); color:var(--accent); border-color:var(--accent); }
+@media (max-width:768px) { .scroll-top-btn { display:none !important; } }
 </style>
 
 <div id="app-footer" class="footer">
@@ -3869,6 +3878,9 @@ function getDirCompanyValue() {
   <span>Users: <span class="footer-tickets" id="footer-user-count">—</span></span>
   <span class="footer-sep">|</span>
   <span id="footer-version">v1.0.0</span>
+  <a href="#" class="scroll-top-btn" onclick="document.querySelector('.content')?.scrollTo({top:0,behavior:'smooth'});return false;" title="Back to top">
+    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>
+  </a>
 </div>
 
 
