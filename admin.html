@@ -1097,12 +1097,13 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
     <!-- Access -->
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">Access</div>
-    <div class="fg"><label class="fl">Role</label>
+    <div class="fg" id="eu-role-wrap"><label class="fl">Role</label>
       <select id="eu-role" class="fc">
         <option value="client">Client</option>
         <option value="admin">Admin</option>
         <option value="super_admin">Super Admin</option>
       </select>
+      <div id="eu-role-locked" style="display:none;margin-top:6px;font-size:11px;color:var(--text3)">🔒 Role changes require Super Admin access</div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px">
       <div>
@@ -2395,6 +2396,16 @@ function openEditUser(id) {
   document.getElementById('eu-notes').value   = p.notes      || '';
   populateCompanySelects();
   document.getElementById('eu-company').value = p.company    || '';
+
+  // Lock role field for plain admin — only super_admin can change roles
+  const isSuperAdmin = currentProfile?.role === 'super_admin' || demoMode;
+  const roleSelect = document.getElementById('eu-role');
+  const roleLocked = document.getElementById('eu-role-locked');
+  roleSelect.disabled = !isSuperAdmin;
+  roleSelect.style.opacity = isSuperAdmin ? '' : '0.5';
+  roleSelect.style.cursor  = isSuperAdmin ? '' : 'not-allowed';
+  roleLocked.style.display = isSuperAdmin ? 'none' : 'block';
+
   openModal('modal-edit-user');
 }
 
@@ -2448,7 +2459,9 @@ async function saveUser() {
   const role    = document.getElementById('eu-role').value;
   const notes   = document.getElementById('eu-notes').value.trim();
   if (!name) { toast('Name is required'); return; }
-  const updates = { full_name: name, role };
+  const isSuperAdmin = currentProfile?.role === 'super_admin' || demoMode;
+  const updates = { full_name: name };
+  if (isSuperAdmin) updates.role = role;  // only super_admin may change roles
   if (email)   updates.email   = email;
   if (phone)   updates.phone   = phone;
   if (company) updates.company = company;
