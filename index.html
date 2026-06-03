@@ -1133,7 +1133,7 @@ function renderTickets() {
           <h4 style="margin-bottom:0">${esc(t.subject)}</h4>
           <span class="cat-badge ${catClass}">${esc(t.category||'General')}</span>
         </div>
-        <p><span class="tid">#${t.ticket_number}</span> · Updated ${timeAgo(t.updated_at)}${asgn?' · '+asgn.full_name:''}</p>
+        <p><span class="tid">#${t.ticket_number}</span> · Updated ${timeAgo(t.updated_at)}${asgn?' · '+esc(asgn.full_name):''}</p>
       </div>
       ${_tcUrls.length ? `<img src="${_tcUrls[0]}" class="ticket-card-thumb" alt="attachment" onclick="event.stopPropagation();openImgPreview(${JSON.stringify(_tcUrls).replace(/"/g,'&quot;')})"/>` : ''}
       <div class="ticket-card-right">
@@ -1176,7 +1176,7 @@ async function openTicketDetail(id) {
       <span class="chip"><span class="pdot ${t.priority}"></span>${t.priority} priority</span>
       <span class="chip">
         <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-        ${asgn?asgn.full_name:'Unassigned'}
+        ${asgn?esc(asgn.full_name):'Unassigned'}
       </span>
     </div>
     <div class="detail-meta">
@@ -1192,7 +1192,7 @@ async function openTicketDetail(id) {
       if (!urls.length) return '';
       return `<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px">Attachments (${urls.length})</div><div class="attach-detail-grid">${urls.map(u=>`<a href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="attachment"/></a>`).join('')}</div></div>`;
     })()}
-    <div class="desc-box">${esc(t.description||'<em style="color:var(--text3)">No description provided.</em>')}</div>
+    <div class="desc-box">${t.description ? esc(t.description) : '<em style="color:var(--text3)">No description provided.</em>'}</div>
     <div class="activity">
       <div class="activity-label">Conversation (${comments.length})</div>
       <div id="comments-list">${renderComments(comments)}</div>

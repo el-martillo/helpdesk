@@ -3048,6 +3048,7 @@ async function saveOrgEdit(i) {
   const duplicate = companiesList.some((c, j) => j !== i && c.toLowerCase() === val.toLowerCase());
   if (duplicate) { toast('Organisation already exists'); return; }
   companiesList[i] = val;
+  cancelOrgEdit(i);
   companiesList.sort((a,b) => a.localeCompare(b));
   renderOrgList();
   populateCompanySelects();
