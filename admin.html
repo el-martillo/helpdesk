@@ -2502,10 +2502,15 @@ async function addUser() {
     document.getElementById('au-role').value = 'client';
   }
   if (demoMode) {
+    const exists = allProfiles.some(p => (p.email||'').toLowerCase() === email.toLowerCase());
+    if (exists) { toast('A user with this email already exists'); return; }
     allProfiles.push({ ...payload });
     closeModal('modal-add-user'); clearForm();
     renderUsersTable(); toast('User added (demo)'); return;
   }
+  // Check for existing profile with this email
+  const { data: existing } = await sbClient.from('profiles').select('id').eq('email', email).maybeSingle();
+  if (existing) { toast('A user with this email already exists'); return; }
   const { error } = await sbClient.from('profiles').insert(payload);
   if (error) { toast('Error: ' + error.message); return; }
   closeModal('modal-add-user'); clearForm();
