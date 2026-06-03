@@ -513,29 +513,20 @@ function generateDirectoryPDF() {
   const sections = Object.entries(grouped).map(([company, people]) => {
     const color = COMPANY_COLORS[company] || '#444';
     const rows = people.map((p, i) => `
-      <tr style="${i % 2 === 1 ? `background:${color}10` : ''}">
-        <td style="padding:7px 10px;font-size:12px;font-weight:${p.is_queue?'600':'400'};color:${p.is_queue?color:'#1a1917'}">${escH(p.name)}${p.is_queue ? ' <span style="font-size:10px;background:'+color+'20;color:'+color+';padding:1px 5px;border-radius:3px;font-weight:600">QUEUE</span>' : ''}</td>
-        <td style="padding:7px 10px;font-size:12px;color:#555">${p.department ? `<span style="background:${color}15;color:${color};padding:2px 7px;border-radius:4px;font-size:11px;font-weight:500">${escH(p.department)}</span>` : ''}</td>
-        <td style="padding:7px 10px;font-size:12px;color:#185FA5">${p.email ? `<a href="mailto:${escH(p.email)}" style="color:#185FA5;text-decoration:none">${escH(p.email)}</a>` : '<span style="color:#aaa">—</span>'}</td>
-        <td style="padding:7px 10px;font-size:12px;color:#555;font-family:monospace">${escH(p.extension) || '<span style="color:#aaa">—</span>'}</td>
+      <tr style="${i % 2 === 1 ? `background:${color}0e` : ''}">
+        <td style="padding:3px 7px;font-size:10px;font-weight:${p.is_queue?'600':'400'};color:${p.is_queue?color:'#1a1917'}">${escH(p.name)}${p.is_queue ? ` <span style="font-size:9px;background:${color}20;color:${color};padding:0 4px;border-radius:2px;font-weight:700">Q</span>` : ''}</td>
+        <td style="padding:3px 7px;font-size:10px;color:#666">${p.department ? `<span style="background:${color}15;color:${color};padding:1px 5px;border-radius:3px;font-size:9px;font-weight:600">${escH(p.department)}</span>` : ''}</td>
+        <td style="padding:3px 7px;font-size:10px;color:#185FA5">${p.email ? `<a href="mailto:${escH(p.email)}" style="color:#185FA5;text-decoration:none">${escH(p.email)}</a>` : '<span style="color:#ccc">—</span>'}</td>
+        <td style="padding:3px 7px;font-size:10px;color:#555;font-family:monospace;white-space:nowrap">${escH(p.extension) || '<span style="color:#ccc">—</span>'}</td>
       </tr>`).join('');
 
     return `
-    <div style="margin-bottom:28px;page-break-inside:avoid">
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:${color}18;border-left:4px solid ${color};border-radius:0 6px 6px 0;margin-bottom:0">
-        <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0"></div>
-        <span style="font-size:14px;font-weight:600;color:${color}">${escH(company)}</span>
-        <span style="font-size:11px;color:#888;margin-left:auto">${people.length} ${people.length===1?'entry':'entries'}</span>
+    <div style="margin-bottom:10px;break-inside:avoid">
+      <div style="display:flex;align-items:center;gap:7px;padding:4px 8px;background:${color}14;border-left:3px solid ${color}">
+        <span style="font-size:10px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.04em">${escH(company)}</span>
+        <span style="font-size:9px;color:#aaa;margin-left:auto">${people.length}</span>
       </div>
-      <table style="width:100%;border-collapse:collapse;border:1px solid ${color}30;border-top:none">
-        <thead>
-          <tr style="background:${color}0c">
-            <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;border-bottom:1px solid ${color}30">Name</th>
-            <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;border-bottom:1px solid ${color}30">Department</th>
-            <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;border-bottom:1px solid ${color}30">Email</th>
-            <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;border-bottom:1px solid ${color}30">Extension</th>
-          </tr>
-        </thead>
+      <table style="width:100%;border-collapse:collapse;border:1px solid ${color}25;border-top:none">
         <tbody>${rows}</tbody>
       </table>
     </div>`;
@@ -548,41 +539,42 @@ function generateDirectoryPDF() {
 <title>El Martillo I.T. — Staff Directory</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; color: #1a1917; padding: 32px 40px; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; color: #1a1917; }
+  .no-print { display: none; }
+  @media screen { .no-print { display: flex; } }
   @media print {
-    body { padding: 20px 24px; }
     .no-print { display: none !important; }
-    @page { margin: 15mm 12mm; size: A4; }
+    @page { margin: 8mm 10mm; size: A4; marks: none; }
   }
 </style>
 </head>
 <body>
 
-<div class="no-print" style="background:#E6F1FB;border:1px solid #b3d4ef;border-radius:8px;padding:12px 16px;margin-bottom:24px;display:flex;align-items:center;gap:12px;font-size:13px;color:#185FA5">
-  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-  Use your browser's <strong>Print</strong> function (Ctrl+P / ⌘P) and select <strong>Save as PDF</strong> to export.
-  <button onclick="window.print()" style="margin-left:auto;padding:6px 14px;background:#185FA5;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Print / Save PDF</button>
+<div class="no-print" style="background:#E6F1FB;border-bottom:1px solid #b3d4ef;padding:10px 16px;align-items:center;gap:10px;font-size:12px;color:#185FA5;margin-bottom:12px">
+  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  In the print dialog select <strong>Save as PDF</strong> and turn <strong>Headers and footers Off</strong>.
+  <button onclick="window.print()" style="margin-left:auto;padding:5px 12px;background:#185FA5;color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">Print / Save PDF</button>
 </div>
 
-<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:6px">
-  <div>
-    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#9e9a94;margin-bottom:4px">El Martillo I.T.</div>
-    <h1 style="font-size:22px;font-weight:700;color:#1a1917">Staff Directory</h1>
+<div style="padding:10px 14px 8px">
+  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">
+    <div>
+      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#aaa">El Martillo I.T. &nbsp;·&nbsp; </span>
+      <span style="font-size:15px;font-weight:700;color:#1a1917">Staff Directory</span>
+    </div>
+    <div style="font-size:9px;color:#aaa">${escH(date)} &nbsp;·&nbsp; ${totalPeople} people &nbsp;·&nbsp; ${totalCompanies} companies</div>
   </div>
-  <div style="text-align:right;font-size:11px;color:#9e9a94;line-height:1.7">
-    <div>Generated: ${escH(date)}</div>
-    <div>${totalPeople} ${totalPeople===1?'person':'people'} · ${totalCompanies} ${totalCompanies===1?'company':'companies'}</div>
+  <div style="height:1.5px;background:linear-gradient(90deg,#185FA5,#534AB7);margin-bottom:10px"></div>
+  <div style="columns:2;column-gap:14px">
+    ${sections}
+  </div>
+  <div style="margin-top:10px;padding-top:6px;border-top:1px solid #e5e5e3;font-size:8px;color:#ccc;display:flex;justify-content:space-between">
+    <span>El Martillo I.T. — Confidential</span>
+    <span>${escH(date)}</span>
   </div>
 </div>
-<div style="height:2px;background:linear-gradient(90deg,#185FA5,#534AB7);border-radius:1px;margin-bottom:28px"></div>
 
-${sections}
-
-<div style="margin-top:32px;padding-top:14px;border-top:1px solid #e5e5e3;font-size:11px;color:#aaa;display:flex;justify-content:space-between">
-  <span>El Martillo I.T. — Confidential</span>
-  <span>${escH(date)}</span>
-</div>
-
+<script>window.addEventListener('load', () => setTimeout(() => window.print(), 400));<\/script>
 </body>
 </html>`;
 
