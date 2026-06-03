@@ -1294,11 +1294,13 @@ async function runBackup() {
 
     /* ── Audit log ── */
     try {
-      await sbClient.from('system_log').insert({
-        actor_id:   currentUser.id,
-        event_type: 'backup_created',
-        description: `Database backup downloaded by ${currentProfile?.full_name || currentUser.email}`,
-        metadata: summary,
+      await sbClient.from('audit_log').insert({
+        actor_id:    currentUser.id,
+        actor_name:  currentProfile?.full_name || currentUser.email,
+        action:      'BACKUP',
+        entity_type: 'database',
+        entity_label: 'full backup',
+        details:     JSON.stringify(summary),
       });
     } catch(logErr) {
       console.warn('Audit log write failed:', logErr);
