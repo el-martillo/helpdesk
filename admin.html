@@ -2401,11 +2401,13 @@ async function sendInviteEmail() {
   const btn   = document.getElementById('eu-invite-btn');
   if (!email) { toast('No email address on this profile'); return; }
   if (demoMode) { toast('Invite sent (demo)'); return; }
+  const { data: { session } } = await sbClient.auth.getSession();
+  if (!session?.access_token) { toast('Not authenticated'); return; }
   if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
   try {
     const resp = await fetch(`${SB_URL}/functions/v1/user-invite`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, full_name: name, redirect_to: window.location.origin + '/index.html' })
     });
     const result = await resp.json();
