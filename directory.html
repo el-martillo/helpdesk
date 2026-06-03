@@ -258,10 +258,6 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
             Cards
           </button>
         </div>
-        <button class="btn sm" onclick="window.print()">
-          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          Print
-        </button>
         <button class="btn sm" onclick="generateDirectoryPDF()">
           <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
           PDF
@@ -526,17 +522,17 @@ async function generateDirectoryPDF() {
     const color = COMPANY_COLORS[company] || '#444';
     const rows = people.map((p, i) => `
       <tr style="${i % 2 === 1 ? `background:${color}0e` : ''}">
-        <td style="padding:2px 6px;font-size:9.5px;font-weight:${p.is_queue?'600':'400'};color:${p.is_queue?color:'#1a1917'}">${escH(p.name)}${p.is_queue ? ` <span style="-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:8px;background:${color}20;color:${color};padding:0 3px;border-radius:2px;font-weight:700">Q</span>` : ''}</td>
-        <td style="padding:2px 6px;font-size:9px;color:#666">${p.department ? `<span style="-webkit-print-color-adjust:exact;print-color-adjust:exact;background:${color}18;color:${color};padding:1px 4px;border-radius:2px;font-size:8.5px;font-weight:600">${escH(p.department)}</span>` : ''}</td>
+        <td style="padding:2px 6px;font-size:9.5px;font-weight:${p.is_queue?'600':'400'};color:${p.is_queue?color:'#1a1917'};white-space:nowrap;width:1%">${escH(p.name)}${p.is_queue ? ` <span style="-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:8px;background:${color}20;color:${color};padding:0 3px;border-radius:2px;font-weight:700">Q</span>` : ''}</td>
+        <td style="padding:2px 6px;font-size:9px;color:#666;white-space:nowrap;width:1%">${p.department ? `<span style="-webkit-print-color-adjust:exact;print-color-adjust:exact;background:${color}18;color:${color};padding:1px 4px;border-radius:2px;font-size:8.5px;font-weight:600">${escH(p.department)}</span>` : ''}</td>
         <td style="padding:2px 6px;font-size:9px;color:#185FA5">${p.email ? `<a href="mailto:${escH(p.email)}" style="color:#185FA5;text-decoration:none">${escH(p.email)}</a>` : '<span style="color:#ccc">—</span>'}</td>
-        <td style="padding:2px 6px;font-size:9px;color:#555;font-family:monospace;white-space:nowrap">${escH(p.extension)||'<span style="color:#ccc">—</span>'}</td>
+        <td style="padding:2px 6px 2px 10px;font-size:9px;color:#555;font-family:monospace;white-space:nowrap;width:1%;text-align:right">${escH(p.extension)||'<span style="color:#ccc">—</span>'}</td>
       </tr>`).join('');
     return `<div style="margin-bottom:8px">
       <div style="-webkit-print-color-adjust:exact;print-color-adjust:exact;display:flex;align-items:center;gap:6px;padding:3px 7px;background:${color}18;border-left:3px solid ${color}">
         <span style="font-size:9.5px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.03em">${escH(company)}</span>
         <span style="font-size:8px;color:#aaa;margin-left:auto">${people.length}</span>
       </div>
-      <table style="width:100%;border-collapse:collapse;border:1px solid ${color}22;border-top:none">
+      <table style="width:100%;border-collapse:collapse;border:1px solid ${color}22;border-top:none;table-layout:auto">
         <tbody>${rows}</tbody>
       </table>
     </div>`;
