@@ -566,10 +566,18 @@ async function generateDirectoryPDF() {
   * { box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#fff; color:#1a1917; }
   .no-print { position:fixed; top:0; left:0; right:0; z-index:999; background:#E6F1FB; border-bottom:1px solid #b3d4ef; padding:8px 16px; display:flex; align-items:center; gap:10px; font-size:12px; color:#185FA5; }
-  .wrap { padding:44px 12px 10px; }
+  .page-table { width:100%; border-collapse:collapse; }
+  .page-table thead td { padding:6px 10px 4px; }
+  .page-table tfoot td { padding:4px 10px 6px; }
+  .page-table tbody td { padding:0 10px; vertical-align:top; }
+  .hdr-rule { height:1.5px; background:#185FA5; margin-bottom:8px; }
+  .ftr-rule { height:1px; background:#e5e5e3; margin-top:6px; }
+  @media screen {
+    body { padding-top:44px; }
+  }
   @media print {
     .no-print { display:none !important; }
-    .wrap { padding:0; }
+    body { padding-top:0; }
     @page { margin:8mm 10mm; size:A4; marks:none; }
   }
 </style>
@@ -582,26 +590,39 @@ async function generateDirectoryPDF() {
   <button onclick="window.print()" style="margin-left:auto;padding:5px 12px;background:#185FA5;color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">Print / Save PDF</button>
 </div>
 
-<div class="wrap">
-  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">
-    <div>
-      <span style="font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#aaa">El Martillo I.T. &nbsp;·&nbsp;</span>
-      <span style="font-size:15px;font-weight:700;color:#1a1917">Staff Directory</span>
-    </div>
-    <div style="font-size:8.5px;color:#aaa">${escH(date)} &nbsp;·&nbsp; ${totalPeople} people &nbsp;·&nbsp; ${totalCompanies} companies</div>
-  </div>
-  <div style="-webkit-print-color-adjust:exact;print-color-adjust:exact;height:1.5px;background:#185FA5;margin-bottom:8px"></div>
-  <table style="width:100%;border-collapse:collapse">
+<table class="page-table">
+  <thead>
     <tr>
-      <td style="width:50%;vertical-align:top;padding-right:8px">${leftSections}</td>
-      <td style="width:50%;vertical-align:top;padding-left:8px">${rightSections}</td>
+      <td colspan="2">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:3px">
+          <div>
+            <span style="font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#aaa">El Martillo I.T. &nbsp;·&nbsp;</span>
+            <span style="font-size:14px;font-weight:700;color:#1a1917">Staff Directory</span>
+          </div>
+          <div style="font-size:8px;color:#aaa">${escH(date)} &nbsp;·&nbsp; ${totalPeople} people &nbsp;·&nbsp; ${totalCompanies} companies</div>
+        </div>
+        <div class="hdr-rule"></div>
+      </td>
     </tr>
-  </table>
-  <div style="margin-top:8px;padding-top:5px;border-top:1px solid #e5e5e3;font-size:7.5px;color:#ccc;display:flex;justify-content:space-between">
-    <span>El Martillo I.T. — Confidential</span>
-    <span>${escH(date)}</span>
-  </div>
-</div>
+  </thead>
+  <tfoot>
+    <tr>
+      <td colspan="2">
+        <div class="ftr-rule"></div>
+        <div style="display:flex;justify-content:space-between;font-size:7.5px;color:#ccc;padding-bottom:2px">
+          <span>El Martillo I.T. — Confidential</span>
+          <span>${escH(date)}</span>
+        </div>
+      </td>
+    </tr>
+  </tfoot>
+  <tbody>
+    <tr>
+      <td style="width:50%;padding-right:4px">${leftSections}</td>
+      <td style="width:50%;padding-left:4px">${rightSections}</td>
+    </tr>
+  </tbody>
+</table>
 
 <script>window.addEventListener('load', () => setTimeout(() => window.print(), 400));<\/script>
 </body>
