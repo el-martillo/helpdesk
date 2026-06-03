@@ -4087,7 +4087,30 @@ async function saveDirCoName() {
     await saveDirCoColors();
   }
 
+  // Migrate order position — replace old name in place so order is preserved
+  const orderIdx = dirCoOrder.indexOf(dirCoEditTarget);
+  if (orderIdx !== -1) {
+    dirCoOrder[orderIdx] = newName;
+    await saveDirCoOrder();
+  }
+
+  // Migrate column/page break keys if they point to the renamed company
+  if (dirCoColumnBreak === dirCoEditTarget) {
+    dirCoColumnBreak = newName;
+    await saveDirCoColumnBreak();
+  }
+  if (dirCoPageBreak === dirCoEditTarget) {
+    dirCoPageBreak = newName;
+    await saveDirCoPageBreak();
+  }
+
   const oldName = dirCoEditTarget;
+  // Migrate standalone company entry if present
+  const standaloneIdx = dirStandaloneCompanies.indexOf(oldName);
+  if (standaloneIdx !== -1) {
+    dirStandaloneCompanies[standaloneIdx] = newName;
+    await saveDirStandaloneCompanies();
+  }
   toast(`Renamed to "${newName}"`);
   dirCoEditTarget = newName;
   await loadDirPage();
