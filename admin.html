@@ -2387,7 +2387,7 @@ async function resendAuthEmail() {
   if (demoMode) { toast('Password reset sent (demo)'); return; }
   if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
   const { error } = await sbClient.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + '/index.html'
+    redirectTo: 'https://el-martillo.github.io/helpdesk/index.html'
   });
   if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Send'; }
   if (error) { toast('Error: ' + error.message); return; }
@@ -2408,7 +2408,7 @@ async function sendInviteEmail() {
     const resp = await fetch(`${SB_URL}/functions/v1/user-invite`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, full_name: name, redirect_to: 'https://el-martillo.github.io/index.html' })
+      body: JSON.stringify({ email, full_name: name, redirect_to: 'https://el-martillo.github.io/helpdesk/index.html' })
     });
     const result = await resp.json();
     if (!resp.ok) throw new Error(result?.error || result?.message || 'Unknown error');

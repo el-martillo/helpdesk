@@ -576,6 +576,34 @@ textarea.fc { resize: vertical; min-height: 80px; }
 </div>
 </div>
 
+<!-- Set password modal (shown after invite acceptance) -->
+<div class="overlay" id="modal-set-password">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Welcome! Set your password</div>
+        <div class="modal-sub">Choose a password to secure your account</div>
+      </div>
+    </div>
+    <div style="background:var(--accent-l);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:8px">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Your invitation has been accepted. Please set a password to log in next time.
+    </div>
+    <div class="fg">
+      <label class="fl">New password</label>
+      <input id="set-pw-input" class="fc" type="password" placeholder="Minimum 8 characters" oninput="setPasswordValidate()"/>
+    </div>
+    <div class="fg">
+      <label class="fl">Confirm password</label>
+      <input id="set-pw-confirm" class="fc" type="password" placeholder="Repeat password" onkeydown="if(event.key==='Enter')setPasswordSubmit()"/>
+    </div>
+    <div id="set-pw-error" style="font-size:12px;color:var(--danger);margin-bottom:8px;display:none"></div>
+    <div class="form-footer">
+      <button class="btn primary" id="set-pw-btn" onclick="setPasswordSubmit()" style="width:100%;justify-content:center">Set password &amp; continue</button>
+    </div>
+  </div>
+</div>
+
 <!-- My Profile modal -->
 <div class="overlay" id="modal-my-profile">
   <div class="modal">
@@ -992,6 +1020,33 @@ function startRealtime() {
       }
     })
     .subscribe();
+}
+
+function setPasswordValidate() {
+  const pw  = document.getElementById('set-pw-input')?.value || '';
+  const err = document.getElementById('set-pw-error');
+  if (err) err.style.display = 'none';
+  const btn = document.getElementById('set-pw-btn');
+  if (btn) btn.disabled = pw.length < 8;
+}
+
+async function setPasswordSubmit() {
+  const pw      = document.getElementById('set-pw-input')?.value || '';
+  const confirm = document.getElementById('set-pw-confirm')?.value || '';
+  const err     = document.getElementById('set-pw-error');
+  const btn     = document.getElementById('set-pw-btn');
+  const show = msg => { if (err) { err.textContent = msg; err.style.display = 'block'; } };
+  if (pw.length < 8)  { show('Password must be at least 8 characters.'); return; }
+  if (pw !== confirm) { show('Passwords do not match.'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  const { error } = await sbClient.auth.updateUser({ password: pw });
+  if (error) {
+    show('Error: ' + error.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Set password & continue'; }
+    return;
+  }
+  closeModal('modal-set-password');
+  toast('Password set! You\'re all set, ' + (currentProfile?.full_name?.split(' ')[0] || 'welcome') + '!');
 }
 
 async function signOut() {
@@ -1489,6 +1544,8 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 
 async function initSupabase() {
   if (!window.supabase) { console.error('Supabase SDK not loaded'); return; }
+  // Always hide config screen immediately — credentials are hardcoded
+  document.getElementById('cfg-screen').classList.remove('active');
   const url = SB_URL, key = SB_KEY;
   localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
   const cfgUrl = document.getElementById('cfg-url');
@@ -1522,15 +1579,19 @@ async function initSupabase() {
         } else if (data?.session) {
           currentUser    = data.session.user;
           currentProfile = await ensureProfile(currentUser);
-          // Clear the token from the URL
           history.replaceState(null, '', window.location.pathname);
-          if (type === 'signup') {
+          if (type === 'invite') {
+            showApp();
+            // Prompt user to set a password after accepting invite
+            setTimeout(() => openModal('modal-set-password'), 400);
+          } else if (type === 'signup') {
             toast('Email confirmed! Welcome, ' + (currentProfile?.full_name || currentUser.email));
             trackUserActivity('login', 'success', 'Email confirmed and logged in');
+            showApp();
           } else {
             toast('Signed in successfully');
+            showApp();
           }
-          showApp();
           return;
         }
       }
