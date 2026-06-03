@@ -510,27 +510,30 @@ function generateDirectoryPDF() {
   const totalPeople = allEntries.length;
   const totalCompanies = Object.keys(grouped).length;
 
-  const sections = Object.entries(grouped).map(([company, people]) => {
+  const makeSection = ([company, people]) => {
     const color = COMPANY_COLORS[company] || '#444';
     const rows = people.map((p, i) => `
       <tr style="${i % 2 === 1 ? `background:${color}0e` : ''}">
-        <td style="padding:3px 7px;font-size:10px;font-weight:${p.is_queue?'600':'400'};color:${p.is_queue?color:'#1a1917'}">${escH(p.name)}${p.is_queue ? ` <span style="font-size:9px;background:${color}20;color:${color};padding:0 4px;border-radius:2px;font-weight:700">Q</span>` : ''}</td>
-        <td style="padding:3px 7px;font-size:10px;color:#666">${p.department ? `<span style="background:${color}15;color:${color};padding:1px 5px;border-radius:3px;font-size:9px;font-weight:600">${escH(p.department)}</span>` : ''}</td>
-        <td style="padding:3px 7px;font-size:10px;color:#185FA5">${p.email ? `<a href="mailto:${escH(p.email)}" style="color:#185FA5;text-decoration:none">${escH(p.email)}</a>` : '<span style="color:#ccc">—</span>'}</td>
-        <td style="padding:3px 7px;font-size:10px;color:#555;font-family:monospace;white-space:nowrap">${escH(p.extension) || '<span style="color:#ccc">—</span>'}</td>
+        <td style="padding:2px 6px;font-size:9.5px;font-weight:${p.is_queue?'600':'400'};color:${p.is_queue?color:'#1a1917'}">${escH(p.name)}${p.is_queue ? ` <span style="-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:8px;background:${color}20;color:${color};padding:0 3px;border-radius:2px;font-weight:700">Q</span>` : ''}</td>
+        <td style="padding:2px 6px;font-size:9px;color:#666">${p.department ? `<span style="-webkit-print-color-adjust:exact;print-color-adjust:exact;background:${color}18;color:${color};padding:1px 4px;border-radius:2px;font-size:8.5px;font-weight:600">${escH(p.department)}</span>` : ''}</td>
+        <td style="padding:2px 6px;font-size:9px;color:#185FA5">${p.email ? `<a href="mailto:${escH(p.email)}" style="color:#185FA5;text-decoration:none">${escH(p.email)}</a>` : '<span style="color:#ccc">—</span>'}</td>
+        <td style="padding:2px 6px;font-size:9px;color:#555;font-family:monospace;white-space:nowrap">${escH(p.extension)||'<span style="color:#ccc">—</span>'}</td>
       </tr>`).join('');
-
-    return `
-    <div style="margin-bottom:10px;break-inside:avoid">
-      <div style="display:flex;align-items:center;gap:7px;padding:4px 8px;background:${color}14;border-left:3px solid ${color}">
-        <span style="font-size:10px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.04em">${escH(company)}</span>
-        <span style="font-size:9px;color:#aaa;margin-left:auto">${people.length}</span>
+    return `<div style="margin-bottom:8px">
+      <div style="-webkit-print-color-adjust:exact;print-color-adjust:exact;display:flex;align-items:center;gap:6px;padding:3px 7px;background:${color}18;border-left:3px solid ${color}">
+        <span style="font-size:9.5px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.03em">${escH(company)}</span>
+        <span style="font-size:8px;color:#aaa;margin-left:auto">${people.length}</span>
       </div>
-      <table style="width:100%;border-collapse:collapse;border:1px solid ${color}25;border-top:none">
+      <table style="width:100%;border-collapse:collapse;border:1px solid ${color}22;border-top:none">
         <tbody>${rows}</tbody>
       </table>
     </div>`;
-  }).join('');
+  };
+
+  const entries = Object.entries(grouped);
+  const half = Math.ceil(entries.length / 2);
+  const leftSections  = entries.slice(0, half).map(makeSection).join('');
+  const rightSections = entries.slice(half).map(makeSection).join('');
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -538,15 +541,14 @@ function generateDirectoryPDF() {
 <meta charset="UTF-8"/>
 <title>El Martillo I.T. — Staff Directory</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; color: #1a1917; }
-  .no-print { position: fixed; top: 0; left: 0; right: 0; z-index: 999; background: #E6F1FB; border-bottom: 1px solid #b3d4ef; padding: 8px 16px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #185FA5; }
-  .print-body { padding: 44px 14px 10px; }
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#fff; color:#1a1917; }
+  .no-print { position:fixed; top:0; left:0; right:0; z-index:999; background:#E6F1FB; border-bottom:1px solid #b3d4ef; padding:8px 16px; display:flex; align-items:center; gap:10px; font-size:12px; color:#185FA5; }
+  .wrap { padding:44px 12px 10px; }
   @media print {
-    .no-print { display: none !important; }
-    .print-body { padding: 0; }
-    @page { margin: 8mm 10mm; size: A4; marks: none; }
+    .no-print { display:none !important; }
+    .wrap { padding:0; }
+    @page { margin:8mm 10mm; size:A4; marks:none; }
   }
 </style>
 </head>
@@ -558,19 +560,22 @@ function generateDirectoryPDF() {
   <button onclick="window.print()" style="margin-left:auto;padding:5px 12px;background:#185FA5;color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">Print / Save PDF</button>
 </div>
 
-<div class="print-body">
+<div class="wrap">
   <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">
     <div>
-      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#aaa">El Martillo I.T. &nbsp;·&nbsp; </span>
+      <span style="font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#aaa">El Martillo I.T. &nbsp;·&nbsp;</span>
       <span style="font-size:15px;font-weight:700;color:#1a1917">Staff Directory</span>
     </div>
-    <div style="font-size:9px;color:#aaa">${escH(date)} &nbsp;·&nbsp; ${totalPeople} people &nbsp;·&nbsp; ${totalCompanies} companies</div>
+    <div style="font-size:8.5px;color:#aaa">${escH(date)} &nbsp;·&nbsp; ${totalPeople} people &nbsp;·&nbsp; ${totalCompanies} companies</div>
   </div>
-  <div style="height:1.5px;background:linear-gradient(90deg,#185FA5,#534AB7);margin-bottom:10px"></div>
-  <div style="columns:2;column-gap:14px">
-    ${sections}
-  </div>
-  <div style="margin-top:10px;padding-top:6px;border-top:1px solid #e5e5e3;font-size:8px;color:#ccc;display:flex;justify-content:space-between">
+  <div style="-webkit-print-color-adjust:exact;print-color-adjust:exact;height:1.5px;background:#185FA5;margin-bottom:8px"></div>
+  <table style="width:100%;border-collapse:collapse">
+    <tr>
+      <td style="width:50%;vertical-align:top;padding-right:8px">${leftSections}</td>
+      <td style="width:50%;vertical-align:top;padding-left:8px">${rightSections}</td>
+    </tr>
+  </table>
+  <div style="margin-top:8px;padding-top:5px;border-top:1px solid #e5e5e3;font-size:7.5px;color:#ccc;display:flex;justify-content:space-between">
     <span>El Martillo I.T. — Confidential</span>
     <span>${escH(date)}</span>
   </div>
