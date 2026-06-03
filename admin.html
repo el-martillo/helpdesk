@@ -1278,6 +1278,33 @@ textarea.fc { resize: vertical; min-height: 80px; }
   </div>
 </div>
 
+<!-- Re-auth modal -->
+<div class="overlay" id="modal-reauth">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Confirm your identity</div>
+        <div class="modal-sub">Re-enter your password to continue</div>
+      </div>
+      <button class="close-x" onclick="document.getElementById('modal-reauth').classList.remove('open');if(_reauthReject){const r=_reauthReject;_reauthResolve=null;_reauthReject=null;r('cancelled');}">✕</button>
+    </div>
+    <div style="background:var(--warn-l);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--warn);margin-bottom:16px;display:flex;align-items:center;gap:8px">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span id="reauth-action-label">You are about to perform a destructive action.</span>
+    </div>
+    <div class="fg">
+      <label class="fl">Password</label>
+      <input id="reauth-password" class="fc" type="password" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter')_reauthSubmit()"/>
+    </div>
+    <div id="reauth-error" style="font-size:12px;color:var(--danger);margin-bottom:8px;display:none"></div>
+    <div class="form-footer">
+      <button class="btn" onclick="document.getElementById('modal-reauth').classList.remove('open');if(_reauthReject){const r=_reauthReject;_reauthResolve=null;_reauthReject=null;r('cancelled');}">Cancel</button>
+      <button class="btn primary" id="reauth-submit-btn" onclick="_reauthSubmit()">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1337,7 +1364,7 @@ async function connectSupabase() {
   const key = document.getElementById('cfg-key').value.trim();
   if (!url||!key) { alert('Please enter both URL and key.'); return; }
   try {
-    sbClient = window.supabase.createClient(url, key);
+    sbClient = window.supabase.createClient(url, key, {auth:{storage:window.sessionStorage,persistSession:true}});
     const {error} = await sbClient.from('profiles').select('id').limit(1);
     if (error) throw error;
     localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
@@ -1415,6 +1442,52 @@ async function signIn() {
 }
 async function signOut() { if(realtimeChannel && sbClient) sbClient.removeChannel(realtimeChannel); if(sbClient) await sbClient.auth.signOut(); location.reload(); }
 function clearCreds() { localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key'); location.reload(); }
+
+/* ── Re-authentication ── */
+let _reauthResolve = null;
+let _reauthReject  = null;
+
+function requireReauth(actionLabel) {
+  return new Promise((resolve, reject) => {
+    _reauthResolve = resolve;
+    _reauthReject  = reject;
+    const lbl = document.getElementById('reauth-action-label');
+    const pw  = document.getElementById('reauth-password');
+    const err = document.getElementById('reauth-error');
+    const btn = document.getElementById('reauth-submit-btn');
+    if (lbl) lbl.textContent = actionLabel || 'You are about to perform a destructive action.';
+    if (pw)  { pw.value = ''; }
+    if (err) { err.style.display = 'none'; err.textContent = ''; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Confirm'; }
+    document.getElementById('modal-reauth').classList.add('open');
+    setTimeout(() => pw?.focus(), 80);
+  });
+}
+
+async function _reauthSubmit() {
+  const pw  = document.getElementById('reauth-password');
+  const err = document.getElementById('reauth-error');
+  const btn = document.getElementById('reauth-submit-btn');
+  const password = pw?.value?.trim();
+  if (!password) { if (err) { err.textContent = 'Please enter your password.'; err.style.display = 'block'; } return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Verifying…'; }
+  if (err) err.style.display = 'none';
+  try {
+    const email = currentUser?.email;
+    if (!email) throw new Error('No current user');
+    const { error } = await sbClient.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    document.getElementById('modal-reauth').classList.remove('open');
+    const res = _reauthResolve;
+    _reauthResolve = null; _reauthReject = null;
+    res(true);
+  } catch(e) {
+    if (err) { err.textContent = 'Incorrect password. Please try again.'; err.style.display = 'block'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Confirm'; }
+    pw?.focus();
+    pw?.select();
+  }
+}
 
 /* ── Data ── */
 async function loadTickets() {
@@ -2138,9 +2211,8 @@ async function initSupabase() {
   const cfgKey = document.getElementById('cfg-key');
   if (cfgUrl) cfgUrl.value = url;
   if (cfgKey) cfgKey.value = key;
-  sbClient = window.supabase.createClient(url, key);
+  sbClient = window.supabase.createClient(url, key, {auth:{storage:window.sessionStorage,persistSession:true}});
   const dbDot = document.getElementById('db-dot');
-  const dbLabel = document.getElementById('db-label');
   if (dbDot) dbDot.className = 'dot connected';
   if (dbLabel) dbLabel.textContent = 'Supabase connected';
   const settingsUrl = document.getElementById('settings-url');
@@ -2317,6 +2389,9 @@ async function deleteUser(id) {
     closeModal('modal-edit-user'); renderUsersTable(); toast('User deleted'); return;
   }
   const delP = allProfiles.find(x => x.id === id);
+  try {
+    await requireReauth(`Permanently delete user "${delP?.full_name || delP?.email || id}"? This cannot be undone.`);
+  } catch(e) { return; } // cancelled
   // Call the database function that hard-deletes from both profiles and auth.users
   const { error } = await sbClient.rpc('delete_user_hard', { p_user_id: id });
   if (error) {
@@ -2453,6 +2528,11 @@ async function loadBackupStats() {
 }
 
 async function runBackup() {
+  if (!demoMode) {
+    try {
+      await requireReauth('Download a full database backup including all profiles, tickets, and comments.');
+    } catch(e) { return; }
+  }
   const btn = document.getElementById('btn-backup');
   const progress = document.getElementById('backup-progress');
   const msg = document.getElementById('backup-progress-msg');
@@ -3586,6 +3666,9 @@ function closeDirDeleteModal() {
 async function confirmDirDelete() {
   if (!dirDeleteId) return;
   const entry = dirEntries.find(e=>e.id===dirDeleteId);
+  try {
+    await requireReauth(`Delete directory entry "${entry?.name || dirDeleteId}"? This cannot be undone.`);
+  } catch(e) { return; }
   const { error } = await sbClient.from('directory_entries').delete().eq('id', dirDeleteId);
   if (error) { toast('Error: ' + error.message, true); return; }
   toast('Entry removed');
@@ -3924,10 +4007,12 @@ async function saveDirCoName() {
 async function deleteDirCompany() {
   if (!dirCoEditTarget) return;
   const count = dirEntries.filter(e => e.company === dirCoEditTarget).length;
-  const msg = count > 0
-    ? `Delete "${dirCoEditTarget}" and all ${count} ${count===1?'entry':'entries'}? This cannot be undone.`
-    : `Delete company "${dirCoEditTarget}"?`;
-  if (!confirm(msg)) return;
+  const actionMsg = count > 0
+    ? `Delete company "${dirCoEditTarget}" and all ${count} ${count===1?'entry':'entries'}? This cannot be undone.`
+    : `Delete company "${dirCoEditTarget}"? This cannot be undone.`;
+  try {
+    await requireReauth(actionMsg);
+  } catch(e) { return; }
 
   // Delete all directory entries for this company
   if (count > 0) {

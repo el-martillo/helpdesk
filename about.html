@@ -327,7 +327,7 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
 <script>
 const SB_URL = 'https://gtcrmqbmlvtlyiwnshma.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
-const _sb = window.supabase.createClient(SB_URL, SB_KEY);
+const _sb = window.supabase.createClient(SB_URL, SB_KEY, {auth:{storage:window.sessionStorage,persistSession:true}});
 
 async function loadVersion() {
   try {
@@ -342,6 +342,20 @@ async function loadVersion() {
   } catch(e) {}
 }
 document.addEventListener('DOMContentLoaded', loadVersion);
+
+/* ── Idle timeout ── */
+(async function startIdleTimeout() {
+  let mins = 30;
+  try {
+    const { data } = await _sb.from('app_settings').select('value').eq('key','session_timeout_minutes').maybeSingle();
+    if (data?.value) mins = Math.max(1, parseInt(data.value) || 30);
+  } catch(e) {}
+  const ms = mins * 60 * 1000;
+  let t;
+  const reset = () => { clearTimeout(t); t = setTimeout(async () => { await _sb.auth.signOut(); location.href = 'index.html'; }, ms); };
+  ['click','keydown','mousemove','scroll','touchstart'].forEach(e => document.addEventListener(e, reset, {passive:true}));
+  reset();
+})();
 
 /* ── Shared nav ─────────────────────────────────────────────────────────── */
 (async function initSharedNav() {

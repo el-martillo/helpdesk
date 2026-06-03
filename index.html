@@ -755,7 +755,7 @@ async function connectSupabase() {
   const url=document.getElementById('cfg-url').value.trim(), key=document.getElementById('cfg-key').value.trim();
   if (!url||!key){alert('Please enter both URL and key.');return;}
   try {
-    sbClient=window.supabase.createClient(url,key);
+    sbClient=window.supabase.createClient(url,key,{auth:{storage:window.sessionStorage,persistSession:true}});
     const {error}=await sbClient.from('profiles').select('id').limit(1);
     if (error) throw error;
     localStorage.setItem('sb_url',url); localStorage.setItem('sb_key',key);
@@ -1495,7 +1495,7 @@ async function initSupabase() {
   const cfgKey = document.getElementById('cfg-key');
   if (cfgUrl) cfgUrl.value = url;
   if (cfgKey) cfgKey.value = key;
-  sbClient = window.supabase.createClient(url, key);
+  sbClient = window.supabase.createClient(url, key, {auth:{storage:window.sessionStorage,persistSession:true}});
   try { await loadOrgsFromSupabase(); } catch(e) { console.warn('Could not load orgs:', e.message); }
   try { await loadCategoriesFromSupabase(); } catch(e) { console.warn('Could not load categories:', e.message); }
   loadVersion();
