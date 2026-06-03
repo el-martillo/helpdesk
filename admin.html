@@ -554,6 +554,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
                 <th>User</th>
                 <th>Role</th>
                 <th>Open tickets</th>
+                <th>Total tickets</th>
               </tr>
             </thead>
             <tbody id="users-tbody"></tbody>
@@ -1101,6 +1102,16 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <option value="admin">Admin</option>
         <option value="super_admin">Super Admin</option>
       </select>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:4px">
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--text1)">Password reset email</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Sends a reset link to the user's email address</div>
+      </div>
+      <button class="btn sm" id="eu-resend-btn" onclick="resendAuthEmail()" style="white-space:nowrap;flex-shrink:0">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Send
+      </button>
     </div>
 
     <div style="height:1px;background:var(--border);margin:14px 0"></div>
@@ -2277,7 +2288,7 @@ function renderUsersTable() {
   if (q)  list = list.filter(p => (p.full_name||'').toLowerCase().includes(q) || (p.email||'').toLowerCase().includes(q));
   const tbody = document.getElementById('users-tbody');
   if (!tbody) return;
-  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="3">No users found</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No users found</td></tr>'; return; }
 
   const roleBadge = r => ({
     super_admin: '<span class="sb" style="background:var(--danger-l);color:var(--danger)">Super Admin</span>',
@@ -2285,7 +2296,8 @@ function renderUsersTable() {
     client:      '<span class="sb s-closed">Client</span>',
   }[r] || r);
   const renderRow = p => {
-    const openCount = tickets.filter(t => t.requester_id === p.id && t.status !== 'resolved').length;
+    const openCount  = tickets.filter(t => t.requester_id === p.id && !['resolved','closed'].includes(t.status)).length;
+    const totalCount = tickets.filter(t => t.requester_id === p.id).length;
     return `<tr onclick="openEditUser('${p.id}')" style="cursor:pointer">
       <td>
         <div class="flex-c">
@@ -2298,12 +2310,13 @@ function renderUsersTable() {
       </td>
       <td>${roleBadge(p.role)}</td>
       <td style="font-size:13px;color:var(--text2)">${openCount || '—'}</td>
+      <td style="font-size:13px;color:var(--text2)">${totalCount || '—'}</td>
     </tr>`;
   };
 
   const sectionHeader = (label, count) =>
     `<tr style="background:var(--surface2)">
-      <td colspan="3" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">
+      <td colspan="4" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">
         ${label} <span style="font-weight:500;color:var(--text3);margin-left:4px">(${count})</span>
       </td>
     </tr>`;
@@ -2352,6 +2365,21 @@ function openEditUser(id) {
   populateCompanySelects();
   document.getElementById('eu-company').value = p.company    || '';
   openModal('modal-edit-user');
+}
+
+async function resendAuthEmail() {
+  const email = document.getElementById('eu-email').value.trim();
+  const btn   = document.getElementById('eu-resend-btn');
+  if (!email) { toast('No email address on this profile'); return; }
+  if (demoMode) { toast('Password reset sent (demo)'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  const { error } = await sbClient.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/index.html'
+  });
+  if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Send'; }
+  if (error) { toast('Error: ' + error.message); return; }
+  toast('Password reset email sent to ' + email);
+  logSystemEvent('user_email_resent', `Password reset sent to: ${email}`);
 }
 
 async function saveUser() {
@@ -3113,6 +3141,7 @@ function renderSysLogTable() {
     user_created:    '<span class="sb s-resolved">User created</span>',
     user_updated:    '<span class="sb s-resolved">User updated</span>',
     user_deleted:    '<span class="sb" style="background:var(--danger-l);color:var(--danger)">User deleted</span>',
+    user_email_resent: '<span class="sb s-resolved">Reset email sent</span>',
     agent_invited:   '<span class="sb s-resolved">Agent invited</span>',
     version_updated: '<span class="sb s-closed">Version updated</span>',
     orgs_updated:    '<span class="sb s-closed">Orgs updated</span>',
