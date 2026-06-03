@@ -2408,7 +2408,7 @@ async function sendInviteEmail() {
     const resp = await fetch(`${SB_URL}/functions/v1/user-invite`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, full_name: name, redirect_to: window.location.origin + '/index.html' })
+      body: JSON.stringify({ email, full_name: name, redirect_to: 'https://el-martillo.github.io/index.html' })
     });
     const result = await resp.json();
     if (!resp.ok) throw new Error(result?.error || result?.message || 'Unknown error');
