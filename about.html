@@ -68,8 +68,9 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
 
 .content {
   flex: 1; overflow-y: auto; padding: 40px 24px 80px;
-  background: var(--bg); display: flex; align-items: flex-start; justify-content: center;
+  background: #dce8f5; display: flex; align-items: flex-start; justify-content: center;
 }
+@media (prefers-color-scheme: dark) { .content { background: #0d1b2e; } }
 
 /* About card */
 .about-card {
@@ -326,10 +327,11 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
 <script>
 const SB_URL = 'https://gtcrmqbmlvtlyiwnshma.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
+const _sb = window.supabase.createClient(SB_URL, SB_KEY);
+
 async function loadVersion() {
   try {
-    const sb = window.supabase.createClient(SB_URL, SB_KEY);
-    const { data, error } = await sb
+    const { data, error } = await _sb
       .from('app_settings')
       .select('value')
       .eq('key', 'app_version')
@@ -343,10 +345,6 @@ document.addEventListener('DOMContentLoaded', loadVersion);
 
 /* ── Shared nav ─────────────────────────────────────────────────────────── */
 (async function initSharedNav() {
-  const SB_URL = 'https://gtcrmqbmlvtlyiwnshma.supabase.co';
-  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
-  const _sb = window.supabase.createClient(SB_URL, SB_KEY);
-
   const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
   function navAvColor(id) {
     if (!id) return 'av-blue';
@@ -393,9 +391,6 @@ document.addEventListener('DOMContentLoaded', loadVersion);
 })();
 
 async function sharedSignOut() {
-  const SB_URL = 'https://gtcrmqbmlvtlyiwnshma.supabase.co';
-  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
-  const _sb = window.supabase.createClient(SB_URL, SB_KEY);
   try { await _sb.auth.signOut(); } catch(e) {}
   window.location.href = 'index.html';
 }
