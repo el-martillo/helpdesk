@@ -2216,6 +2216,8 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 
 async function initSupabase() {
   if (!window.supabase) { console.error('Supabase SDK not loaded'); return; }
+  // Always hide config screen immediately — credentials are hardcoded
+  document.getElementById('cfg-screen').classList.remove('active');
   const url = SB_URL, key = SB_KEY;
   localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
   const cfgUrl = document.getElementById('cfg-url');
@@ -2223,8 +2225,9 @@ async function initSupabase() {
   if (cfgUrl) cfgUrl.value = url;
   if (cfgKey) cfgKey.value = key;
   sbClient = window.supabase.createClient(url, key, {auth:{storage:window.sessionStorage,persistSession:true}});
-  const dbDot = document.getElementById('db-dot');
-  if (dbDot) dbDot.className = 'dot connected';
+  const dbDot   = document.getElementById('db-dot');
+  const dbLabel = document.getElementById('db-label');
+  if (dbDot)   dbDot.className = 'dot connected';
   if (dbLabel) dbLabel.textContent = 'Supabase connected';
   const settingsUrl = document.getElementById('settings-url');
   if (settingsUrl) settingsUrl.value = url;
