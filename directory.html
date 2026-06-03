@@ -496,15 +496,17 @@ function renderDir() {
 
 async function generateDirectoryPDF() {
   // Load saved order and column break from app_settings
-  let savedOrder = [], columnBreak = '';
+  let savedOrder = [], columnBreak = '', pageBreak = '';
   try {
-    const [orderRes, breakRes] = await Promise.all([
+    const [orderRes, breakRes, pgBreakRes] = await Promise.all([
       fetch(`${SB_URL}/rest/v1/app_settings?key=eq.directory_company_order&select=value`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }),
       fetch(`${SB_URL}/rest/v1/app_settings?key=eq.directory_column_break&select=value`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }),
+      fetch(`${SB_URL}/rest/v1/app_settings?key=eq.directory_page_break&select=value`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }),
     ]);
-    const [orderData, breakData] = await Promise.all([orderRes.json(), breakRes.json()]);
+    const [orderData, breakData, pgBreakData] = await Promise.all([orderRes.json(), breakRes.json(), pgBreakRes.json()]);
     if (orderData?.[0]?.value) savedOrder = JSON.parse(orderData[0].value);
     if (breakData?.[0]?.value) columnBreak = breakData[0].value;
+    if (pgBreakData?.[0]?.value) pageBreak = pgBreakData[0].value;
   } catch(e) {}
 
   const grouped = {};
@@ -520,6 +522,7 @@ async function generateDirectoryPDF() {
 
   const makeSection = ([company, people]) => {
     const color = COMPANY_COLORS[company] || '#444';
+    const needsPageBreak = company === pageBreak;
     const rows = people.map((p, i) => `
       <tr style="${i % 2 === 1 ? `background:${color}0e` : ''}">
         <td style="padding:2px 6px;font-size:9.5px;font-weight:${p.is_queue?'600':'400'};color:${p.is_queue?color:'#1a1917'};white-space:nowrap;width:1%">${escH(p.name)}${p.is_queue ? ` <span style="-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:8px;background:${color}20;color:${color};padding:0 3px;border-radius:2px;font-weight:700">Q</span>` : ''}</td>
@@ -527,7 +530,7 @@ async function generateDirectoryPDF() {
         <td style="padding:2px 6px;font-size:9px;color:#185FA5">${p.email ? `<a href="mailto:${escH(p.email)}" style="color:#185FA5;text-decoration:none">${escH(p.email)}</a>` : '<span style="color:#ccc">—</span>'}</td>
         <td style="padding:2px 6px 2px 10px;font-size:9px;color:#555;font-family:monospace;white-space:nowrap;width:1%;text-align:right">${escH(p.extension)||'<span style="color:#ccc">—</span>'}</td>
       </tr>`).join('');
-    return `<div style="margin-bottom:8px">
+    return `<div style="margin-bottom:8px${needsPageBreak?';page-break-before:always':''}">
       <div style="-webkit-print-color-adjust:exact;print-color-adjust:exact;display:flex;align-items:center;gap:6px;padding:3px 7px;background:${color}18;border-left:3px solid ${color}">
         <span style="font-size:9.5px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.03em">${escH(company)}</span>
         <span style="font-size:8px;color:#aaa;margin-left:auto">${people.length}</span>

@@ -1246,6 +1246,19 @@ textarea.fc { resize: vertical; min-height: 80px; }
         </div>
       </div>
       <div id="dir-co-delete-wrap">
+        <div style="height:1px;background:var(--border);margin-bottom:10px"></div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">PDF breaks</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <button id="dir-co-col-break-btn" onclick="toggleDirCoColumnBreakFromEdit()" style="flex:1;padding:6px 10px;font-size:12px;font-weight:500;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .12s;font-family:var(--font)">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M17 10H3M21 6H3M21 14H3M17 18H3"/></svg>
+            Column break after
+          </button>
+          <button id="dir-co-page-break-btn" onclick="toggleDirCoPageBreakFromEdit()" style="flex:1;padding:6px 10px;font-size:12px;font-weight:500;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .12s;font-family:var(--font)">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M5 8V5h14v3M5 16v3h14v-3M12 5v14"/></svg>
+            Page break after
+          </button>
+        </div>
+        <div style="height:1px;background:var(--border);margin-bottom:10px"></div>
         <button class="btn danger" style="width:100%" onclick="deleteDirCompany()">
           <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
           Delete company &amp; all its entries
@@ -3033,6 +3046,7 @@ function renderSysLogTable() {
     directory_company_colour:  '<span class="sb s-closed">Company colour</span>',
     directory_company_reordered: '<span class="sb s-closed">Company reordered</span>',
     directory_column_break:    '<span class="sb s-closed">Column break</span>',
+    directory_page_break:      '<span class="sb s-closed">Page break</span>',
   }[a] || `<span class="sb s-closed">${a}</span>`);
 
   const rolePill = r => ({
@@ -3612,6 +3626,7 @@ let dirCoColors = { ...DIR_CO_COLORS }; // live copy, loaded from app_settings
 let dirCoEditTarget = null; // company name currently being edited
 let dirCoOrder = []; // custom sort order for companies
 let dirCoColumnBreak = ''; // company name after which PDF column break is inserted
+let dirCoPageBreak = '';   // company name after which PDF page break is inserted
 
 let dirStandaloneCompanies = []; // companies with no entries yet, stored in app_settings
 
@@ -3679,11 +3694,23 @@ async function saveDirCoColumnBreak() {
   await sbClient.from('app_settings').upsert({ key: 'directory_column_break', value: dirCoColumnBreak }, { onConflict: 'key' });
 }
 
+async function loadDirCoPageBreak() {
+  try {
+    const { data } = await sbClient.from('app_settings').select('value').eq('key', 'directory_page_break').single();
+    dirCoPageBreak = data?.value || '';
+  } catch(e) { dirCoPageBreak = ''; }
+}
+
+async function saveDirCoPageBreak() {
+  await sbClient.from('app_settings').upsert({ key: 'directory_page_break', value: dirCoPageBreak }, { onConflict: 'key' });
+}
+
 async function openDirCompanies() {
   await loadDirCoColors();
   await loadDirStandaloneCompanies();
   await loadDirCoOrder();
   await loadDirCoColumnBreak();
+  await loadDirCoPageBreak();
   document.getElementById('modal-dir-companies').classList.add('open');
   document.getElementById('dir-co-edit-panel').style.display = 'none';
   dirCoEditTarget = null;
@@ -3717,6 +3744,7 @@ function renderDirCoList() {
     const color = dirCoColors[co] || '#888';
     const isActive = co === dirCoEditTarget;
     const isBreak = co === dirCoColumnBreak;
+    const isPageBreak = co === dirCoPageBreak;
     return `<div class="dir-co-row${isActive?' dir-co-row-active':''}" draggable="true"
       data-co="${escH(co)}"
       ondragstart="dirCoDragStart(event,'${escH(co)}')"
@@ -3732,9 +3760,11 @@ function renderDirCoList() {
         style="padding:2px 7px;font-size:10px;font-weight:600;border-radius:4px;border:1px solid ${isBreak?'var(--accent)':'var(--border2)'};background:${isBreak?'var(--accent)':'transparent'};color:${isBreak?'#fff':'var(--text3)'};cursor:pointer;white-space:nowrap;transition:all .12s">
         ${isBreak?'⏎ break':'break'}
       </button>
+      ${isPageBreak ? `<span style="font-size:9px;font-weight:700;color:var(--warn);padding:2px 5px;border-radius:3px;border:1px solid var(--warn-l);background:var(--warn-l);white-space:nowrap">pg ↓</span>` : ''}
       <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:var(--text3);cursor:pointer;flex-shrink:0" onclick="selectDirCoEdit('${escH(co)}')"><path d="M9 18l6-6-6-6"/></svg>
     </div>
-    ${isBreak ? `<div style="display:flex;align-items:center;gap:8px;padding:3px 10px;font-size:10px;color:var(--accent);font-weight:600;letter-spacing:.04em"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M17 10H3M21 6H3M21 14H3M17 18H3"/></svg> COLUMN BREAK ↓</div>` : ''}`;
+    ${isBreak ? `<div style="display:flex;align-items:center;gap:8px;padding:3px 10px;font-size:10px;color:var(--accent);font-weight:600;letter-spacing:.04em"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M17 10H3M21 6H3M21 14H3M17 18H3"/></svg> COLUMN BREAK ↓</div>` : ''}
+    ${isPageBreak ? `<div style="display:flex;align-items:center;gap:8px;padding:3px 10px;font-size:10px;color:var(--warn);font-weight:600;letter-spacing:.04em"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 8V5h14v3M5 16v3h14v-3M12 5v14"/></svg> PAGE BREAK ↓</div>` : ''}`;
   }).join('');
 }
 
@@ -3775,6 +3805,25 @@ async function toggleDirCoColumnBreak(co) {
   renderDirCoList();
 }
 
+async function toggleDirCoColumnBreakFromEdit() {
+  if (!dirCoEditTarget) return;
+  await toggleDirCoColumnBreak(dirCoEditTarget);
+  selectDirCoEdit(dirCoEditTarget);
+}
+
+async function toggleDirCoPageBreak(co) {
+  dirCoPageBreak = dirCoPageBreak === co ? '' : co;
+  await saveDirCoPageBreak();
+  logSystemEvent('directory_page_break', dirCoPageBreak ? `Page break after "${dirCoPageBreak}"` : 'Page break removed');
+  renderDirCoList();
+}
+
+async function toggleDirCoPageBreakFromEdit() {
+  if (!dirCoEditTarget) return;
+  await toggleDirCoPageBreak(dirCoEditTarget);
+  selectDirCoEdit(dirCoEditTarget);
+}
+
 function selectDirCoEdit(co) {
   dirCoEditTarget = co;
   const count = dirEntries.filter(e => e.company === co).length;
@@ -3786,6 +3835,22 @@ function selectDirCoEdit(co) {
   document.getElementById('dir-co-delete-count').textContent =
     count > 0 ? `⚠ This will also delete ${count} ${count===1?'entry':'entries'}` : 'Company has no entries';
   document.getElementById('dir-co-edit-panel').style.display = 'block';
+
+  // Update break button states
+  const colBtn = document.getElementById('dir-co-col-break-btn');
+  const pgBtn  = document.getElementById('dir-co-page-break-btn');
+  const isColBreak  = co === dirCoColumnBreak;
+  const isPageBreak = co === dirCoPageBreak;
+  if (colBtn) {
+    colBtn.style.background  = isColBreak ? 'var(--accent)' : 'var(--surface)';
+    colBtn.style.color       = isColBreak ? '#fff' : 'var(--text2)';
+    colBtn.style.borderColor = isColBreak ? 'var(--accent)' : 'var(--border2)';
+  }
+  if (pgBtn) {
+    pgBtn.style.background  = isPageBreak ? 'var(--warn)' : 'var(--surface)';
+    pgBtn.style.color       = isPageBreak ? '#fff' : 'var(--text2)';
+    pgBtn.style.borderColor = isPageBreak ? 'var(--warn)' : 'var(--border2)';
+  }
 
   // Render colour swatches
   const swatches = document.getElementById('dir-co-colour-swatches');
