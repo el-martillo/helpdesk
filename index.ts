@@ -70,6 +70,18 @@ Deno.serve(async (req: Request) => {
 
   /* ── Route by status ── */
   if (new_status === "reopened") {
+    // ── Rate limit: one helpdesk notification per ticket per 5 minutes ──
+    const { count: recentReopened } = await sb
+      .from("system_log")
+      .select("*", { count: "exact", head: true })
+      .eq("action", "email_sent")
+      .ilike("details", `%#${ticketNum}%reopened%`)
+      .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString());
+    if ((recentReopened ?? 0) > 0) {
+      console.warn(`ticket-notify: cooldown active for reopened #${ticketNum}`);
+      return json({ skipped: "cooldown", reason: "Notification already sent within the last 5 minutes" }, 429);
+    }
+
     const clientName  = changed_by       || requester?.full_name || "A client";
     const clientEmail = changed_by_email || requester?.email     || "";
 
@@ -120,6 +132,14 @@ Deno.serve(async (req: Request) => {
 
     const result = await sendEmail({ resendKey, from: `El Martillo Helpdesk <${helpdeskEmail}>`, to: helpdeskEmail, subject: emailSubject, html: emailHtml });
     console.log(`ticket-notify: reopened #${ticketNum} → ${helpdeskEmail}`, result.ok ? "sent" : "failed");
+    if (result.ok) {
+      await sb.from("system_log").insert({
+        actor_name: changed_by || "Client",
+        actor_role: "client",
+        action: "email_sent",
+        details: `Ticket #${ticketNum} reopened — helpdesk notified`,
+      });
+    }
     return json({ sent: result.ok, direction: "client→helpdesk", ticket: ticketNum });
 
   } else if (new_status === "resolved") {
@@ -127,6 +147,18 @@ Deno.serve(async (req: Request) => {
     if (!clientEmail) {
       console.warn(`ticket-notify: no client email for ticket #${ticketNum}`);
       return json({ sent: false, reason: "No client email on record" });
+    }
+
+    // ── Rate limit: one resolution email per ticket per 5 minutes ──
+    const { count: recentResolved } = await sb
+      .from("system_log")
+      .select("*", { count: "exact", head: true })
+      .eq("action", "email_sent")
+      .ilike("details", `%#${ticketNum}%resolved%`)
+      .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString());
+    if ((recentResolved ?? 0) > 0) {
+      console.warn(`ticket-notify: cooldown active for resolved #${ticketNum}`);
+      return json({ skipped: "cooldown", reason: "Email already sent within the last 5 minutes" }, 429);
     }
 
     const clientName  = requester?.full_name || "Customer";
@@ -171,6 +203,14 @@ Deno.serve(async (req: Request) => {
 
     const result = await sendEmail({ resendKey, from: `El Martillo I.T. Support <${helpdeskEmail}>`, to: clientEmail, subject: emailSubject, html: emailHtml });
     console.log(`ticket-notify: resolved #${ticketNum} → ${clientEmail}`, result.ok ? "sent" : "failed");
+    if (result.ok) {
+      await sb.from("system_log").insert({
+        actor_name: changed_by || "System",
+        actor_role: "admin",
+        action: "email_sent",
+        details: `Ticket #${ticketNum} resolved — resolution email sent to ${clientEmail}`,
+      });
+    }
     return json({ sent: result.ok, direction: "helpdesk→client", ticket: ticketNum });
 
   } else {
@@ -230,7 +270,8 @@ async function sendEmail({ resendKey, from, to, subject, html }: {
     body: JSON.stringify({ from, to, subject, html }),
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) console.error("ticket-notify: Resend error", res.status, body);
+  // Log Resend errors server-side only — body may contain request metadata
+  if (!res.ok) console.error("ticket-notify: Resend error", res.status, (body as Record<string,unknown>)?.message ?? res.statusText);
   return { ok: res.ok, body };
 }
 

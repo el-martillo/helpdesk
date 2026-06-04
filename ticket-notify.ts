@@ -73,6 +73,23 @@ serve(async (req) => {
       })
     }
 
+    // ── Rate limit: block if a resolution email was sent for this ticket in the last 5 minutes ──
+    const COOLDOWN_MS = 5 * 60 * 1000
+    const cooldownSince = new Date(Date.now() - COOLDOWN_MS).toISOString()
+    const { count: recentCount } = await supabase
+      .from('system_log')
+      .select('*', { count: 'exact', head: true })
+      .eq('action', 'email_sent')
+      .ilike('details', `%ticket #${ticket.ticket_number}%`)
+      .gte('created_at', cooldownSince)
+    if ((recentCount ?? 0) > 0) {
+      console.warn(`ticket-notify: cooldown active for ticket #${ticket.ticket_number}`)
+      return new Response(
+        JSON.stringify({ skipped: 'cooldown', reason: 'Email already sent within the last 5 minutes' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Send email via Resend
     const resendKey = Deno.env.get('RESEND_API_KEY')
     if (!resendKey) throw new Error('RESEND_API_KEY not set')
@@ -132,8 +149,10 @@ serve(async (req) => {
     const emailResult = await emailRes.json()
 
     if (!emailRes.ok) {
+      // Log full Resend response server-side only — never embed in thrown message
+      // as it may contain request metadata including auth headers
       console.error('Resend error:', emailResult)
-      throw new Error(`Email send failed: ${JSON.stringify(emailResult)}`)
+      throw new Error('Email send failed')
     }
 
     // Log to system_log
@@ -150,9 +169,11 @@ serve(async (req) => {
     )
 
   } catch (err) {
+    // Log full error server-side only — never echo err.message to caller,
+    // as Resend/Supabase exceptions can include auth headers or env var values
     console.error('ticket-notify error:', err)
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: 'Notification failed. Check Edge Function logs.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
