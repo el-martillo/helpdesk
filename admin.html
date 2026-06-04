@@ -403,7 +403,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <div class="page active" id="page-dashboard">
         <div class="page-header">
           <div><h1>Dashboard</h1><p id="dash-sub">Overview of support activity</p></div>
-          <button class="btn primary" onclick="openModal('modal-new-ticket');ntPopulateRequesterDropdown()">
+          <button class="btn primary" onclick="openModal('modal-new-ticket')">
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
             New ticket
           </button>
@@ -452,7 +452,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <div class="page" id="page-all">
         <div class="page-header">
           <div><h1>All tickets</h1><p id="ticket-count-sub">Loading…</p></div>
-          <button class="btn primary" onclick="openModal('modal-new-ticket');ntPopulateRequesterDropdown()">
+          <button class="btn primary" onclick="openModal('modal-new-ticket')">
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
             New ticket
           </button>
@@ -1004,23 +1004,12 @@ textarea.fc { resize: vertical; min-height: 80px; }
 <div class="overlay" id="modal-new-ticket">
   <div class="modal">
     <div class="modal-head"><div class="modal-title">Create ticket</div><button class="close-x" onclick="closeModal('modal-new-ticket')">✕</button></div>
-
-    <!-- Requester picker — auto-fills contact details -->
-    <div class="fg">
-      <label class="fl">Requester</label>
-      <select id="nt-requester" class="fc" onchange="ntFillRequester(this.value)">
-        <option value="">— Select a user, or fill contact details manually below —</option>
-      </select>
-    </div>
-    <div style="height:1px;background:var(--border);margin:2px 0 14px"></div>
-
     <div class="fg"><label class="fl">Subject *</label><input id="nt-subject" class="fc" type="text" placeholder="Brief description"/></div>
     <div class="fg"><label class="fl">Description</label><textarea id="nt-description" class="fc" placeholder="Provide full details…"></textarea></div>
     <div class="form-row">
       <div class="fg"><label class="fl">Contact email *</label><input id="nt-email" class="fc" type="email" placeholder="client@example.com"/></div>
       <div class="fg"><label class="fl">Telephone</label><input id="nt-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
     </div>
-    <div class="fg"><label class="fl">Organisation</label><input id="nt-org" class="fc" type="text" placeholder="Company or organisation"/></div>
     <div class="form-row">
       <div class="fg"><label class="fl">Priority</label>
         <select id="nt-priority" class="fc"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="critical">Critical</option></select>
@@ -1029,6 +1018,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <select id="nt-category" class="fc"><option value="Billing">Billing</option><option value="Technical">Technical</option><option value="Account">Account</option><option value="General">General</option></select>
       </div>
     </div>
+    <div class="fg"><label class="fl">Organisation</label><select id="nt-company" class="fc"><option value="">— Select company —</option></select></div>
     <div class="fg">
       <label class="fl">Attachments <span style="color:var(--text3);font-weight:400">(optional — up to 5 images)</span></label>
       <input type="file" id="nt-adm-attachment" accept=".jpg,.jpeg,.gif,.png,.webp,.svg" multiple style="display:none" onchange="admHandleAttachmentPick(this)"/>
@@ -1960,55 +1950,11 @@ function admClearAttachments() {
   admRenderAttachPreviews();
 }
 
-/* ── New ticket requester dropdown ── */
-function ntPopulateRequesterDropdown() {
-  const sel = document.getElementById('nt-requester');
-  if (!sel) return;
-  const sorted = [...allProfiles].sort((a, b) => {
-    const order = { client:0, agent:1, admin:2 };
-    if (a.role !== b.role) return (order[a.role]??9) - (order[b.role]??9);
-    return (a.full_name||'').localeCompare(b.full_name||'');
-  });
-  const groups = { client:[], agent:[], admin:[] };
-  sorted.forEach(p => { if (groups[p.role]) groups[p.role].push(p); });
-  const makeOpts = (list, label) => {
-    if (!list.length) return '';
-    return `<optgroup label="${label}">${list.map(p =>
-      `<option value="${esc(p.id)}">${esc(p.full_name||'Unknown')}${p.email?' — '+esc(p.email):''}</option>`
-    ).join('')}</optgroup>`;
-  };
-  sel.innerHTML =
-    '<option value="">— Select a user, or fill contact details manually below —</option>' +
-    makeOpts(groups.client, 'Clients') +
-    makeOpts(groups.agent,  'Agents') +
-    makeOpts(groups.admin,  'Admins');
-}
-
-function ntFillRequester(profileId) {
-  const fields = ['nt-email','nt-phone','nt-org'];
-  if (!profileId) {
-    fields.forEach(id => { const el=document.getElementById(id); if(el){el.value='';el.style.background='';} });
-    return;
-  }
-  const p = allProfiles.find(x => x.id === profileId);
-  if (!p) return;
-  const fill = (id, val) => {
-    const el = document.getElementById(id); if (!el) return;
-    el.value = val || '';
-    el.style.background = val ? 'var(--accent-l)' : '';
-    el.addEventListener('input', () => { el.style.background=''; }, { once:true });
-  };
-  fill('nt-email', p.email);
-  fill('nt-phone', p.phone);
-  fill('nt-org',   p.company);
-}
-
 async function createTicket() {
   const subject=document.getElementById('nt-subject').value.trim();
   const email=document.getElementById('nt-email').value.trim();
   if (!subject){toast('Subject is required');return;}
   if (!email){toast('Contact email is required');return;}
-  const selectedRequesterId = document.getElementById('nt-requester')?.value || null;
   const payload={
     subject,
     description:document.getElementById('nt-description').value,
@@ -2016,7 +1962,6 @@ async function createTicket() {
     category:document.getElementById('nt-category').value,
     contact_email:email,
     contact_phone:document.getElementById('nt-phone').value.trim(),
-    organisation:document.getElementById('nt-org')?.value.trim()||undefined,
     status:'open'
   };
   function clearForm(){
@@ -2024,13 +1969,9 @@ async function createTicket() {
     document.getElementById('nt-description').value='';
     document.getElementById('nt-email').value='';
     document.getElementById('nt-phone').value='';
-    const orgEl=document.getElementById('nt-org'); if(orgEl){orgEl.value='';orgEl.style.background='';}
-    const sel=document.getElementById('nt-requester'); if(sel) sel.value='';
-    ['nt-email','nt-phone'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.background='';});
   }
   if (demoMode) {
-    const rid = selectedRequesterId || 'p4';
-    tickets.unshift({id:'t'+Date.now(),ticket_number:tickets.length+1,...payload,requester_id:rid,assignee_id:null,updated_at:new Date().toISOString(),created_at:new Date().toISOString()});
+    tickets.unshift({id:'t'+Date.now(),ticket_number:tickets.length+1,...payload,requester_id:'p4',assignee_id:null,updated_at:new Date().toISOString(),created_at:new Date().toISOString()});
     refreshCurrentPage();updateStats();updateBadges();closeModal('modal-new-ticket');clearForm();admClearAttachments();toast('Ticket created');return;
   }
   // Upload attachments if any
@@ -2049,8 +1990,7 @@ async function createTicket() {
     payload.attachment_url  = urls[0];
     payload.attachment_urls = JSON.stringify(urls);
   }
-  const rid = selectedRequesterId || currentUser.id;
-  const {error}=await sbClient.from('tickets').insert({...payload,requester_id:rid});
+  const {error}=await sbClient.from('tickets').insert({...payload,requester_id:currentUser.id});
   if (error){toast('Error: '+error.message);return;}
   closeModal('modal-new-ticket');clearForm();admClearAttachments();await loadTickets();refreshCurrentPage();toast('Ticket created');
   logSystemEvent('ticket_created',`"${payload.subject}" | Priority: ${payload.priority} | Category: ${payload.category} | Contact: ${payload.contact_email}`);
@@ -3445,7 +3385,7 @@ function startRealtime() {
   if (realtimeChannel) { sbClient.removeChannel(realtimeChannel); realtimeChannel = null; }
 
   realtimeChannel = sbClient
-    .channel('tickets-realtime')
+    .channel('admin-tickets-realtime', { config: { broadcast: { self: true }, presence: { key: '' } } })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tickets' }, payload => {
       // New ticket submitted by client — reload and notify
       loadTickets();
@@ -3453,7 +3393,7 @@ function startRealtime() {
       toast(`New ticket #${t.ticket_number}: ${t.subject?.slice(0,40) || 'New ticket received'}`);
     })
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tickets' }, payload => {
-      // Ticket updated (e.g. client reopened) — silently reload
+      // Ticket updated (e.g. client reopened/closed) — reload to reflect new status
       loadTickets();
     })
     .subscribe((status) => {
