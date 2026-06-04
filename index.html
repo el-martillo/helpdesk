@@ -1199,7 +1199,11 @@ async function openTicketDetail(id) {
       ${t.status!=='resolved'?`
       <div class="reply-box">
         <textarea id="reply-text" class="fc" placeholder="Reply to this ticket…" style="min-height:70px;resize:none"></textarea>
-        <div style="display:flex;justify-content:flex-end;margin-top:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <button class="btn sm" style="color:var(--success);border-color:var(--success-l);background:var(--success-l)" onclick="closeTicket('${t.id}')">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            Close ticket
+          </button>
           <button class="btn primary sm" onclick="addReply('${t.id}')">
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             Send reply
@@ -1263,6 +1267,28 @@ async function reopenTicket(ticketId) {
     });
   } catch(e) { console.warn('Reopen notification failed:', e.message); }
   loadClientTickets(); closeModal('modal-ticket-detail'); toast('Ticket reopened');
+}
+
+async function closeTicket(ticketId) {
+  if (!confirm('Mark this ticket as resolved? You can reopen it at any time.')) return;
+  const clientName = currentProfile?.full_name || currentUser?.email || 'Client';
+  if (demoMode) {
+    const t = myTickets.find(x => x.id === ticketId);
+    if (t) { t.status = 'resolved'; t.updated_at = new Date().toISOString(); }
+    renderTickets(); closeModal('modal-ticket-detail'); toast('Ticket closed'); return;
+  }
+  const { error } = await sbClient.from('tickets').update({ status: 'resolved' }).eq('id', ticketId);
+  if (error) { toast('Error: ' + error.message); return; }
+  // Log to user_activity
+  await trackUserActivity('ticket_closed', 'success', `Ticket #${ticketId} closed by client: ${clientName}`);
+  // Log to comments as a system note visible in the thread
+  await sbClient.from('comments').insert({
+    ticket_id: ticketId,
+    author_id: currentUser.id,
+    body: `🔒 Ticket closed by ${clientName}.`,
+    is_internal: false,
+  });
+  loadClientTickets(); closeModal('modal-ticket-detail'); toast('Ticket closed');
 }
 
 async function loadCategoriesFromSupabase() {
