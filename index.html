@@ -1256,8 +1256,9 @@ async function reopenTicket(ticketId) {
   if (error) { toast('Error: ' + error.message); return; }
   const clientName  = currentProfile?.full_name || currentUser?.email || 'Client';
   const clientEmail = currentProfile?.email || currentUser?.email || '';
+  const ticketNum   = myTickets.find(x => x.id === ticketId)?.ticket_number || ticketId;
   // Log to user_activity
-  await trackUserActivity('ticket_reopened', 'success', `Ticket #${ticketId} reopened by client: ${clientName}`);
+  await trackUserActivity('ticket_reopened', 'success', `Ticket #${ticketNum} reopened by client: ${clientName}`);
   // Log to comments as a system note visible in the thread
   await sbClient.from('comments').insert({
     ticket_id: ticketId,
@@ -1304,8 +1305,9 @@ async function closeTicket(ticketId) {
   }
   const { error } = await sbClient.from('tickets').update({ status: 'resolved' }).eq('id', ticketId);
   if (error) { toast('Error: ' + error.message); return; }
+  const ticketNum = myTickets.find(x => x.id === ticketId)?.ticket_number || ticketId;
   // Log to user_activity
-  await trackUserActivity('ticket_closed', 'success', `Ticket #${ticketId} closed by client: ${clientName}`);
+  await trackUserActivity('ticket_closed', 'success', `Ticket #${ticketNum} closed by client: ${clientName}`);
   // Log to comments as a system note visible in the thread
   await sbClient.from('comments').insert({
     ticket_id: ticketId,
