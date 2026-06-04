@@ -1252,7 +1252,8 @@ function openImgPreview(urls) {
 }
 async function reopenTicket(ticketId) {
   if (demoMode){const t=myTickets.find(x=>x.id===ticketId);if(t){t.status='open';t.updated_at=new Date().toISOString();}renderTickets();closeModal('modal-ticket-detail');toast('Ticket reopened');return;}
-  await sbClient.from('tickets').update({status:'open'}).eq('id',ticketId);
+  const { error } = await sbClient.from('tickets').update({status:'open'}).eq('id',ticketId);
+  if (error) { toast('Error: ' + error.message); return; }
   // Notify helpdesk that a resolved ticket has been reopened by the client
   try {
     await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
@@ -1266,7 +1267,7 @@ async function reopenTicket(ticketId) {
       })
     });
   } catch(e) { console.warn('Reopen notification failed:', e.message); }
-  loadClientTickets(); closeModal('modal-ticket-detail'); toast('Ticket reopened');
+  await loadClientTickets(); closeModal('modal-ticket-detail'); toast('Ticket reopened');
 }
 
 async function closeTicket(ticketId) {
