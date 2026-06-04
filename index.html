@@ -1335,7 +1335,7 @@ async function closeTicket(ticketId) {
       headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ticket_id: ticketId,
-        new_status: 'reopened',
+        new_status: 'closed_helpdesk',
         changed_by: clientName,
         changed_by_email: currentProfile?.email || currentUser?.email || '',
       })

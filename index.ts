@@ -75,7 +75,7 @@ Deno.serve(async (req: Request) => {
       .from("system_log")
       .select("*", { count: "exact", head: true })
       .eq("action", "email_sent")
-      .ilike("details", `%#${ticketNum}%reopened%`)
+      .ilike("details", `%#${ticketNum} reopened by client%`)
       .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString());
     if ((recentReopened ?? 0) > 0) {
       console.warn(`ticket-notify: cooldown active for reopened #${ticketNum}`);
@@ -137,7 +137,7 @@ Deno.serve(async (req: Request) => {
         actor_name: changed_by || "Client",
         actor_role: "client",
         action: "email_sent",
-        details: `Ticket #${ticketNum} reopened — helpdesk notified`,
+        details: `Ticket #${ticketNum} reopened by client — helpdesk notified`,
       });
     }
     return json({ sent: result.ok, direction: "client→helpdesk", ticket: ticketNum });
@@ -222,6 +222,18 @@ Deno.serve(async (req: Request) => {
       return json({ sent: false, reason: "No client email on record" });
     }
 
+    // ── Rate limit ──
+    const { count: recentClientReopened } = await sb
+      .from("system_log")
+      .select("*", { count: "exact", head: true })
+      .eq("action", "email_sent")
+      .ilike("details", `%#${ticketNum} reopened by client — confirmation%`)
+      .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString());
+    if ((recentClientReopened ?? 0) > 0) {
+      console.warn(`ticket-notify: cooldown active for client_reopened #${ticketNum}`);
+      return json({ skipped: "cooldown", reason: "Email already sent within the last 5 minutes" }, 429);
+    }
+
     const emailSubject = `🔄 Your ticket #${ticketNum} has been reopened`;
     const emailHtml = `
       <div style="font-family:Inter,system-ui,sans-serif;max-width:600px;margin:0 auto;color:#1a1917">
@@ -268,6 +280,70 @@ Deno.serve(async (req: Request) => {
       });
     }
     return json({ sent: result.ok, direction: "helpdesk→client", ticket: ticketNum });
+
+  } else if (new_status === "closed_helpdesk") {
+    // Client self-closed a ticket — notify helpdesk
+    const clientName  = changed_by       || requester?.full_name || "A client";
+    const clientEmail = changed_by_email || requester?.email     || "";
+
+    // ── Rate limit ──
+    const { count: recentClosed } = await sb
+      .from("system_log")
+      .select("*", { count: "exact", head: true })
+      .eq("action", "email_sent")
+      .ilike("details", `%#${ticketNum} closed by client%`)
+      .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString());
+    if ((recentClosed ?? 0) > 0) {
+      console.warn(`ticket-notify: cooldown active for closed_helpdesk #${ticketNum}`);
+      return json({ skipped: "cooldown", reason: "Notification already sent within the last 5 minutes" }, 429);
+    }
+
+    const emailSubject = `✅ Ticket #${ticketNum} Closed by Client — ${subject}`;
+    const emailHtml = `
+      <div style="font-family:Inter,system-ui,sans-serif;max-width:600px;margin:0 auto;color:#1a1917">
+        <div style="background:#3B6D11;padding:20px 28px;border-radius:10px 10px 0 0">
+          <h2 style="color:#fff;margin:0;font-size:18px">Ticket Closed by Client</h2>
+        </div>
+        <div style="background:#ffffff;padding:28px;border:1px solid #e5e5e3;border-top:none;border-radius:0 0 10px 10px">
+          <p style="margin:0 0 20px;font-size:15px">
+            A ticket has been <strong>closed</strong> by the client and marked as resolved.
+          </p>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px">
+            <tr style="background:#f5f5f4">
+              <td style="padding:10px 14px;font-weight:600;width:140px;border:1px solid #e5e5e3">Ticket</td>
+              <td style="padding:10px 14px;border:1px solid #e5e5e3">#${ticketNum} — ${escHtml(subject)}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;font-weight:600;border:1px solid #e5e5e3">Closed by</td>
+              <td style="padding:10px 14px;border:1px solid #e5e5e3">${escHtml(clientName)}${clientEmail ? ` &lt;${escHtml(clientEmail)}&gt;` : ""}</td>
+            </tr>
+            <tr style="background:#f5f5f4">
+              <td style="padding:10px 14px;font-weight:600;border:1px solid #e5e5e3">Priority</td>
+              <td style="padding:10px 14px;border:1px solid #e5e5e3;text-transform:capitalize">${escHtml(priority)}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;font-weight:600;border:1px solid #e5e5e3">Closed at</td>
+              <td style="padding:10px 14px;border:1px solid #e5e5e3">${new Date().toLocaleString("en-GB", { dateStyle: "full", timeStyle: "short" })}</td>
+            </tr>
+          </table>
+          ${attachBlock}
+          <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e5e5e3;font-size:12px;color:#9e9a94">
+            El Martillo I.T. Helpdesk · This is an automated notification
+          </div>
+        </div>
+      </div>`;
+
+    const result = await sendEmail({ resendKey, from: `El Martillo Helpdesk <${helpdeskEmail}>`, to: helpdeskEmail, subject: emailSubject, html: emailHtml });
+    console.log(`ticket-notify: closed_helpdesk #${ticketNum} → ${helpdeskEmail}`, result.ok ? "sent" : "failed");
+    if (result.ok) {
+      await sb.from("system_log").insert({
+        actor_name: clientName,
+        actor_role: "client",
+        action: "email_sent",
+        details: `Ticket #${ticketNum} closed by client — helpdesk notified`,
+      });
+    }
+    return json({ sent: result.ok, direction: "client→helpdesk", ticket: ticketNum });
 
   } else {
     return json({ skipped: true, reason: `No notification configured for status '${new_status}'` });
