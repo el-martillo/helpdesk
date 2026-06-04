@@ -15,15 +15,15 @@
  *   RESEND_API_KEY        — your Resend API key
  *   RESEND_WEBHOOK_SECRET — from Resend inbound webhook settings (for request verification)
  *   HELPDESK_EMAIL        — e.g. helpdesk@el-martillo.com
- *   INBOUND_EMAIL         — e.g. tickets@el-martillo.com
+ *   INBOUND_EMAIL         — e.g. tickets@uldaarelem.resend.app
  *   SITE_URL              — e.g. https://el-martillo.github.io/helpdesk
  *   SUPPORT_NAME          — e.g. El Martillo I.T.
  *
  * Resend setup:
- *   1. Resend Dashboard → Domains → el-martillo.com → Inbound
- *   2. Add inbound address: tickets@el-martillo.com
+ *   1. Resend Dashboard → Domains → uldaarelem.resend.app → Inbound
+ *   2. Add inbound address: tickets@uldaarelem.resend.app
  *   3. Set webhook URL: https://gtcrmqbmlvtlyiwnshma.supabase.co/functions/v1/email-ingest
- *   4. Add MX record to DNS: 10 inbound.resend.com
+ *   (No MX record needed — Resend handles routing on their subdomain)
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -104,7 +104,7 @@ Deno.serve(async (req: Request) => {
   const serviceKey      = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const resendKey       = Deno.env.get("RESEND_API_KEY") ?? "";
   const helpdeskEmail   = Deno.env.get("HELPDESK_EMAIL")  ?? "helpdesk@el-martillo.com";
-  const inboundEmail    = Deno.env.get("INBOUND_EMAIL")   ?? "tickets@el-martillo.com";
+  const inboundEmail    = Deno.env.get("INBOUND_EMAIL")   ?? "tickets@uldaarelem.resend.app";
   const siteUrl         = Deno.env.get("SITE_URL")        ?? "https://el-martillo.github.io/helpdesk";
   const supportName     = Deno.env.get("SUPPORT_NAME")    ?? "El Martillo I.T.";
 
@@ -206,7 +206,6 @@ Deno.serve(async (req: Request) => {
       category:      "General",
       contact_email: fromEmail,
       requester_id:  profile.id,
-      source:        "email",          // optional: add a 'source' column to track origin
     })
     .select("ticket_number, id")
     .single();
