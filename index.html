@@ -1254,7 +1254,18 @@ async function reopenTicket(ticketId) {
   if (demoMode){const t=myTickets.find(x=>x.id===ticketId);if(t){t.status='open';t.updated_at=new Date().toISOString();}renderTickets();closeModal('modal-ticket-detail');toast('Ticket reopened');return;}
   const { error } = await sbClient.from('tickets').update({status:'open'}).eq('id',ticketId);
   if (error) { toast('Error: ' + error.message); return; }
-  // Notify helpdesk that a resolved ticket has been reopened by the client
+  const clientName  = currentProfile?.full_name || currentUser?.email || 'Client';
+  const clientEmail = currentProfile?.email || currentUser?.email || '';
+  // Log to user_activity
+  await trackUserActivity('ticket_reopened', 'success', `Ticket #${ticketId} reopened by client: ${clientName}`);
+  // Log to comments as a system note visible in the thread
+  await sbClient.from('comments').insert({
+    ticket_id: ticketId,
+    author_id: currentUser.id,
+    body: `🔄 Ticket reopened by ${clientName}.`,
+    is_internal: false,
+  });
+  // Notify helpdesk
   try {
     await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
       method: 'POST',
@@ -1262,11 +1273,24 @@ async function reopenTicket(ticketId) {
       body: JSON.stringify({
         ticket_id: ticketId,
         new_status: 'reopened',
-        changed_by: currentProfile?.full_name || currentUser?.email || 'Client',
-        changed_by_email: currentProfile?.email || currentUser?.email || '',
+        changed_by: clientName,
+        changed_by_email: clientEmail,
       })
     });
-  } catch(e) { console.warn('Reopen notification failed:', e.message); }
+  } catch(e) { console.warn('Reopen notification (helpdesk) failed:', e.message); }
+  // Notify client
+  try {
+    await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ticket_id: ticketId,
+        new_status: 'client_reopened',
+        changed_by: clientName,
+        changed_by_email: clientEmail,
+      })
+    });
+  } catch(e) { console.warn('Reopen notification (client) failed:', e.message); }
   await loadClientTickets(); closeModal('modal-ticket-detail'); toast('Ticket reopened');
 }
 

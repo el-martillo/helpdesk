@@ -213,6 +213,62 @@ Deno.serve(async (req: Request) => {
     }
     return json({ sent: result.ok, direction: "helpdesk→client", ticket: ticketNum });
 
+  } else if (new_status === "client_reopened") {
+    const clientEmail = requester?.email;
+    const clientName  = requester?.full_name || changed_by || "Customer";
+
+    if (!clientEmail) {
+      console.warn(`ticket-notify: no client email for ticket #${ticketNum}`);
+      return json({ sent: false, reason: "No client email on record" });
+    }
+
+    const emailSubject = `🔄 Your ticket #${ticketNum} has been reopened`;
+    const emailHtml = `
+      <div style="font-family:Inter,system-ui,sans-serif;max-width:600px;margin:0 auto;color:#1a1917">
+        <div style="background:#185FA5;padding:20px 28px;border-radius:10px 10px 0 0">
+          <h2 style="color:#fff;margin:0;font-size:18px">Ticket Reopened</h2>
+        </div>
+        <div style="background:#ffffff;padding:28px;border:1px solid #e5e5e3;border-top:none;border-radius:0 0 10px 10px">
+          <p style="margin:0 0 20px;font-size:15px">
+            Hi ${escHtml(clientName)},<br><br>
+            Your support ticket has been <strong>reopened</strong> and is back in our queue. Our team will follow up with you shortly.
+          </p>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px">
+            <tr style="background:#f5f5f4">
+              <td style="padding:10px 14px;font-weight:600;width:140px;border:1px solid #e5e5e3">Ticket</td>
+              <td style="padding:10px 14px;border:1px solid #e5e5e3">#${ticketNum} — ${escHtml(subject)}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;font-weight:600;border:1px solid #e5e5e3">Status</td>
+              <td style="padding:10px 14px;border:1px solid #e5e5e3">Open</td>
+            </tr>
+            <tr style="background:#f5f5f4">
+              <td style="padding:10px 14px;font-weight:600;border:1px solid #e5e5e3">Reopened at</td>
+              <td style="padding:10px 14px;border:1px solid #e5e5e3">${new Date().toLocaleString("en-GB", { dateStyle: "full", timeStyle: "short" })}</td>
+            </tr>
+          </table>
+          ${attachBlock}
+          <p style="margin:0 0 8px;font-size:13px;color:#6b6963">
+            If you have additional information to share, you can reply directly to your ticket in the client portal.
+          </p>
+          <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e5e5e3;font-size:12px;color:#9e9a94">
+            El Martillo I.T. Helpdesk · <a href="mailto:${helpdeskEmail}" style="color:#185FA5">${helpdeskEmail}</a>
+          </div>
+        </div>
+      </div>`;
+
+    const result = await sendEmail({ resendKey, from: `El Martillo I.T. Support <${helpdeskEmail}>`, to: clientEmail, subject: emailSubject, html: emailHtml });
+    console.log(`ticket-notify: client_reopened #${ticketNum} → ${clientEmail}`, result.ok ? "sent" : "failed");
+    if (result.ok) {
+      await sb.from("system_log").insert({
+        actor_name: clientName,
+        actor_role: "client",
+        action: "email_sent",
+        details: `Ticket #${ticketNum} reopened by client — confirmation sent to ${clientEmail}`,
+      });
+    }
+    return json({ sent: result.ok, direction: "helpdesk→client", ticket: ticketNum });
+
   } else {
     return json({ skipped: true, reason: `No notification configured for status '${new_status}'` });
   }
