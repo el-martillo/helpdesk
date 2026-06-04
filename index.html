@@ -1288,6 +1288,32 @@ async function closeTicket(ticketId) {
     body: `🔒 Ticket closed by ${clientName}.`,
     is_internal: false,
   });
+  // Send resolution email to client
+  try {
+    await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ticket_id: ticketId,
+        new_status: 'resolved',
+        changed_by: clientName,
+        changed_by_email: currentProfile?.email || currentUser?.email || '',
+      })
+    });
+  } catch(e) { console.warn('Close notification (client) failed:', e.message); }
+  // Notify helpdesk that client has closed the ticket
+  try {
+    await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ticket_id: ticketId,
+        new_status: 'reopened',
+        changed_by: clientName,
+        changed_by_email: currentProfile?.email || currentUser?.email || '',
+      })
+    });
+  } catch(e) { console.warn('Close notification (helpdesk) failed:', e.message); }
   loadClientTickets(); closeModal('modal-ticket-detail'); toast('Ticket closed');
 }
 
