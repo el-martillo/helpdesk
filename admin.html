@@ -395,6 +395,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
   </svg>
   Directory
 </div>
+      <div class="nav-item" onclick="adminNav(this,'emailingest')">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Email ingest
+      </div>
 
     </div>
 
@@ -996,11 +1000,48 @@ textarea.fc { resize: vertical; min-height: 80px; }
   </div>
 </div>
 
+<!-- Email ingest page -->
+<div class="page" id="page-emailingest">
+  <div class="page-header">
+    <div>
+      <h1>Email ingest</h1>
+      <p>Simulate an inbound support email — creates a ticket as if received at tickets@uldaarelem.resend.app</p>
+    </div>
+  </div>
+  <div style="max-width:560px">
+    <div class="table-card" style="padding:20px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">Submit ticket via email simulation</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+        Enter the sender's email address and message below. The system will look up the sender in profiles — if found, a ticket is created and confirmation emails sent. If unknown, a signup reply is sent to the address.
+      </div>
+      <div class="fg">
+        <label class="fl">From (sender email) *</label>
+        <input id="ei-from" class="fc" type="email" placeholder="client@example.com"/>
+        <div class="hint">Must match a registered profile email to create a ticket</div>
+      </div>
+      <div class="fg">
+        <label class="fl">Subject *</label>
+        <input id="ei-subject" class="fc" type="text" placeholder="Brief description of the issue"/>
+      </div>
+      <div class="fg">
+        <label class="fl">Message body</label>
+        <textarea id="ei-body" class="fc" style="min-height:120px;resize:vertical" placeholder="Full details of the support request…"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+        <button class="btn primary" onclick="runEmailIngest()">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Send
+        </button>
+        <span id="ei-status" style="font-size:12px;color:var(--text2)"></span>
+      </div>
+    </div>
+
+    <div class="table-card" style="padding:20px;margin-top:16px;display:none" id="ei-result-card">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">Result</div>
+      <pre id="ei-result" style="font-family:var(--mono);font-size:12px;color:var(--text2);white-space:pre-wrap;line-height:1.6"></pre>
     </div>
   </div>
 </div>
-
-<!-- New ticket modal -->
 <div class="overlay" id="modal-new-ticket">
   <div class="modal">
     <div class="modal-head"><div class="modal-title">Create ticket</div><button class="close-x" onclick="closeModal('modal-new-ticket')">✕</button></div>
@@ -3385,7 +3426,7 @@ function startRealtime() {
   if (realtimeChannel) { sbClient.removeChannel(realtimeChannel); realtimeChannel = null; }
 
   realtimeChannel = sbClient
-    .channel('admin-tickets-realtime', { config: { broadcast: { self: true }, presence: { key: '' } } })
+    .channel('tickets-realtime')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tickets' }, payload => {
       // New ticket submitted by client — reload and notify
       loadTickets();
@@ -3393,7 +3434,7 @@ function startRealtime() {
       toast(`New ticket #${t.ticket_number}: ${t.subject?.slice(0,40) || 'New ticket received'}`);
     })
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tickets' }, payload => {
-      // Ticket updated (e.g. client reopened/closed) — reload to reflect new status
+      // Ticket updated (e.g. client reopened) — silently reload
       loadTickets();
     })
     .subscribe((status) => {
@@ -3572,6 +3613,53 @@ function showAuthScreen() {
       }
     }, 50);
   });
+}
+
+/* ── Email ingest simulator ── */
+async function runEmailIngest() {
+  const from    = document.getElementById('ei-from').value.trim();
+  const subject = document.getElementById('ei-subject').value.trim();
+  const text    = document.getElementById('ei-body').value.trim();
+  const status  = document.getElementById('ei-status');
+  const resultCard = document.getElementById('ei-result-card');
+  const result  = document.getElementById('ei-result');
+
+  if (!from)    { toast('Sender email is required'); return; }
+  if (!subject) { toast('Subject is required'); return; }
+
+  status.textContent = 'Sending…';
+  resultCard.style.display = 'none';
+
+  try {
+    const res = await fetch(`${SB_URL}/functions/v1/email-ingest`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ from, to: 'tickets@uldaarelem.resend.app', subject, text }),
+    });
+    const data = await res.json();
+    resultCard.style.display = 'block';
+    result.textContent = JSON.stringify(data, null, 2);
+
+    if (data.success) {
+      status.style.color = 'var(--success)';
+      status.textContent = `✓ Ticket #${data.ticket_number} created`;
+      toast(`Ticket #${data.ticket_number} created successfully`);
+      loadTickets();
+    } else if (data.skipped) {
+      status.style.color = 'var(--warn)';
+      status.textContent = `⚠ Skipped — ${data.reason}`;
+    } else {
+      status.style.color = 'var(--danger)';
+      status.textContent = `✗ Error — ${data.error || 'Unknown error'}`;
+    }
+  } catch(e) {
+    status.style.color = 'var(--danger)';
+    status.textContent = '✗ Request failed — check console';
+    console.error('Email ingest error:', e);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', initSupabase);
