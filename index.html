@@ -1268,7 +1268,7 @@ async function reopenTicket(ticketId) {
   });
   // Notify helpdesk
   try {
-    await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
+    const r1 = await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1278,10 +1278,12 @@ async function reopenTicket(ticketId) {
         changed_by_email: clientEmail,
       })
     });
+    const d1 = await r1.json().catch(() => ({}));
+    console.log('[ticket-notify] reopened (helpdesk):', r1.status, d1);
   } catch(e) { console.warn('Reopen notification (helpdesk) failed:', e.message); }
   // Notify client
   try {
-    await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
+    const r2 = await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1291,6 +1293,8 @@ async function reopenTicket(ticketId) {
         changed_by_email: clientEmail,
       })
     });
+    const d2 = await r2.json().catch(() => ({}));
+    console.log('[ticket-notify] client_reopened (client):', r2.status, d2);
   } catch(e) { console.warn('Reopen notification (client) failed:', e.message); }
   await loadClientTickets(); closeModal('modal-ticket-detail'); toast('Ticket reopened');
 }
