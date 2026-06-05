@@ -58,6 +58,12 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
 }
 .logo { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .logo svg { color: var(--accent); }
+@keyframes logoFloat {
+  0%,100% { transform: translateY(0) rotate(0deg); filter: drop-shadow(0 2px 4px rgba(24,95,165,0)); }
+  25%      { transform: translateY(-3px) rotate(-1.5deg); filter: drop-shadow(0 6px 8px rgba(24,95,165,.18)); }
+  75%      { transform: translateY(-2px) rotate(1deg); filter: drop-shadow(0 5px 6px rgba(24,95,165,.12)); }
+}
+.logo-img { animation: logoFloat 4s ease-in-out infinite; transform-origin: center bottom; }
 .topbar-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--text2); }
 .topbar-center .badge-admin { background: var(--accent); color: #fff; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
 .topbar-right { display: flex; align-items: center; gap: 10px; }
@@ -363,7 +369,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 <div id="app" style="display:none">
   <div class="topbar">
     <div class="logo">
-      <img src="logo.png" alt="Logo" style="height:28px;width:auto;display:block;"/>
+      <img src="logo.png" alt="Logo" class="logo-img" style="height:28px;width:auto;display:block;"/>
       El Martillo I.T. Ticketing System
     </div>
     <div class="topbar-center">
@@ -384,6 +390,15 @@ textarea.fc { resize: vertical; min-height: 80px; }
   <!-- Mobile menu -->
   <div id="mobile-menu" class="mobile-menu">
     <div class="mobile-menu-inner">
+      <!-- User pill -->
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px 8px">
+        <div class="avatar av-blue" id="mob-avatar-admin" style="width:36px;height:36px;font-size:13px;flex-shrink:0">?</div>
+        <div>
+          <div style="font-size:13px;font-weight:600" id="mob-name-admin">—</div>
+          <div style="font-size:11px;color:var(--text3)">Admin</div>
+        </div>
+      </div>
+      <div style="height:1px;background:var(--accent-l);margin:0 8px 6px"></div>
       <div style="padding:10px 12px 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">Tickets</div>
       <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[0],'all');closeMobileMenu()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8h18M3 12h18M3 16h18"/></svg>
@@ -1640,6 +1655,12 @@ async function signIn() {
   const rb = document.getElementById('topbar-role-badge'); if(rb) rb.textContent = prof?.role==='super_admin'?'Super Admin':'Admin';
   applyRoleUI(prof?.role);
   document.getElementById('settings-url').value = localStorage.getItem('sb_url')||'';
+  // Sync mobile hamburger pill
+  const _mn = prof?.full_name||email;
+  const mobAv = document.getElementById('mob-avatar-admin');
+  const mobNm = document.getElementById('mob-name-admin');
+  if (mobAv) { mobAv.textContent = initials(_mn); mobAv.className = 'avatar ' + avColor(prof?.id||''); }
+  if (mobNm) mobNm.textContent = _mn;
   loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart();
 }
 async function signOut() { if(realtimeChannel && sbClient) sbClient.removeChannel(realtimeChannel); if(sbClient) await sbClient.auth.signOut(); location.reload(); }
@@ -2601,6 +2622,12 @@ async function initSupabase() {
       document.getElementById('cfg-screen').classList.remove('active');
       const tu = document.getElementById('topbar-user');
       if (tu) tu.textContent = prof?.full_name || currentUser.email;
+      // Sync mobile hamburger pill
+      const _mn2 = prof?.full_name || currentUser.email;
+      const mobAv2 = document.getElementById('mob-avatar-admin');
+      const mobNm2 = document.getElementById('mob-name-admin');
+      if (mobAv2) { mobAv2.textContent = initials(_mn2); mobAv2.className = 'avatar ' + avColor(prof?.id||''); }
+      if (mobNm2) mobNm2.textContent = _mn2;
       const rb = document.getElementById('topbar-role-badge');
       if (rb) rb.textContent = prof?.role === 'super_admin' ? 'Super Admin' : 'Admin';
       applyRoleUI(prof?.role);
