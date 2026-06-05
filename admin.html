@@ -391,12 +391,13 @@ textarea.fc { resize: vertical; min-height: 80px; }
   <div id="mobile-menu" class="mobile-menu">
     <div class="mobile-menu-inner">
       <!-- User pill -->
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px 8px">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px 8px;cursor:pointer;border-radius:8px;transition:background .12s" onclick="closeMobileMenu();if(currentProfile)openEditUser(currentProfile.id)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''" title="Edit your profile">
         <div class="avatar av-blue" id="mob-avatar-admin" style="width:36px;height:36px;font-size:13px;flex-shrink:0">?</div>
-        <div>
+        <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:600" id="mob-name-admin">—</div>
-          <div style="font-size:11px;color:var(--text3)">Admin</div>
+          <div style="font-size:11px;color:var(--text3)">Tap to edit profile</div>
         </div>
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:var(--text3);flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
       </div>
       <div style="height:1px;background:var(--accent-l);margin:0 8px 6px"></div>
       <div style="padding:10px 12px 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">Tickets</div>
