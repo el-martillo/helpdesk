@@ -599,7 +599,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
               Refresh
             </button>
           </div>
-          <table><thead><tr><th class="sortable" data-sort="ticket_number" onclick="setSort('ticket_number')">ID</th><th class="sortable" data-sort="client" onclick="setSort('client')">Client</th><th class="sortable" data-sort="company" onclick="setSort('company')">Organisation</th><th class="sortable" data-sort="subject" onclick="setSort('subject')">Subject</th><th class="sortable" data-sort="status" onclick="setSort('status')">Status</th><th class="sortable" data-sort="priority" onclick="setSort('priority')">Priority</th><th class="sortable" data-sort="assignee" onclick="setSort('assignee')">Tech assigned</th><th class="sortable sort-desc" data-sort="updated_at" onclick="setSort('updated_at')">Updated</th><th></th></tr></thead>
+          <table><thead><tr><th class="sortable" data-sort="ticket_number" onclick="setSort('ticket_number')">ID</th><th class="sortable" data-sort="client" onclick="setSort('client')">Client</th><th class="sortable" data-sort="subject" onclick="setSort('subject')">Subject</th><th class="sortable" data-sort="status" onclick="setSort('status')">Status</th><th class="sortable" data-sort="priority" onclick="setSort('priority')">Priority</th><th class="sortable" data-sort="assignee" onclick="setSort('assignee')">Tech assigned</th><th class="sortable sort-desc" data-sort="updated_at" onclick="setSort('updated_at')">Updated</th><th></th></tr></thead>
           <tbody id="admin-tbody"></tbody></table>
         </div>
       </div>
@@ -1755,16 +1755,26 @@ function renderTable(statusFilter) {
   list = sortTickets(list);
   const tbody = document.getElementById('admin-tbody');
   if (!tbody) return;
-  if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="9">No tickets found</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="8">No tickets found</td></tr>'; return; }
   const visible = list.slice(0, adminPerPage);
   const remaining = list.length - visible.length;
   tbody.innerHTML = visible.map(t => {
     const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
     const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
+    const reqEmail   = req?.email   || t.contact_email  || '';
+    const reqPhone   = req?.phone   || t.contact_phone  || '';
+    const reqCompany = req?.company || t.organisation   || '';
     return `<tr onclick="openTicketDetail('${t.id}')">
       <td><span class="tid">#${t.ticket_number}</span></td>
-      <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${esc(req?.full_name)||'—'}</span></div></td>
-      <td style="font-size:12px;color:var(--text2);white-space:nowrap">${esc(req?.company)||'—'}</td>
+      <td style="min-width:160px">
+        <div class="flex-c" style="margin-bottom:3px">
+          <div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div>
+          <span style="font-size:12px;font-weight:500">${esc(req?.full_name)||'—'}</span>
+        </div>
+        ${reqCompany ? `<div style="font-size:11px;color:var(--text2);padding-left:34px">${esc(reqCompany)}</div>` : ''}
+        ${reqEmail   ? `<div style="font-size:11px;color:var(--accent);padding-left:34px"><a href="mailto:${esc(reqEmail)}" onclick="event.stopPropagation()" style="color:var(--accent);text-decoration:none">${esc(reqEmail)}</a></div>` : ''}
+        ${reqPhone   ? `<div style="font-size:11px;color:var(--text3);padding-left:34px"><a href="tel:${esc(reqPhone)}" onclick="event.stopPropagation()" style="color:var(--text3);text-decoration:none">${esc(reqPhone)}</a></div>` : ''}
+      </td>
       <td style="max-width:200px"><div style="display:flex;align-items:center;gap:6px">${(()=>{const urls=t.attachment_urls?JSON.parse(t.attachment_urls):(t.attachment_url?[t.attachment_url]:[]);return urls.length?`<div style="position:relative;flex-shrink:0"><img src="${urls[0]}" class="attach-thumb-sm" title="${urls.length} attachment${urls.length>1?'s':''}" onclick="event.stopPropagation();openLightbox(urls,0)"/>${urls.length>1?`<span style="position:absolute;bottom:2px;right:2px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 4px;line-height:1">${urls.length}</span>`:''}</div>`:'';})()}  <div style="min-width:0"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.subject)}</div><span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}" style="margin-top:3px">${esc(t.category||'General')}</span></div></div></td>
       <td><span class="sb s-${t.status}" style="cursor:pointer" onclick="event.stopPropagation();openTicketDetail('${t.id}')" title="Open ticket">${sLabel(t.status)}</span></td>
       <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
@@ -1773,12 +1783,12 @@ function renderTable(statusFilter) {
       <td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td>
     </tr>`;
   }).join('') + (remaining > 0
-    ? `<tr><td colspan="9" style="text-align:center;padding:12px;border-top:1px solid var(--border)">
+    ? `<tr><td colspan="8" style="text-align:center;padding:12px;border-top:1px solid var(--border)">
         <span style="font-size:12px;color:var(--text3);margin-right:10px">Showing ${visible.length} of ${list.length}</span>
         <button class="btn sm" onclick="adminPerPage+=25;document.getElementById('admin-per-page').value=adminPerPage<=100?adminPerPage:99999;renderTable()">Show ${Math.min(remaining,25)} more</button>
        </td></tr>`
     : list.length > 25
-      ? `<tr><td colspan="9" style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">Showing all ${list.length} tickets</td></tr>`
+      ? `<tr><td colspan="8" style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">Showing all ${list.length} tickets</td></tr>`
       : '');
 }
 const getReqName = t => { const p = demoMode ? profileById(t.requester_id) : t.requester; return p?.full_name||''; };
