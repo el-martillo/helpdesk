@@ -137,9 +137,11 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
   .hamburger { display: flex; }
   .main-content{padding:16px 12px 80px}
   .dir-topbar{flex-wrap:wrap}
-  .footer{flex-wrap:wrap;height:auto;padding:10px 16px;gap:6px 16px}
+  .footer{height:auto!important;padding:12px 20px;justify-content:center;flex-wrap:nowrap}
+  .footer > span[style*="position:absolute"]{position:static!important;transform:none!important;display:flex;align-items:center;gap:8px;font-size:12px}
   .footer-sep{display:none}
   .footer-bug-link { display: none !important; }
+  .scroll-top-btn { display: none !important; }
 }
 
 /* ── Shared nav styles ──────────────────────────────────────────────────── */

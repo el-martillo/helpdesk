@@ -153,6 +153,11 @@ th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
   .sidebar { display: none; }
   .body { flex-direction: column; }
   .content { padding: 16px !important; }
+  .footer-stats-item, .footer-stats-sep { display: none !important; }
+  .footer { height: auto !important; padding: 12px 20px; justify-content: center; flex-wrap: nowrap; }
+  .footer > span[style*="position:absolute"] { position: static !important; transform: none !important; display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .footer-bug-link { display: none !important; }
+  .scroll-top-btn { display: none !important; }
 }
 .page { display: none; }
 .page.active { display: block; }
@@ -400,6 +405,20 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:var(--text3);flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
       </div>
       <div style="height:1px;background:var(--accent-l);margin:0 8px 6px"></div>
+      <!-- Links to other pages -->
+      <a href="index.html" class="mobile-menu-item">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Client portal
+      </a>
+      <a href="about.html" class="mobile-menu-item">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        About
+      </a>
+      <a href="directory.html" class="mobile-menu-item">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Directory
+      </a>
+      <div class="mobile-menu-sep"></div>
       <div style="padding:10px 12px 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">Tickets</div>
       <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[0],'all');closeMobileMenu()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8h18M3 12h18M3 16h18"/></svg>
@@ -435,15 +454,19 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </button>
-      <a href="index.html" class="mobile-menu-item">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        Client portal
-      </a>
       <div class="mobile-menu-sep"></div>
       <button class="mobile-menu-item mobile-menu-signout" onclick="signOut();closeMobileMenu()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Sign out
       </button>
+      <div class="mobile-menu-sep"></div>
+      <div style="padding:8px 12px 4px;display:flex;align-items:center;gap:12px;font-size:11px;color:var(--text3)">
+        <span>Tickets: <span style="font-weight:600;color:var(--text2)" id="mob-ticket-count">—</span></span>
+        <span>|</span>
+        <span>Users: <span style="font-weight:600;color:var(--text2)" id="mob-user-count">—</span></span>
+        <span>|</span>
+        <span id="mob-version">v1.0.0</span>
+      </div>
     </div>
   </div>
   <div id="mobile-menu-backdrop" class="mobile-menu-backdrop" onclick="closeMobileMenu()"></div>
@@ -1830,6 +1853,8 @@ function updateStats() {
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
   const fc = document.getElementById('footer-ticket-count');
   if (fc) fc.textContent = tickets.length;
+  const mobTc = document.getElementById('mob-ticket-count');
+  if (mobTc) mobTc.textContent = tickets.length;
 }
 function updateBadges() {
   document.getElementById('badge-all').textContent   = tickets.length;
@@ -3236,12 +3261,16 @@ async function loadUserCount() {
   if (demoMode) {
     const fuc = document.getElementById('footer-user-count');
     if (fuc) fuc.textContent = profiles.length;
+    const muc = document.getElementById('mob-user-count');
+    if (muc) muc.textContent = profiles.length;
     return;
   }
   if (!sbClient) return;
   const { count } = await sbClient.from('profiles').select('*', { count: 'exact', head: true });
   const fuc = document.getElementById('footer-user-count');
   if (fuc && count !== null) fuc.textContent = count;
+  const muc = document.getElementById('mob-user-count');
+  if (muc && count !== null) muc.textContent = count;
 }
 
 /* ── Ticket Companies ── */
@@ -3784,6 +3813,8 @@ function startRealtime() {
 function applyVersion(v) {
   const footerEl = document.getElementById('footer-version');
   if (footerEl) footerEl.textContent = 'v' + (v || '1.0.0');
+  const mobVer = document.getElementById('mob-version');
+  if (mobVer) mobVer.textContent = 'v' + (v || '1.0.0');
   const inputEl = document.getElementById('settings-version');
   if (inputEl) inputEl.value = v || '1.0.0';
 }
@@ -4728,12 +4759,12 @@ function getDirCompanyValue() {
     <span>Tel: <a href="tel:+35020050630">+350 200 50630</a></span>
     <span class="footer-sep">|</span>
     <span>Email: <a href="mailto:helpdesk@el-martillo.com">helpdesk@el-martillo.com</a></span>
-    <span class="footer-sep">|</span>
-    <span>Tickets: <span class="footer-tickets" id="footer-ticket-count">—</span></span>
-    <span class="footer-sep">|</span>
-    <span>Users: <span class="footer-tickets" id="footer-user-count">—</span></span>
-    <span class="footer-sep">|</span>
-    <span id="footer-version">v1.0.0</span>
+    <span class="footer-sep footer-stats-sep">|</span>
+    <span class="footer-stats-item">Tickets: <span class="footer-tickets" id="footer-ticket-count">—</span></span>
+    <span class="footer-sep footer-stats-sep">|</span>
+    <span class="footer-stats-item">Users: <span class="footer-tickets" id="footer-user-count">—</span></span>
+    <span class="footer-sep footer-stats-sep">|</span>
+    <span class="footer-stats-item" id="footer-version">v1.0.0</span>
   </span>
   <a href="#" class="scroll-top-btn" style="margin-left:auto" onclick="document.querySelector('.content')?.scrollTo({top:0,behavior:'smooth'});return false;" title="Back to top">
     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>

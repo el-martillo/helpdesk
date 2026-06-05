@@ -299,14 +299,15 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
   /* Footer */
   .footer {
-    flex-wrap: wrap;
     height: auto !important;
-    padding: 10px 16px;
-    gap: 6px 16px;
+    padding: 12px 20px;
     justify-content: center;
+    flex-wrap: nowrap;
   }
+  .footer > span[style*="position:absolute"] { position: static !important; transform: none !important; display: flex; align-items: center; gap: 8px; font-size: 12px; }
   .footer-sep { display: none; }
   .footer-bug-link { display: none !important; }
+  .scroll-top-btn { display: none !important; }
   .main { padding-bottom: 80px !important; }
 }
 
