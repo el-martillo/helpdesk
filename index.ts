@@ -163,7 +163,7 @@ Deno.serve(async (req: Request) => {
 
     const clientName  = requester?.full_name || "Customer";
     const agentName   = changed_by || "The support team";
-    const emailSubject = `✅ Your ticket #${ticketNum} has been resolved`;
+    const emailSubject = `✅ Your ticket #${ticketNum} has been resolved [Ticket #${ticketNum}]`;
     const emailHtml = `
       <div style="font-family:Inter,system-ui,sans-serif;max-width:600px;margin:0 auto;color:#1a1917">
         <div style="background:#3B6D11;padding:20px 28px;border-radius:10px 10px 0 0">
@@ -234,7 +234,7 @@ Deno.serve(async (req: Request) => {
       return json({ skipped: "cooldown", reason: "Email already sent within the last 5 minutes" }, 429);
     }
 
-    const emailSubject = `🔄 Your ticket #${ticketNum} has been reopened`;
+    const emailSubject = `🔄 Your ticket #${ticketNum} has been reopened [Ticket #${ticketNum}]`;
     const emailHtml = `
       <div style="font-family:Inter,system-ui,sans-serif;max-width:600px;margin:0 auto;color:#1a1917">
         <div style="background:#185FA5;padding:20px 28px;border-radius:10px 10px 0 0">

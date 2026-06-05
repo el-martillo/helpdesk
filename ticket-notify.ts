@@ -141,7 +141,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: `${SUPPORT_NAME} <${SUPPORT_EMAIL}>`,
         to: clientEmail,
-        subject: `Ticket resolved: #${h(ticket.ticket_number)} – ${h(ticket.subject)}`,
+        subject: `Ticket resolved: #${h(ticket.ticket_number)} – ${h(ticket.subject)} [Ticket #${h(ticket.ticket_number)}]`,
         html: emailHtml
       })
     })
