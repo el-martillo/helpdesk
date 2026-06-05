@@ -125,6 +125,8 @@ th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
   transform: translateY(-8px); opacity: 0;
   transition: transform .18s ease, opacity .18s ease;
   pointer-events: none;
+  max-height: calc(100vh - 52px);
+  overflow-y: auto;
 }
 .mobile-menu.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
 .mobile-menu-inner { padding: 8px 6px 10px; }
