@@ -103,6 +103,51 @@ th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
 .settings-grid > * { break-inside: avoid; margin-bottom: 16px; }
 @media (max-width: 900px) { .settings-grid { columns: 2; } }
 @media (max-width: 600px) { .settings-grid { columns: 1; } .content { padding: 16px; } }
+
+/* ── Hamburger & mobile menu ── */
+.hamburger {
+  display: none; align-items: center; justify-content: center;
+  background: none; border: none; cursor: pointer; color: var(--text2);
+  padding: 6px; border-radius: 6px; flex-shrink: 0;
+}
+.hamburger:hover { background: var(--surface2); }
+.mobile-menu {
+  display: none;
+  position: fixed; top: 52px; right: 0; left: 0; z-index: 300;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  transform: translateY(-8px); opacity: 0;
+  transition: transform .18s ease, opacity .18s ease;
+  pointer-events: none;
+}
+.mobile-menu.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
+.mobile-menu-inner { padding: 8px 6px 10px; }
+.mobile-menu-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 12px; border-radius: 7px;
+  font-size: 14px; font-weight: 500; color: var(--text1);
+  text-decoration: none; cursor: pointer; width: 100%;
+  background: none; border: none; font-family: var(--font);
+  transition: background .1s; text-align: left;
+}
+.mobile-menu-item:hover { background: var(--surface2); }
+.mobile-menu-item svg { color: var(--text2); flex-shrink: 0; }
+.mobile-menu-sep { height: 1px; background: var(--border); margin: 6px 8px; }
+.mobile-menu-signout { color: var(--danger); }
+.mobile-menu-signout svg { color: var(--danger); }
+.mobile-menu-backdrop { display: none; position: fixed; inset: 0; z-index: 299; }
+.mobile-menu-backdrop.open { display: block; }
+
+@media (max-width: 768px) {
+  .topbar { padding: 0 14px; }
+  .topbar-center { display: none !important; }
+  .portal-link, .admin-link, #desktop-signout { display: none !important; }
+  .hamburger { display: flex; }
+  .mobile-menu { display: block; }
+  .sidebar { display: none; }
+  .body { flex-direction: column; }
+  .content { padding: 16px !important; }
+}
 .page { display: none; }
 .page.active { display: block; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; gap: 12px; }
@@ -329,9 +374,63 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <div class="db-indicator"><div class="dot" id="db-dot"></div><span id="db-label">Demo mode</span></div>
       <a href="about.html" class="admin-link"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> About</a>
       <a href="index.html" class="portal-link"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Client portal</a>
-      <button class="btn sm" onclick="signOut()">Sign out</button>
+      <button class="btn sm" id="desktop-signout" onclick="signOut()">Sign out</button>
+      <button class="hamburger" id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Menu">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
     </div>
   </div>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu" class="mobile-menu">
+    <div class="mobile-menu-inner">
+      <div style="padding:10px 12px 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">Tickets</div>
+      <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[0],'all');closeMobileMenu()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8h18M3 12h18M3 16h18"/></svg>
+        All tickets
+      </button>
+      <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[1],'open');closeMobileMenu()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+        Open
+      </button>
+      <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[2],'in_progress');closeMobileMenu()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83"/></svg>
+        In progress
+      </button>
+      <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[3],'waiting');closeMobileMenu()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        Waiting
+      </button>
+      <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[4],'resolved');closeMobileMenu()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+        Resolved
+      </button>
+      <div class="mobile-menu-sep"></div>
+      <div style="padding:10px 12px 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">Manage</div>
+      <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[6],'users');loadAllProfiles();closeMobileMenu()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Users
+      </button>
+      <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[7],'reports');closeMobileMenu()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="4" height="11"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="3" width="4" height="18"/></svg>
+        Reports
+      </button>
+      <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[8],'settings');loadBackupStats();closeMobileMenu()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </button>
+      <a href="index.html" class="mobile-menu-item">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Client portal
+      </a>
+      <div class="mobile-menu-sep"></div>
+      <button class="mobile-menu-item mobile-menu-signout" onclick="signOut();closeMobileMenu()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign out
+      </button>
+    </div>
+  </div>
+  <div id="mobile-menu-backdrop" class="mobile-menu-backdrop" onclick="closeMobileMenu()"></div>
 
   <div class="body">
     <div class="sidebar">
@@ -617,6 +716,18 @@ textarea.fc { resize: vertical; min-height: 80px; }
             <div id="ticket-companies-list">
               <div style="font-size:12px;color:var(--text3);padding:4px 0">Loading…</div>
             </div>
+          </div>
+
+          <!-- Tickets over time -->
+          <div class="table-card" style="padding:20px;grid-column:1/-1">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+              <div style="font-size:13px;font-weight:600">Tickets over time</div>
+              <div style="display:flex;gap:6px">
+                <button class="btn sm" id="time-view-week"  onclick="setTimeView('week')"  style="background:var(--accent);color:#fff;border-color:var(--accent)">Weekly</button>
+                <button class="btn sm" id="time-view-month" onclick="setTimeView('month')">Monthly</button>
+              </div>
+            </div>
+            <div id="report-time-chart" style="overflow-x:auto"></div>
           </div>
 
         </div>
@@ -2197,6 +2308,87 @@ function renderCategoryPie() {
     </div>`;
 }
 
+/* ── Tickets over time ── */
+let timeView = 'week';
+function setTimeView(v) {
+  timeView = v;
+  document.getElementById('time-view-week').style.cssText  = v==='week'  ? 'background:var(--accent);color:#fff;border-color:var(--accent)' : '';
+  document.getElementById('time-view-month').style.cssText = v==='month' ? 'background:var(--accent);color:#fff;border-color:var(--accent)' : '';
+  renderTimeChart();
+}
+
+function renderTimeChart() {
+  const el = document.getElementById('report-time-chart');
+  if (!el) return;
+
+  const now = new Date();
+
+  // Build bucket keys and labels
+  const buckets = {};
+  const labels  = [];
+
+  if (timeView === 'week') {
+    // Last 12 weeks
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i * 7);
+      // Start of that week (Monday)
+      const day = d.getDay() || 7;
+      d.setDate(d.getDate() - day + 1);
+      const key = d.toISOString().slice(0, 10);
+      buckets[key] = 0;
+      // Label: "6 Jun"
+      labels.push(d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+    }
+    tickets.forEach(t => {
+      const created = new Date(t.created_at);
+      const day = created.getDay() || 7;
+      created.setDate(created.getDate() - day + 1);
+      const key = created.toISOString().slice(0, 10);
+      if (key in buckets) buckets[key]++;
+    });
+  } else {
+    // Last 12 months
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = d.toISOString().slice(0, 7); // "2026-01"
+      buckets[key] = 0;
+      labels.push(d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }));
+    }
+    tickets.forEach(t => {
+      const key = t.created_at?.slice(0, 7);
+      if (key in buckets) buckets[key]++;
+    });
+  }
+
+  const values = Object.values(buckets);
+  const maxVal = Math.max(...values, 1);
+  const BAR_W  = 36;
+  const GAP    = 8;
+  const H      = 120;
+  const total  = values.length;
+  const W      = total * (BAR_W + GAP);
+
+  const bars = values.map((v, i) => {
+    const barH  = Math.max(Math.round((v / maxVal) * H), v > 0 ? 4 : 0);
+    const x     = i * (BAR_W + GAP);
+    const label = labels[i];
+    const color = v === 0 ? 'var(--border2)' : 'var(--accent)';
+    return `
+      <g>
+        <rect x="${x}" y="${H - barH}" width="${BAR_W}" height="${barH}" rx="3" fill="${color}"/>
+        ${v > 0 ? `<text x="${x + BAR_W/2}" y="${H - barH - 4}" text-anchor="middle" font-size="10" fill="var(--text2)" font-family="var(--font)">${v}</text>` : ''}
+        <text x="${x + BAR_W/2}" y="${H + 14}" text-anchor="middle" font-size="10" fill="var(--text3)" font-family="var(--font)">${label}</text>
+      </g>`;
+  }).join('');
+
+  el.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H + 24}" width="${Math.max(W, 200)}" height="${H + 24}"
+         style="min-width:100%;overflow:visible" xmlns="http://www.w3.org/2000/svg">
+      ${bars}
+    </svg>`;
+}
+
 function renderReports() {
   renderCategoryPie();
   const statuses=['open','in_progress','waiting','resolved'];
@@ -2318,6 +2510,7 @@ function renderReports() {
       </div>
       <div style="text-align:right;font-size:12px;font-weight:600;color:${avgMs!==null?'var(--success)':'var(--text3)'}">${avgMs!==null?fmtDur(avgMs):'—'}</div>
     </div>`).join('')}`;
+  renderTimeChart();
 }
 
 /* ── Auto-restore session ── */
@@ -3727,6 +3920,24 @@ async function runEmailIngest() {
     status.textContent = '✗ Request failed — check console';
     console.error('Email ingest error:', e);
   }
+}
+
+/* ── Mobile menu ── */
+function toggleMobileMenu() {
+  const menu = document.getElementById('mobile-menu');
+  const backdrop = document.getElementById('mobile-menu-backdrop');
+  const btn = document.getElementById('hamburger-btn');
+  const open = menu.classList.toggle('open');
+  backdrop.classList.toggle('open', open);
+  btn.innerHTML = open
+    ? '<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>'
+    : '<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>';
+}
+function closeMobileMenu() {
+  document.getElementById('mobile-menu')?.classList.remove('open');
+  document.getElementById('mobile-menu-backdrop')?.classList.remove('open');
+  const btn = document.getElementById('hamburger-btn');
+  if (btn) btn.innerHTML = '<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>';
 }
 
 document.addEventListener('DOMContentLoaded', initSupabase);
