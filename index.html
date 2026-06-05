@@ -299,6 +299,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
     justify-content: center;
   }
   .footer-sep { display: none; }
+  .footer-bug-link { display: none !important; }
   .main { padding-bottom: 80px !important; }
 }
 
@@ -1814,8 +1815,7 @@ document.addEventListener('DOMContentLoaded', initSupabase);
 </style>
 
 <div class="footer" style="position:fixed">
-  <a href="#" onclick="openBugReport();return false;" style="color:var(--accent);font-size:12px;font-weight:500;text-decoration:none">🐛 Report a bug</a>
-  <span class="footer-sep">|</span>
+  <a href="#" onclick="openBugReport();return false;" class="footer-bug-link" style="margin-right:auto;color:var(--accent);font-size:12px;font-weight:500;text-decoration:none">🐛 Report a bug</a>
   <span>Tel: <a href="tel:+35020050630">+350 200 50630</a></span>
   <span class="footer-sep">|</span>
   <span>Email: <a href="mailto:helpdesk@el-martillo.com">helpdesk@el-martillo.com</a></span>
