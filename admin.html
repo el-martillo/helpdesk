@@ -3102,14 +3102,15 @@ function renderDashboard() {
   document.getElementById('dash-resolved').textContent= tickets.filter(t=>t.status==='resolved').length;
   document.getElementById('dash-total').textContent   = tickets.length;
 
+  const rTickets = reportTickets();
   const statuses=['open','in_progress','waiting','resolved'];
   const priorities=['critical','high','medium','low'];
-  const max=Math.max(...statuses.map(s=>tickets.filter(t=>t.status===s).length),1);
-  const pmax=Math.max(...priorities.map(p=>tickets.filter(t=>t.priority===p).length),1);
+  const max=Math.max(...statuses.map(s=>rTickets.filter(t=>t.status===s).length),1);
+  const pmax=Math.max(...priorities.map(p=>rTickets.filter(t=>t.priority===p).length),1);
   const sc={open:'var(--accent)',in_progress:'var(--purple)',waiting:'var(--warn)',resolved:'var(--success)'};
   const pc={critical:'#E24B4A',high:'#EF9F27',medium:'#378ADD',low:'#9e9a94'};
-  document.getElementById('dash-status-bars').innerHTML=statuses.map(s=>{const c=tickets.filter(t=>t.status===s).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${sLabel(s)}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/max*100)}%;height:100%;background:${sc[s]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
-  document.getElementById('dash-priority-bars').innerHTML=priorities.map(p=>{const c=tickets.filter(t=>t.priority===p).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${p}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/pmax*100)}%;height:100%;background:${pc[p]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
+  document.getElementById('dash-status-bars').innerHTML=statuses.map(s=>{const c=rTickets.filter(t=>t.status===s).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${sLabel(s)}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/max*100)}%;height:100%;background:${sc[s]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
+  document.getElementById('dash-priority-bars').innerHTML=priorities.map(p=>{const c=rTickets.filter(t=>t.priority===p).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${p}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/pmax*100)}%;height:100%;background:${pc[p]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
 
   const recent = [...tickets].filter(t=>t.status!=='resolved').sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at)).slice(0,8);
   const tbody = document.getElementById('dash-recent-tbody');
