@@ -482,7 +482,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         System log
       </div>
-      <div class="nav-item" id="nav-settings" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList();loadRateLimits();loadSessionTimeout()">
+      <div class="nav-item" id="nav-settings" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList();loadRateLimits();loadSessionTimeout();loadReportStart()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </div>
@@ -854,6 +854,28 @@ textarea.fc { resize: vertical; min-height: 80px; }
             </div>
           </div>
 
+
+          </div>
+
+          <!-- Reports start ticket -->
+          <div class="table-card" style="padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Reports baseline</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+              Set the starting ticket number for all reports. Tickets with a lower number will be excluded from charts and statistics. Useful for ignoring test or legacy tickets.
+            </div>
+            <div class="fg" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:13px;color:var(--text2)"># From ticket</span>
+                <input id="settings-report-start" class="fc" type="number" min="1"
+                  style="width:100px;text-align:center" value="1" placeholder="1"/>
+              </div>
+              <span style="font-size:11px;color:var(--text3)">Default: 1 (all tickets included)</span>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+              <button class="btn primary" onclick="saveReportStart()">Save</button>
+              <span style="font-size:11px;color:var(--text3)" id="report-start-saved"></span>
+            </div>
+          </div>
 
           <!-- Session timeout section -->
           <div class="table-card" style="padding:20px">
@@ -1620,7 +1642,7 @@ async function signIn() {
   const rb = document.getElementById('topbar-role-badge'); if(rb) rb.textContent = prof?.role==='super_admin'?'Super Admin':'Admin';
   applyRoleUI(prof?.role);
   document.getElementById('settings-url').value = localStorage.getItem('sb_url')||'';
-  loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout();
+  loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart();
 }
 async function signOut() { if(realtimeChannel && sbClient) sbClient.removeChannel(realtimeChannel); if(sbClient) await sbClient.auth.signOut(); location.reload(); }
 function clearCreds() { localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key'); location.reload(); }
@@ -2237,9 +2259,9 @@ function renderCategoryPie() {
   const el = document.getElementById('report-category-pie');
   if (!el) return;
 
-  // Aggregate by category
+  // Aggregate by category using filtered tickets
   const counts = {};
-  tickets.forEach(t => {
+  reportTickets().forEach(t => {
     const cat = (t.category || 'General').trim();
     counts[cat] = (counts[cat] || 0) + 1;
   });
@@ -2323,39 +2345,58 @@ function renderTimeChart() {
 
   const now = new Date();
 
+  // Find earliest ticket date to use as chart start
+  const rTickets = reportTickets();
+  const earliest = rTickets.length
+    ? new Date(Math.min(...rTickets.map(t => new Date(t.created_at).getTime())))
+    : now;
+
   // Build bucket keys and labels
   const buckets = {};
   const labels  = [];
 
   if (timeView === 'week') {
-    // Last 12 weeks
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i * 7);
-      // Start of that week (Monday)
-      const day = d.getDay() || 7;
-      d.setDate(d.getDate() - day + 1);
-      const key = d.toISOString().slice(0, 10);
+    // Start from the Monday of the week containing the earliest ticket
+    const start = new Date(earliest);
+    const day = start.getDay() || 7;
+    start.setDate(start.getDate() - day + 1);
+    start.setHours(0, 0, 0, 0);
+
+    // Build weekly buckets from start to current week
+    const cursor = new Date(start);
+    while (cursor <= now) {
+      const key = cursor.toISOString().slice(0, 10);
       buckets[key] = 0;
-      // Label: "6 Jun"
-      labels.push(d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+      labels.push(cursor.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+      cursor.setDate(cursor.getDate() + 7);
     }
-    tickets.forEach(t => {
+
+    rTickets.forEach(t => {
       const created = new Date(t.created_at);
-      const day = created.getDay() || 7;
-      created.setDate(created.getDate() - day + 1);
+      const d = created.getDay() || 7;
+      created.setDate(created.getDate() - d + 1);
+      created.setHours(0, 0, 0, 0);
       const key = created.toISOString().slice(0, 10);
       if (key in buckets) buckets[key]++;
     });
+
   } else {
-    // Last 12 months
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = d.toISOString().slice(0, 7); // "2026-01"
+    // Start from the month of the earliest ticket
+    const startYear  = earliest.getFullYear();
+    const startMonth = earliest.getMonth();
+    const endYear    = now.getFullYear();
+    const endMonth   = now.getMonth();
+
+    for (let y = startYear, m = startMonth; y < endYear || (y === endYear && m <= endMonth); ) {
+      const d = new Date(y, m, 1);
+      const key = d.toISOString().slice(0, 7);
       buckets[key] = 0;
       labels.push(d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }));
+      m++;
+      if (m > 11) { m = 0; y++; }
     }
-    tickets.forEach(t => {
+
+    rTickets.forEach(t => {
       const key = t.created_at?.slice(0, 7);
       if (key in buckets) buckets[key]++;
     });
@@ -2366,6 +2407,7 @@ function renderTimeChart() {
   const BAR_W  = 36;
   const GAP    = 8;
   const H      = 120;
+  const TOP    = 18; // padding above tallest bar for count labels
   const total  = values.length;
   const W      = total * (BAR_W + GAP);
 
@@ -2376,14 +2418,14 @@ function renderTimeChart() {
     const color = v === 0 ? 'var(--border2)' : 'var(--accent)';
     return `
       <g>
-        <rect x="${x}" y="${H - barH}" width="${BAR_W}" height="${barH}" rx="3" fill="${color}"/>
-        ${v > 0 ? `<text x="${x + BAR_W/2}" y="${H - barH - 4}" text-anchor="middle" font-size="10" fill="var(--text2)" font-family="var(--font)">${v}</text>` : ''}
-        <text x="${x + BAR_W/2}" y="${H + 14}" text-anchor="middle" font-size="10" fill="var(--text3)" font-family="var(--font)">${label}</text>
+        <rect x="${x}" y="${TOP + H - barH}" width="${BAR_W}" height="${barH}" rx="3" fill="${color}"/>
+        ${v > 0 ? `<text x="${x + BAR_W/2}" y="${TOP + H - barH - 4}" text-anchor="middle" font-size="10" fill="var(--text2)" font-family="var(--font)">${v}</text>` : ''}
+        <text x="${x + BAR_W/2}" y="${TOP + H + 14}" text-anchor="middle" font-size="10" fill="var(--text3)" font-family="var(--font)">${label}</text>
       </g>`;
   }).join('');
 
   el.innerHTML = `
-    <svg viewBox="0 0 ${W} ${H + 24}" width="${Math.max(W, 200)}" height="${H + 24}"
+    <svg viewBox="0 0 ${W} ${TOP + H + 24}" width="${Math.max(W, 200)}" height="${TOP + H + 24}"
          style="min-width:100%;overflow:visible" xmlns="http://www.w3.org/2000/svg">
       ${bars}
     </svg>`;
@@ -2391,14 +2433,15 @@ function renderTimeChart() {
 
 function renderReports() {
   renderCategoryPie();
+  const rTickets = reportTickets();
   const statuses=['open','in_progress','waiting','resolved'];
   const priorities=['critical','high','medium','low'];
-  const max=Math.max(...statuses.map(s=>tickets.filter(t=>t.status===s).length),1);
-  const pmax=Math.max(...priorities.map(p=>tickets.filter(t=>t.priority===p).length),1);
+  const max=Math.max(...statuses.map(s=>rTickets.filter(t=>t.status===s).length),1);
+  const pmax=Math.max(...priorities.map(p=>rTickets.filter(t=>t.priority===p).length),1);
   const sc={open:'var(--accent)',in_progress:'var(--purple)',waiting:'var(--warn)',resolved:'var(--success)'};
   const pc={critical:'#E24B4A',high:'#EF9F27',medium:'#378ADD',low:'#9e9a94'};
-  document.getElementById('report-status-bars').innerHTML=statuses.map(s=>{const c=tickets.filter(t=>t.status===s).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${sLabel(s)}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/max*100)}%;height:100%;background:${sc[s]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
-  document.getElementById('report-priority-bars').innerHTML=priorities.map(p=>{const c=tickets.filter(t=>t.priority===p).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${p}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/pmax*100)}%;height:100%;background:${pc[p]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
+  document.getElementById('report-status-bars').innerHTML=statuses.map(s=>{const c=rTickets.filter(t=>t.status===s).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${sLabel(s)}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/max*100)}%;height:100%;background:${sc[s]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
+  document.getElementById('report-priority-bars').innerHTML=priorities.map(p=>{const c=rTickets.filter(t=>t.priority===p).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${p}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/pmax*100)}%;height:100%;background:${pc[p]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
 
   // Average resolution time by priority
   const fmtDur = ms => {
@@ -2407,7 +2450,7 @@ function renderReports() {
     if (h < 24)  return h.toFixed(1) + ' hrs';
     return (h / 24).toFixed(1) + ' days';
   };
-  const resolved = tickets.filter(t => t.status === 'resolved');
+  const resolved = rTickets.filter(t => t.status === 'resolved');
   const resEl = document.getElementById('report-resolution-time');
   if (!resEl) return;
   if (!resolved.length) {
@@ -2462,7 +2505,7 @@ function renderReports() {
     return;
   }
   const agentData = staff.map(agent => {
-    const assigned  = tickets.filter(t => t.assignee_id === agent.id);
+    const assigned  = rTickets.filter(t => t.assignee_id === agent.id);
     const open      = assigned.filter(t => t.status !== 'resolved').length;
     const resolved  = assigned.filter(t => t.status === 'resolved');
     const withTimes = resolved.filter(t => t.created_at && t.updated_at);
@@ -2563,7 +2606,7 @@ async function initSupabase() {
       if (rb) rb.textContent = prof?.role === 'super_admin' ? 'Super Admin' : 'Admin';
       applyRoleUI(prof?.role);
       document.getElementById('app').style.display = 'flex';
-      loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout();
+      loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart();
     } else {
       showAuthScreen();
       loadVersion();
@@ -3787,6 +3830,48 @@ function lbKeyHandler(e) {
 
 /* ── Session / Idle Timeout ── */
 const TIMEOUT_KEY    = 'session_timeout_minutes';
+
+/* ── Reports baseline (start ticket number) ── */
+const REPORT_START_KEY = 'report_start_ticket';
+let   reportStartTicket = 1; // tickets with number < this are excluded from reports
+
+async function loadReportStart() {
+  const el = document.getElementById('settings-report-start');
+  if (demoMode) { if (el) el.value = 1; return; }
+  try {
+    const { data } = await sbClient.from('app_settings').select('value').eq('key', REPORT_START_KEY).maybeSingle();
+    const val = data?.value ? parseInt(data.value) : 1;
+    reportStartTicket = isNaN(val) || val < 1 ? 1 : val;
+    if (el) el.value = reportStartTicket;
+  } catch { reportStartTicket = 1; }
+}
+
+async function saveReportStart() {
+  const el  = document.getElementById('settings-report-start');
+  const msg = document.getElementById('report-start-saved');
+  const val = parseInt(el?.value);
+  if (isNaN(val) || val < 1) { toast('Enter a valid ticket number (minimum 1)'); return; }
+  if (demoMode) {
+    reportStartTicket = val;
+    if (msg) msg.textContent = '✓ Saved (demo only)';
+    toast('Reports baseline saved (demo)');
+    setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
+    return;
+  }
+  const { error } = await sbClient.from('app_settings')
+    .upsert({ key: REPORT_START_KEY, value: String(val) }, { onConflict: 'key' });
+  if (error) { toast('Error: ' + error.message); return; }
+  reportStartTicket = val;
+  if (msg) { msg.textContent = '✓ Saved'; setTimeout(() => { if (msg) msg.textContent = ''; }, 3000); }
+  toast('Reports will now start from ticket #' + val);
+  // Re-render reports if currently visible
+  if (document.getElementById('page-reports')?.classList.contains('active')) renderReports();
+}
+
+// Helper — returns tickets filtered by report baseline
+function reportTickets() {
+  return tickets.filter(t => (t.ticket_number || 0) >= reportStartTicket);
+}
 const TIMEOUT_DEFAULT = 30;
 let   _idleTimer     = null;
 let   _idleMinutes   = TIMEOUT_DEFAULT;
