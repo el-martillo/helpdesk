@@ -855,8 +855,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </div>
 
 
-          </div>
-
           <!-- Reports start ticket -->
           <div class="table-card" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Reports baseline</div>
@@ -3221,9 +3219,9 @@ function renderTicketCompanies() {
   const el = document.getElementById('ticket-companies-list');
   if (!el) return;
 
-  // Build a map of company → { total, open } from the loaded tickets array
+  // Build a map of company → { total, open } from the filtered tickets array
   const map = {};
-  tickets.forEach(t => {
+  reportTickets().forEach(t => {
     const req = demoMode ? profileById(t.requester_id) : (t.requester || {});
     const co  = req?.company?.trim();
     if (!co) return;
