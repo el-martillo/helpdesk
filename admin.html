@@ -1696,7 +1696,7 @@ async function loadTickets() {
   if (demoMode) { renderTable(); updateStats(); updateBadges(); renderDashboard(); return; }
   document.getElementById('admin-tbody').innerHTML='<tr class="loading-row"><td colspan="8"><div class="loader"></div></td></tr>';
   const {data,error} = await sbClient.from('tickets')
-    .select('*, requester:profiles!requester_id(id,full_name,company), assignee:profiles!assignee_id(id,full_name,company)')
+    .select('*, requester:profiles!requester_id(id,full_name,email,phone,company), assignee:profiles!assignee_id(id,full_name)')
     .order('updated_at',{ascending:false});
   if (error) { toast('Error: '+error.message); return; }
   tickets = data||[]; renderTable(); updateStats(); updateBadges(); renderDashboard(); if(document.getElementById('page-reports')?.classList.contains('active')) renderTicketCompanies();
