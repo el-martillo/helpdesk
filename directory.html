@@ -113,7 +113,7 @@ html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--t
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
 /* Footer */
-.footer{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--surface);border-top:1px solid var(--border);padding:0 24px;height:40px;display:flex;align-items:center;justify-content:center;gap:24px;font-size:12px;color:var(--text3)}
+.footer{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--surface);border-top:1px solid var(--border);padding:0 24px;height:40px;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text3)}
 .footer a{color:var(--accent);text-decoration:none}
 .footer a:hover{text-decoration:underline}
 .footer-sep{color:var(--border2)}
@@ -697,8 +697,11 @@ async function initSharedNav() {
       const w = (name||'').trim().split(/\s+/);
       return w.length < 2 ? (w[0]||'?').slice(0,2).toUpperCase() : (w[0][0]+w[w.length-1][0]).toUpperCase();
     }
-    // Read session from sessionStorage (pages use sessionStorage for auth)
-    const storageKey = Object.keys(sessionStorage).find(k => k.includes('auth-token') && k.includes('supabase'));
+    // Read session from sessionStorage — Supabase SDK stores as sb-[project-ref]-auth-token
+    const SUPABASE_SESSION_KEY = 'sb-gtcrmqbmlvtlyiwnshma-auth-token';
+    const storageKey = sessionStorage.getItem(SUPABASE_SESSION_KEY) 
+      ? SUPABASE_SESSION_KEY 
+      : Object.keys(sessionStorage).find(k => k.includes('auth-token'));
     if (!storageKey) return;
     let session;
     try { session = JSON.parse(sessionStorage.getItem(storageKey)); } catch(e) { return; }
@@ -735,7 +738,9 @@ async function initSharedNav() {
 
 async function sharedSignOut() {
   try {
-    const storageKey = Object.keys(sessionStorage).find(k => k.includes('auth-token') && k.includes('supabase'));
+    const storageKey = sessionStorage.getItem('sb-gtcrmqbmlvtlyiwnshma-auth-token') 
+      ? 'sb-gtcrmqbmlvtlyiwnshma-auth-token'
+      : Object.keys(sessionStorage).find(k => k.includes('auth-token'));
     const token = storageKey ? JSON.parse(sessionStorage.getItem(storageKey))?.access_token : null;
     if (token) {
       await fetch(`${SB_URL}/auth/v1/logout`, {
