@@ -4894,37 +4894,47 @@ function setAuditSort(key) {
 function formatAuditDetails(raw) {
   if (!raw) return '—';
 
-  // Try to parse as JSON diff {old:{...}, new:{...}}
   let parsed;
   try { parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { return esc(raw); }
+  if (!parsed || typeof parsed !== 'object') return esc(String(parsed));
 
-  // Skip noisy / internal fields
+  // Fields never worth showing
   const SKIP = new Set(['id','created_at','updated_at','requester_id','assignee_id',
     'attachment_url','attachment_urls','merged_ticket_ids','merged_into',
     'source','company','organisation','contact_email','contact_phone',
     'description','subject','ticket_number']);
 
-  if (parsed && typeof parsed === 'object' && ('old' in parsed || 'new' in parsed)) {
-    const oldR = parsed.old || {};
-    const newR = parsed.new || {};
-    const allKeys = new Set([...Object.keys(oldR), ...Object.keys(newR)]);
-    const changes = [];
-    for (const k of allKeys) {
-      if (SKIP.has(k)) continue;
-      const ov = oldR[k], nv = newR[k];
-      if (JSON.stringify(ov) === JSON.stringify(nv)) continue;
-      const fmt = v => v === null || v === undefined ? '<em style="color:var(--text3)">none</em>' : `<strong>${esc(String(v))}</strong>`;
-      changes.push(`${esc(k)}: ${fmt(ov)} → ${fmt(nv)}`);
-    }
-    if (changes.length) return `<div style="line-height:1.7">${changes.join('<br>')}</div>`;
+  const fmt = v => (v === null || v === undefined)
+    ? '<em style="color:var(--text3)">none</em>'
+    : `<strong>${esc(String(v))}</strong>`;
 
-    // No tracked fields changed — show a short summary of what did change
-    const allChanged = [...allKeys].filter(k => JSON.stringify(oldR[k]) !== JSON.stringify(newR[k]));
-    if (allChanged.length) return `<span style="color:var(--text3)">${esc(allChanged.join(', '))} updated</span>`;
-    return '<span style="color:var(--text3)">no changes detected</span>';
+  // New format: {op:'update', changes:{field:{old,new}, ...}}
+  if (parsed.op === 'update' && parsed.changes) {
+    const lines = Object.entries(parsed.changes)
+      .filter(([k]) => !SKIP.has(k))
+      .map(([k, v]) => `${esc(k)}: ${fmt(v?.old)} → ${fmt(v?.new)}`);
+    if (lines.length) return `<div style="line-height:1.8">${lines.join('<br>')}</div>`;
+    return '<span style="color:var(--text3)">internal fields updated</span>';
   }
 
-  // Plain string or simple object — just show it clean
+  if (parsed.op === 'insert') return '<span style="color:var(--success)">Record created</span>';
+  if (parsed.op === 'delete') return '<span style="color:var(--danger)">Record deleted</span>';
+
+  // Legacy format: {old:{...}, new:{...}}
+  if ('old' in parsed || 'new' in parsed) {
+    const oldR = parsed.old || {}, newR = parsed.new || {};
+    const allKeys = new Set([...Object.keys(oldR), ...Object.keys(newR)]);
+    const lines = [];
+    for (const k of allKeys) {
+      if (SKIP.has(k)) continue;
+      if (JSON.stringify(oldR[k]) === JSON.stringify(newR[k])) continue;
+      lines.push(`${esc(k)}: ${fmt(oldR[k])} → ${fmt(newR[k])}`);
+    }
+    if (lines.length) return `<div style="line-height:1.8">${lines.join('<br>')}</div>`;
+    return '<span style="color:var(--text3)">internal fields updated</span>';
+  }
+
+  // Plain string
   if (typeof parsed === 'string') return esc(parsed);
   return `<span style="color:var(--text3);font-size:11px;font-family:var(--mono)">${esc(JSON.stringify(parsed))}</span>`;
 }
