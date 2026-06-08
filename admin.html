@@ -317,14 +317,19 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .merge-ticket-row .mtid { font-family:var(--mono); font-size:11px; color:var(--text3); flex-shrink:0; width:36px; }
 .merge-ticket-row .msubj { font-size:12px; font-weight:500; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .merge-ticket-row .mstatus { flex-shrink:0; }
-/* Keyboard shortcut badges & tooltips */
+/* Time chart view toggle */
+.time-view-btn, .agent-month-btn { color:var(--text2); }
+.time-view-btn.active-tv, .agent-month-btn.active-tv { background:var(--accent); color:#fff; border-color:var(--accent); }
+.time-chart-tooltip { position:fixed; background:var(--text1); color:var(--surface); font-size:11px; font-weight:500; padding:6px 10px; border-radius:6px; pointer-events:none; opacity:0; transition:opacity .1s; z-index:600; white-space:nowrap; font-family:var(--font); }
 .kbd { display:inline-flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:10px; font-weight:700; line-height:1; padding:2px 5px; border-radius:4px; background:rgba(0,0,0,.12); color:inherit; border:1px solid rgba(0,0,0,.15); margin-left:5px; vertical-align:middle; }
 @media (prefers-color-scheme: dark) { .kbd { background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.15); } }
 [data-tip] { position:relative; }
-[data-tip]::after { content:attr(data-tip); position:absolute; bottom:calc(100% + 7px); left:50%; transform:translateX(-50%); background:var(--text1); color:var(--surface); font-size:11px; font-weight:500; white-space:nowrap; padding:5px 9px; border-radius:6px; pointer-events:none; opacity:0; transition:opacity .15s; z-index:500; font-family:var(--font); }
-[data-tip]::before { content:''; position:absolute; bottom:calc(100% + 2px); left:50%; transform:translateX(-50%); border:5px solid transparent; border-top-color:var(--text1); pointer-events:none; opacity:0; transition:opacity .15s; z-index:500; }
+[data-tip]::after { content:attr(data-tip); position:absolute; bottom:calc(100% + 9px); left:50%; transform:translateX(-50%); background:var(--text1); color:var(--surface); font-size:11px; font-weight:500; white-space:nowrap; padding:5px 9px; border-radius:6px; pointer-events:none; opacity:0; transition:opacity .15s; z-index:500; font-family:var(--font); }
+[data-tip]::before { content:''; position:absolute; bottom:calc(100% + 3px); left:50%; transform:translateX(-50%); border:5px solid transparent; border-top-color:var(--text1); pointer-events:none; opacity:0; transition:opacity .15s; z-index:501; }
 [data-tip]:hover::after, [data-tip]:hover::before { opacity:1; }
+
 </style>
+
 </head>
 <body>
 
@@ -825,13 +830,34 @@ textarea.fc { resize: vertical; min-height: 80px; }
           <!-- Tickets over time -->
           <div class="table-card" style="padding:20px;grid-column:1/-1">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-              <div style="font-size:13px;font-weight:600">Tickets over time</div>
-              <div style="display:flex;gap:6px">
-                <button class="btn sm" id="time-view-week"  onclick="setTimeView('week')"  style="background:var(--accent);color:#fff;border-color:var(--accent)">Weekly</button>
-                <button class="btn sm" id="time-view-month" onclick="setTimeView('month')">Monthly</button>
+              <div>
+                <div style="font-size:13px;font-weight:600">Tickets over time</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px" id="time-chart-sub">Tickets created per day</div>
+              </div>
+              <div style="display:flex;gap:4px" id="time-view-btns">
+                <button class="btn sm time-view-btn active-tv" id="time-view-30d"   onclick="setTimeView('30d')" >Last 30 days</button>
+                <button class="btn sm time-view-btn"           id="time-view-90d"   onclick="setTimeView('90d')" >Last 90 days</button>
+                <button class="btn sm time-view-btn"           id="time-view-week"  onclick="setTimeView('week')">Weekly</button>
+                <button class="btn sm time-view-btn"           id="time-view-month" onclick="setTimeView('month')">Monthly</button>
               </div>
             </div>
-            <div id="report-time-chart" style="overflow-x:auto"></div>
+            <div id="report-time-chart" style="overflow-x:auto;position:relative"></div>
+          </div>
+
+          <!-- Agent performance (full width) -->
+          <div class="table-card" style="padding:20px;grid-column:1/-1" id="agent-perf-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px">
+              <div>
+                <div style="font-size:13px;font-weight:600">Agent performance</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px" id="agent-perf-sub">Resolutions, avg resolution time &amp; monthly breakdown</div>
+              </div>
+              <div style="display:flex;gap:4px">
+                <button class="btn sm agent-month-btn active-tv" id="ap-btn-3"  onclick="setAgentPerfMonths(3)">3 months</button>
+                <button class="btn sm agent-month-btn"           id="ap-btn-6"  onclick="setAgentPerfMonths(6)">6 months</button>
+                <button class="btn sm agent-month-btn"           id="ap-btn-12" onclick="setAgentPerfMonths(12)">12 months</button>
+              </div>
+            </div>
+            <div id="report-agent-perf-full" style="margin-top:16px;overflow-x:auto"></div>
           </div>
 
         </div>
@@ -3008,11 +3034,12 @@ function renderCategoryPie() {
 }
 
 /* ── Tickets over time ── */
-let timeView = 'week';
+let timeView = '30d';
 function setTimeView(v) {
   timeView = v;
-  document.getElementById('time-view-week').style.cssText  = v==='week'  ? 'background:var(--accent);color:#fff;border-color:var(--accent)' : '';
-  document.getElementById('time-view-month').style.cssText = v==='month' ? 'background:var(--accent);color:#fff;border-color:var(--accent)' : '';
+  document.querySelectorAll('.time-view-btn').forEach(b => b.classList.remove('active-tv'));
+  const btn = document.getElementById('time-view-' + v);
+  if (btn) btn.classList.add('active-tv');
   renderTimeChart();
 }
 
@@ -3020,92 +3047,181 @@ function renderTimeChart() {
   const el = document.getElementById('report-time-chart');
   if (!el) return;
 
-  const now = new Date();
-
-  // Find earliest ticket date to use as chart start
+  const now   = new Date();
   const rTickets = reportTickets();
-  const earliest = rTickets.length
-    ? new Date(Math.min(...rTickets.map(t => new Date(t.created_at).getTime())))
-    : now;
 
-  // Build bucket keys and labels
-  const buckets = {};
+  // ── Build buckets ──────────────────────────────────────────────────────────
+  const buckets = {};   // key → { created: 0, resolved: 0 }
   const labels  = [];
+  const keys    = [];
 
-  if (timeView === 'week') {
-    // Start from the Monday of the week containing the earliest ticket
+  const ensureBucket = k => { if (!buckets[k]) buckets[k] = { created: 0, resolved: 0 }; };
+
+  if (timeView === '30d' || timeView === '90d') {
+    const days = timeView === '30d' ? 30 : 90;
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const k = d.toISOString().slice(0, 10);
+      ensureBucket(k);
+      keys.push(k);
+      // Label: every 7th day for 90d, every 5th for 30d
+      const interval = timeView === '90d' ? 10 : 5;
+      labels.push((days - 1 - i) % interval === 0 || i === 0
+        ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+        : '');
+    }
+    rTickets.forEach(t => {
+      const ck = t.created_at?.slice(0, 10);
+      if (ck && buckets[ck]) buckets[ck].created++;
+      if (t.status === 'resolved' && t.updated_at) {
+        const rk = t.updated_at.slice(0, 10);
+        if (rk && buckets[rk]) buckets[rk].resolved++;
+      }
+    });
+
+  } else if (timeView === 'week') {
+    const earliest = rTickets.length
+      ? new Date(Math.min(...rTickets.map(t => new Date(t.created_at).getTime())))
+      : now;
     const start = new Date(earliest);
     const day = start.getDay() || 7;
     start.setDate(start.getDate() - day + 1);
     start.setHours(0, 0, 0, 0);
-
-    // Build weekly buckets from start to current week
     const cursor = new Date(start);
     while (cursor <= now) {
-      const key = cursor.toISOString().slice(0, 10);
-      buckets[key] = 0;
+      const k = cursor.toISOString().slice(0, 10);
+      ensureBucket(k); keys.push(k);
       labels.push(cursor.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
       cursor.setDate(cursor.getDate() + 7);
     }
-
     rTickets.forEach(t => {
       const created = new Date(t.created_at);
       const d = created.getDay() || 7;
-      created.setDate(created.getDate() - d + 1);
-      created.setHours(0, 0, 0, 0);
-      const key = created.toISOString().slice(0, 10);
-      if (key in buckets) buckets[key]++;
+      created.setDate(created.getDate() - d + 1); created.setHours(0, 0, 0, 0);
+      const ck = created.toISOString().slice(0, 10);
+      if (ck in buckets) buckets[ck].created++;
+      if (t.status === 'resolved' && t.updated_at) {
+        const ru = new Date(t.updated_at);
+        const rd = ru.getDay() || 7;
+        ru.setDate(ru.getDate() - rd + 1); ru.setHours(0, 0, 0, 0);
+        const rk = ru.toISOString().slice(0, 10);
+        if (rk in buckets) buckets[rk].resolved++;
+      }
     });
 
-  } else {
-    // Start from the month of the earliest ticket
-    const startYear  = earliest.getFullYear();
-    const startMonth = earliest.getMonth();
-    const endYear    = now.getFullYear();
-    const endMonth   = now.getMonth();
-
-    for (let y = startYear, m = startMonth; y < endYear || (y === endYear && m <= endMonth); ) {
+  } else { // month
+    const earliest = rTickets.length
+      ? new Date(Math.min(...rTickets.map(t => new Date(t.created_at).getTime())))
+      : now;
+    let y = earliest.getFullYear(), m = earliest.getMonth();
+    const ey = now.getFullYear(), em = now.getMonth();
+    while (y < ey || (y === ey && m <= em)) {
       const d = new Date(y, m, 1);
-      const key = d.toISOString().slice(0, 7);
-      buckets[key] = 0;
+      const k = d.toISOString().slice(0, 7);
+      ensureBucket(k); keys.push(k);
       labels.push(d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }));
-      m++;
-      if (m > 11) { m = 0; y++; }
+      m++; if (m > 11) { m = 0; y++; }
     }
-
     rTickets.forEach(t => {
-      const key = t.created_at?.slice(0, 7);
-      if (key in buckets) buckets[key]++;
+      const ck = t.created_at?.slice(0, 7);
+      if (ck && buckets[ck]) buckets[ck].created++;
+      if (t.status === 'resolved' && t.updated_at) {
+        const rk = t.updated_at.slice(0, 6) === t.updated_at.slice(0, 6) ? t.updated_at.slice(0, 7) : null;
+        if (rk && buckets[rk]) buckets[rk].resolved++;
+      }
     });
   }
 
-  const values = Object.values(buckets);
-  const maxVal = Math.max(...values, 1);
-  const BAR_W  = 36;
-  const GAP    = 8;
-  const H      = 120;
-  const TOP    = 18; // padding above tallest bar for count labels
-  const total  = values.length;
-  const W      = total * (BAR_W + GAP);
+  // ── Chart dimensions ───────────────────────────────────────────────────────
+  const createdVals  = keys.map(k => buckets[k].created);
+  const resolvedVals = keys.map(k => buckets[k].resolved);
+  const allVals      = [...createdVals, ...resolvedVals];
+  const maxVal       = Math.max(...allVals, 1);
 
-  const bars = values.map((v, i) => {
-    const barH  = Math.max(Math.round((v / maxVal) * H), v > 0 ? 4 : 0);
-    const x     = i * (BAR_W + GAP);
-    const label = labels[i];
-    const color = v === 0 ? 'var(--border2)' : 'var(--accent)';
-    return `
-      <g>
-        <rect x="${x}" y="${TOP + H - barH}" width="${BAR_W}" height="${barH}" rx="3" fill="${color}"/>
-        ${v > 0 ? `<text x="${x + BAR_W/2}" y="${TOP + H - barH - 4}" text-anchor="middle" font-size="10" fill="var(--text2)" font-family="var(--font)">${v}</text>` : ''}
-        <text x="${x + BAR_W/2}" y="${TOP + H + 14}" text-anchor="middle" font-size="10" fill="var(--text3)" font-family="var(--font)">${label}</text>
-      </g>`;
+  const total   = keys.length;
+  const BAR_W   = timeView === '90d' ? 10 : timeView === '30d' ? 20 : 36;
+  const GAP     = timeView === '90d' ?  3 : timeView === '30d' ?  5 :  8;
+  const H       = 140;
+  const TOP     = 24;   // space above bars for count labels
+  const BOTTOM  = 32;   // space below bars for date labels
+  const W       = total * (BAR_W + GAP);
+
+  // Gridlines at 25%, 50%, 75%, 100%
+  const gridLines = [0.25, 0.5, 0.75, 1].map(f => {
+    const y = TOP + H - Math.round(f * H);
+    const val = Math.round(f * maxVal);
+    return `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="var(--border)" stroke-width="1"/>
+            <text x="-4" y="${y + 3.5}" text-anchor="end" font-size="9" fill="var(--text3)" font-family="var(--font)">${val}</text>`;
   }).join('');
 
+  // Bars (created = accent, resolved = success, side by side for day/week, stacked for month)
+  const showResolved = timeView !== 'month'; // side-by-side only in day views
+  const barSlot = showResolved ? Math.floor(BAR_W / 2) - 1 : BAR_W;
+
+  const bars = keys.map((k, i) => {
+    const cv = createdVals[i];
+    const rv = resolvedVals[i];
+    const x  = i * (BAR_W + GAP);
+    const label = labels[i];
+
+    const cH = Math.max(Math.round((cv / maxVal) * H), cv > 0 ? 3 : 0);
+    const rH = Math.max(Math.round((rv / maxVal) * H), rv > 0 ? 3 : 0);
+
+    const cBar = cv > 0 ? `<rect class="tc-bar" x="${x}" y="${TOP + H - cH}" width="${showResolved ? barSlot : BAR_W}" height="${cH}" rx="2" fill="var(--accent)" data-label="${label||k}" data-created="${cv}" data-resolved="${rv}"/>` : '';
+    const rBar = (showResolved && rv > 0) ? `<rect class="tc-bar" x="${x + barSlot + 2}" y="${TOP + H - rH}" width="${barSlot}" height="${rH}" rx="2" fill="var(--success)" data-label="${label||k}" data-created="${cv}" data-resolved="${rv}"/>` : '';
+
+    // Count label above bar (only for non-zero, non-tiny bars, skip in 90d for space)
+    const showLabel = timeView !== '90d';
+    const cLabel = (showLabel && cv > 0) ? `<text x="${x + (showResolved ? barSlot/2 : BAR_W/2)}" y="${TOP + H - cH - 4}" text-anchor="middle" font-size="9" fill="var(--text2)" font-family="var(--font)">${cv}</text>` : '';
+
+    // Date label
+    const dLabel = label ? `<text x="${x + BAR_W/2}" y="${TOP + H + 16}" text-anchor="middle" font-size="9" fill="var(--text3)" font-family="var(--font)">${label}</text>` : '';
+
+    return `<g>${cBar}${rBar}${cLabel}${dLabel}</g>`;
+  }).join('');
+
+  // Legend
+  const legendCreated  = `<rect x="0" y="0" width="10" height="10" rx="2" fill="var(--accent)"/><text x="14" y="9" font-size="10" fill="var(--text2)" font-family="var(--font)">Created</text>`;
+  const legendResolved = showResolved ? `<rect x="72" y="0" width="10" height="10" rx="2" fill="var(--success)"/><text x="86" y="9" font-size="10" fill="var(--text2)" font-family="var(--font)">Resolved</text>` : '';
+  const legendW = showResolved ? 160 : 80;
+  const legendX = Math.max(W - legendW, 0);
+
+  // Summary line
+  const totalCreated  = createdVals.reduce((a, b) => a + b, 0);
+  const totalResolved = resolvedVals.reduce((a, b) => a + b, 0);
+  const sub = document.getElementById('time-chart-sub');
+  if (sub) {
+    const periodLabel = timeView === '30d' ? 'last 30 days' : timeView === '90d' ? 'last 90 days' : timeView === 'week' ? 'by week' : 'by month';
+    sub.textContent = `${totalCreated} ticket${totalCreated !== 1 ? 's' : ''} created${showResolved ? `, ${totalResolved} resolved` : ''} — ${periodLabel}`;
+  }
+
   el.innerHTML = `
-    <svg viewBox="0 0 ${W} ${TOP + H + 24}" width="${Math.max(W, 200)}" height="${TOP + H + 24}"
+    <svg id="tc-svg" viewBox="-24 0 ${W + 28} ${TOP + H + BOTTOM}" width="${Math.max(W + 28, 300)}" height="${TOP + H + BOTTOM}"
          style="min-width:100%;overflow:visible" xmlns="http://www.w3.org/2000/svg">
+      ${gridLines}
       ${bars}
-    </svg>`;
+      <g transform="translate(${legendX}, 0)">${legendCreated}${legendResolved}</g>
+    </svg>
+    <div class="time-chart-tooltip" id="tc-tooltip"></div>`;
+
+  // Tooltip interaction
+  const tooltip = document.getElementById('tc-tooltip');
+  el.querySelectorAll('.tc-bar').forEach(bar => {
+    bar.style.cursor = 'default';
+    bar.addEventListener('mouseenter', e => {
+      const lbl      = bar.dataset.label;
+      const created  = bar.dataset.created;
+      const resolved = bar.dataset.resolved;
+      tooltip.innerHTML = `<strong>${lbl}</strong><br>Created: ${created}${showResolved ? `<br>Resolved: ${resolved}` : ''}`;
+      tooltip.style.opacity = '1';
+    });
+    bar.addEventListener('mousemove', e => {
+      tooltip.style.left = (e.clientX + 12) + 'px';
+      tooltip.style.top  = (e.clientY - 36) + 'px';
+    });
+    bar.addEventListener('mouseleave', () => { tooltip.style.opacity = '0'; });
+  });
 }
 
 function renderReports() {
@@ -3173,64 +3289,155 @@ function renderReports() {
         <div style="width:70px;text-align:right;font-weight:600">${fmtDur(avg)}</div>
         <div style="width:40px;text-align:right;font-size:11px;color:var(--text3)">${count} ticket${count!==1?'s':''}</div>
       </div>`).join('')}`;
-  // Agent performance
+  // Legacy small agent performance card (kept for compatibility, now hidden via card replacement)
   const agentPerf = document.getElementById('report-agent-performance');
-  if (!agentPerf) return;
-  const staff = profiles.filter(p => p.role === 'admin' || p.role === 'super_admin');
-  if (!staff.length) {
-    agentPerf.innerHTML = '<div style="padding:20px 0;text-align:center;font-size:13px;color:var(--text3)">No agents found.</div>';
-    return;
-  }
-  const agentData = staff.map(agent => {
-    const assigned  = rTickets.filter(t => t.assignee_id === agent.id);
-    const open      = assigned.filter(t => t.status !== 'resolved').length;
-    const resolved  = assigned.filter(t => t.status === 'resolved');
-    const withTimes = resolved.filter(t => t.created_at && t.updated_at);
-    const avgMs     = withTimes.length
-      ? withTimes.reduce((s,t) => s + (new Date(t.updated_at)-new Date(t.created_at)), 0) / withTimes.length
-      : null;
-    return { agent, total: assigned.length, open, resolved: resolved.length, avgMs };
-  }).sort((a,b) => b.resolved - a.resolved);
-  const maxTotal    = Math.max(...agentData.map(x => x.total), 1);
-  const maxResolved = Math.max(...agentData.map(x => x.resolved), 1);
-  if (!agentData.length) {
-    agentPerf.innerHTML = '<div style="padding:20px 0;text-align:center;font-size:13px;color:var(--text3)">No data yet.</div>';
-    return;
-  }
-  agentPerf.innerHTML = `
-    <div style="display:grid;grid-template-columns:180px 1fr 1fr 90px;gap:0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:0 0 10px;border-bottom:1px solid var(--border);margin-bottom:12px">
-      <div>Agent</div><div>Tech assigned</div><div>Resolved</div><div style="text-align:right">Avg time</div>
-    </div>
-    ${agentData.map(({agent, total, open, resolved, avgMs}) => `
-    <div style="display:grid;grid-template-columns:180px 1fr 1fr 90px;gap:0;align-items:center;margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <div class="avatar ${avColor(agent.id)}" style="width:26px;height:26px;font-size:10px;flex-shrink:0">${initials(agent.full_name)}</div>
-        <div>
-          <div style="font-size:12px;font-weight:500">${agent.full_name}</div>
-          <div style="font-size:10px;color:var(--text3)">${agent.role==='super_admin'?'Super Admin':'Admin'}</div>
-        </div>
-      </div>
-      <div style="padding-right:20px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden">
-            <div style="width:${Math.round(total/maxTotal*100)}%;height:100%;background:var(--accent);border-radius:4px"></div>
-          </div>
-          <div style="font-size:12px;font-weight:600;width:24px;text-align:right">${total}</div>
-        </div>
-        <div style="font-size:10px;color:var(--text3);margin-top:2px">${open} open</div>
-      </div>
-      <div style="padding-right:20px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden">
-            <div style="width:${Math.round(resolved/maxResolved*100)}%;height:100%;background:var(--success);border-radius:4px"></div>
-          </div>
-          <div style="font-size:12px;font-weight:600;width:24px;text-align:right">${resolved}</div>
-        </div>
-        <div style="font-size:10px;color:var(--text3);margin-top:2px">${total?Math.round(resolved/total*100):0}% resolution rate</div>
-      </div>
-      <div style="text-align:right;font-size:12px;font-weight:600;color:${avgMs!==null?'var(--success)':'var(--text3)'}">${avgMs!==null?fmtDur(avgMs):'—'}</div>
-    </div>`).join('')}`;
+  if (agentPerf) agentPerf.innerHTML = '';
+  renderAgentPerfFull();
   renderTimeChart();
+}
+
+/* ── Agent performance (full section) ── */
+let agentPerfMonths = 3;
+
+function setAgentPerfMonths(n) {
+  agentPerfMonths = n;
+  document.querySelectorAll('.agent-month-btn').forEach(b => b.classList.remove('active-tv'));
+  const btn = document.getElementById('ap-btn-' + n);
+  if (btn) btn.classList.add('active-tv');
+  renderAgentPerfFull();
+}
+
+function renderAgentPerfFull() {
+  const el = document.getElementById('report-agent-perf-full');
+  if (!el) return;
+
+  const rTickets = reportTickets();
+  const staff    = profiles.filter(p => p.role === 'admin' || p.role === 'super_admin');
+
+  if (!staff.length) {
+    el.innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--text3)">No agents found.</div>';
+    return;
+  }
+
+  // Build month keys for the selected window (newest last)
+  const now   = new Date();
+  const months = [];
+  for (let i = agentPerfMonths - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({
+      key:   `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,
+      label: d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })
+    });
+  }
+
+  const fmtDur = ms => {
+    if (ms === null) return '—';
+    const h = ms / 3600000;
+    if (h < 1)  return Math.round(h * 60) + ' min';
+    if (h < 24) return h.toFixed(1) + ' h';
+    return (h / 24).toFixed(1) + ' d';
+  };
+
+  // Per-agent stats
+  const agentRows = staff.map(agent => {
+    const assigned = rTickets.filter(t => t.assignee_id === agent.id);
+    const resolved = assigned.filter(t => t.status === 'resolved');
+
+    // Overall avg resolution time
+    const withTimes = resolved.filter(t => t.created_at && t.updated_at);
+    const avgResMs  = withTimes.length
+      ? withTimes.reduce((s,t) => s + (new Date(t.updated_at) - new Date(t.created_at)), 0) / withTimes.length
+      : null;
+
+    // Monthly breakdown: resolved count per month
+    const monthly = months.map(m => {
+      const count = resolved.filter(t => t.updated_at?.slice(0,7) === m.key).length;
+      return count;
+    });
+
+    const totalResolved = resolved.length;
+    const totalAssigned = assigned.length;
+    const openCount     = assigned.filter(t => t.status !== 'resolved' && t.status !== 'merged').length;
+    const rate          = totalAssigned ? Math.round(totalResolved / totalAssigned * 100) : 0;
+
+    return { agent, totalResolved, totalAssigned, openCount, rate, avgResMs, monthly };
+  }).sort((a, b) => b.totalResolved - a.totalResolved);
+
+  // Max monthly value across all agents (for bar scaling)
+  const allMonthly = agentRows.flatMap(r => r.monthly);
+  const maxMonthly = Math.max(...allMonthly, 1);
+
+  // Max resolved (for overall bar)
+  const maxResolved = Math.max(...agentRows.map(r => r.totalResolved), 1);
+
+  // Summary stat
+  const totalResolvedAll = agentRows.reduce((s, r) => s + r.totalResolved, 0);
+  const sub = document.getElementById('agent-perf-sub');
+  if (sub) sub.textContent = `${totalResolvedAll} tickets resolved across ${staff.length} agent${staff.length!==1?'s':''} — last ${agentPerfMonths} months shown`;
+
+  // Mini sparkline bar for a single value
+  const miniBar = (val, max, color) => {
+    const pct = max > 0 ? Math.round(val / max * 100) : 0;
+    return `<div style="display:flex;align-items:center;gap:5px">
+      <div style="flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;min-width:40px">
+        <div style="width:${pct}%;height:100%;background:${color};border-radius:3px"></div>
+      </div>
+      <span style="font-size:11px;font-weight:600;width:20px;text-align:right;flex-shrink:0">${val}</span>
+    </div>`;
+  };
+
+  // Monthly bar cell
+  const monthCell = (val, max) => {
+    const h = max > 0 ? Math.max(Math.round(val / max * 28), val > 0 ? 3 : 0) : 0;
+    const color = val === 0 ? 'var(--border2)' : 'var(--success)';
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;width:32px">
+      <div style="font-size:9px;color:${val>0?'var(--text2)':'var(--text3)'};font-weight:${val>0?'600':'400'}">${val||''}</div>
+      <div style="width:22px;height:${h}px;background:${color};border-radius:2px 2px 0 0;align-self:flex-end"></div>
+      <div style="width:22px;height:${28-h}px;background:transparent"></div>
+    </div>`;
+  };
+
+  // Month header cells
+  const monthHeaders = months.map(m =>
+    `<th style="text-align:center;padding:0 4px 10px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;min-width:36px">${m.label}</th>`
+  ).join('');
+
+  // Agent rows
+  const rowsHtml = agentRows.map(({ agent, totalResolved, totalAssigned, openCount, rate, avgResMs, monthly }) => `
+    <tr style="border-top:1px solid var(--border)">
+      <td style="padding:12px 16px 12px 0;white-space:nowrap">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="avatar ${avColor(agent.id)}" style="width:28px;height:28px;font-size:10px;flex-shrink:0">${initials(agent.full_name)}</div>
+          <div>
+            <div style="font-size:12px;font-weight:500">${esc(agent.full_name)}</div>
+            <div style="font-size:10px;color:var(--text3)">${agent.role==='super_admin'?'Super Admin':'Admin'}</div>
+          </div>
+        </div>
+      </td>
+      <td style="padding:12px 16px 12px 0;min-width:120px">${miniBar(totalResolved, maxResolved, 'var(--success)')}</td>
+      <td style="padding:12px 16px 12px 0;font-size:12px;color:var(--text2);white-space:nowrap">${totalAssigned} assigned · ${openCount} open</td>
+      <td style="padding:12px 16px 12px 0;font-size:12px;white-space:nowrap">
+        <span style="font-weight:600;color:${rate>=75?'var(--success)':rate>=40?'var(--accent)':'var(--warn)'}">${rate}%</span>
+        <span style="color:var(--text3);margin-left:4px">resolution</span>
+      </td>
+      <td style="padding:12px 16px 12px 0;font-size:12px;font-weight:600;color:${avgResMs!==null?'var(--text1)':'var(--text3)'};white-space:nowrap">${fmtDur(avgResMs)}</td>
+      ${monthly.map((v, i) => `<td style="padding:12px 2px;vertical-align:bottom">${monthCell(v, maxMonthly)}</td>`).join('')}
+    </tr>`).join('');
+
+  el.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr>
+          <th style="text-align:left;padding:0 16px 10px 0;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap">Agent</th>
+          <th style="text-align:left;padding:0 16px 10px 0;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;min-width:120px">Resolved</th>
+          <th style="text-align:left;padding:0 16px 10px 0;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap">Workload</th>
+          <th style="text-align:left;padding:0 16px 10px 0;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap">Rate</th>
+          <th style="text-align:left;padding:0 16px 10px 0;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap">Avg resolution</th>
+          ${monthHeaders}
+        </tr>
+      </thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>`;
 }
 
 /* ── Auto-restore session ── */
