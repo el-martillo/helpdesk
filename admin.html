@@ -2088,7 +2088,84 @@ async function bulkApply(field, value) {
   }
 }
 
-/* ── Per-page state for all tables ── */
+/* ── Bulk helpers for filtered status pages ── */
+function fltBulkUpdateBar(page) {
+  const bar      = document.getElementById(`flt-bulk-bar-${page}`);
+  const countEl  = document.getElementById(`flt-bulk-count-${page}`);
+  if (!bar) return;
+  // Count selections that belong to this page's tickets
+  const pageIds = new Set(tickets.filter(t=>t.status===page).map(t=>t.id));
+  const n = [...bulkSelected].filter(id => pageIds.has(id)).length;
+  if (n > 0) { bar.classList.add('visible'); if (countEl) countEl.textContent = n; }
+  else        { bar.classList.remove('visible'); }
+  const sa = document.getElementById(`flt-sel-all-${page}`);
+  if (sa) { const allCbs = document.querySelectorAll(`.flt-bulk-cb-${page}`); const checked = [...allCbs].filter(c=>c.checked).length; sa.checked = checked===allCbs.length && allCbs.length>0; sa.indeterminate = checked>0&&checked<allCbs.length; }
+}
+function bulkToggleOneFlt(cb, page, id) {
+  if (cb.checked) bulkSelected.add(id); else bulkSelected.delete(id);
+  const row = cb.closest('tr');
+  if (row) row.classList.toggle('selected-row', cb.checked);
+  fltBulkUpdateBar(page);
+  // Also keep main bulk bar in sync if on all-tickets page
+  bulkUpdateBar();
+}
+function bulkToggleAllFlt(masterCb, page) {
+  const allCbs = document.querySelectorAll(`.flt-bulk-cb-${page}`);
+  allCbs.forEach(cb => {
+    cb.checked = masterCb.checked;
+    if (masterCb.checked) bulkSelected.add(cb.dataset.id); else bulkSelected.delete(cb.dataset.id);
+    const row = cb.closest('tr');
+    if (row) row.classList.toggle('selected-row', masterCb.checked);
+  });
+  fltBulkUpdateBar(page);
+}
+function bulkClearFlt(page) {
+  const allCbs = document.querySelectorAll(`.flt-bulk-cb-${page}`);
+  allCbs.forEach(cb => {
+    bulkSelected.delete(cb.dataset.id);
+    cb.checked = false;
+    const row = cb.closest('tr');
+    if (row) row.classList.remove('selected-row');
+  });
+  fltBulkUpdateBar(page);
+}
+async function bulkApplyFlt(page, field, value) {
+  if (!value) return;
+  // Only operate on IDs visible in this filtered page
+  const pageIds = new Set(tickets.filter(t=>t.status===page).map(t=>t.id));
+  const ids = [...bulkSelected].filter(id => pageIds.has(id));
+  if (!ids.length) return;
+  const n = ids.length;
+  const label = field === 'status' ? `status → ${sLabel(value)}`
+    : field === 'priority' ? `priority → ${value}`
+    : `assignee → ${value === '__unassign__' ? 'Unassigned' : (profiles.find(p=>p.id===value)?.full_name||value)}`;
+  if (!confirm(`Apply ${label} to ${n} ticket${n!==1?'s':''}?`)) return;
+
+  const assigneeId = field === 'assignee' ? (value === '__unassign__' ? null : value) : undefined;
+
+  if (demoMode) {
+    ids.forEach(id => {
+      const t = tickets.find(x => x.id === id); if (!t) return;
+      if (field === 'status')   { t.status = value; t.updated_at = new Date().toISOString(); }
+      if (field === 'priority') { t.priority = value; t.updated_at = new Date().toISOString(); }
+      if (field === 'assignee') { t.assignee_id = assigneeId; }
+    });
+    bulkClearFlt(page); loadTickets(); toast(`Updated ${n} ticket${n!==1?'s':''}`); return;
+  }
+  try {
+    const update = {};
+    if (field === 'status')   update.status = value;
+    if (field === 'priority') update.priority = value;
+    if (field === 'assignee') update.assignee_id = assigneeId;
+    const { error } = await sbClient.from('tickets').update(update).in('id', ids);
+    if (error) throw error;
+    bulkClearFlt(page);
+    await loadTickets();
+    toast(`Updated ${n} ticket${n!==1?'s':''}`);
+  } catch(e) {
+    toast('Bulk update failed: ' + (e.message || JSON.stringify(e)));
+  }
+}
 let usersPerPage    = 25;
 let activityPerPage = 50;
 let syslogPerPage   = 50;
@@ -2149,7 +2226,7 @@ function renderFilteredPage(page) {
 
   if (countEl) countEl.textContent = list.length + ' ticket' + (list.length !== 1 ? 's' : '');
 
-  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="8">No tickets found</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="9">No tickets found</td></tr>'; return; }
 
   const visible   = list.slice(0, pp);
   const remaining = list.length - visible.length;
@@ -2158,7 +2235,9 @@ function renderFilteredPage(page) {
   tbody.innerHTML = visible.map(t => {
     const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
     const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
-    return `<tr onclick="openTicketDetail('${t.id}')">
+    const isSelected = bulkSelected.has(t.id);
+    return `<tr onclick="openTicketDetail('${t.id}')" class="${isSelected?'selected-row':''}">
+      <td class="cb-cell" onclick="event.stopPropagation()"><input type="checkbox" class="flt-bulk-cb flt-bulk-cb-${page}" data-id="${t.id}" ${isSelected?'checked':''} onchange="bulkToggleOneFlt(this,'${page}','${t.id}')"/></td>
       <td><span class="tid">#${t.ticket_number}</span></td>
       <td style="font-size:12px">${esc(req?.full_name)||'—'}</td>
       <td style="font-size:12px;color:var(--text2);white-space:nowrap">${esc(req?.company)||'—'}</td>
@@ -2169,11 +2248,20 @@ function renderFilteredPage(page) {
       <td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td>
     </tr>`;
   }).join('') + (remaining > 0
-    ? `<tr><td colspan="8" style="text-align:center;padding:12px;border-top:1px solid var(--border)">
+    ? `<tr><td colspan="9" style="text-align:center;padding:12px;border-top:1px solid var(--border)">
         <span style="font-size:12px;color:var(--text3);margin-right:10px">Showing ${visible.length} of ${list.length}</span>
         <button class="btn sm" onclick="(function(){const s=document.getElementById('flt-pp-${page}');const np=Math.min(parseInt(s.value||'25')+25,list.length);s.value=np>=list.length?99999:np;renderFilteredPage('${page}')})()">Show ${Math.min(remaining,25)} more</button>
        </td></tr>`
-    : list.length > 25 ? `<tr><td colspan="8" style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">All ${list.length} tickets shown</td></tr>` : '');
+    : list.length > 25 ? `<tr><td colspan="9" style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">All ${list.length} tickets shown</td></tr>` : '');
+
+  // Sync select-all state
+  const allCbs = document.querySelectorAll(`.flt-bulk-cb-${page}`);
+  const selectAll = document.getElementById(`flt-sel-all-${page}`);
+  if (selectAll && allCbs.length) {
+    const n = [...allCbs].filter(c=>c.checked).length;
+    selectAll.checked = n === allCbs.length;
+    selectAll.indeterminate = n > 0 && n < allCbs.length;
+  }
 }
 
 /* ── navTo: safe navigation from stat cards ── */
@@ -2224,8 +2312,36 @@ function adminNav(el, page) {
             Refresh
           </button>
         </div>
+        <div class="bulk-bar" id="flt-bulk-bar-${page}">
+          <span class="bulk-count"><span id="flt-bulk-count-${page}">0</span> selected</span>
+          <span class="bulk-sep">|</span>
+          <label style="font-size:12px;color:var(--accent)">Status:</label>
+          <select onchange="bulkApplyFlt('${page}','status',this.value);this.value=''">
+            <option value="">— change —</option>
+            <option value="open">Open</option>
+            <option value="in_progress">In progress</option>
+            <option value="waiting">Waiting</option>
+            <option value="resolved">Resolved</option>
+          </select>
+          <label style="font-size:12px;color:var(--accent)">Priority:</label>
+          <select onchange="bulkApplyFlt('${page}','priority',this.value);this.value=''">
+            <option value="">— change —</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <label style="font-size:12px;color:var(--accent)">Assign to:</label>
+          <select id="flt-bulk-assignee-${page}" onchange="bulkApplyFlt('${page}','assignee',this.value);this.value=''">
+            <option value="">— change —</option>
+            <option value="__unassign__">Unassigned</option>
+            ${profiles.filter(p=>p.role==='admin'||p.role==='super_admin').map(p=>`<option value="${p.id}">${p.full_name}</option>`).join('')}
+          </select>
+          <button class="btn sm" style="margin-left:auto" onclick="bulkClearFlt('${page}')">✕ Clear selection</button>
+        </div>
         <table>
           <thead><tr>
+            <th class="cb-cell"><input type="checkbox" id="flt-sel-all-${page}" onclick="bulkToggleAllFlt(this,'${page}')" title="Select all visible"/></th>
             <th class="sortable" onclick="setFltSort('${page}','ticket_number')" id="flt-th-${page}-id">ID</th>
             <th class="sortable" onclick="setFltSort('${page}','client')"        id="flt-th-${page}-client">Client</th>
             <th class="sortable" onclick="setFltSort('${page}','company')"       id="flt-th-${page}-company">Organisation</th>
@@ -2499,8 +2615,8 @@ async function confirmMerge() {
     }
     src.status = 'merged'; src.merged_into = target.id;
     if (!target.merged_ticket_ids) target.merged_ticket_ids = [];
-    // Store as object so unmerge can strip the exact URLs back out
-    target.merged_ticket_ids.push({ id: src.id, urls: srcUrls });
+    // Store as object so unmerge can strip the exact URLs back out and restore status
+    target.merged_ticket_ids.push({ id: src.id, urls: srcUrls, prev_status: src.status });
     target.updated_at = new Date().toISOString();
     closeModal('modal-merge-ticket');
     loadTickets();
@@ -2541,7 +2657,7 @@ async function confirmMerge() {
     if (se) throw se;
 
     const existingIds = target.merged_ticket_ids || [];
-    const newIds = [...existingIds, { id: mergeSourceId, urls: srcUrls }];
+    const newIds = [...existingIds, { id: mergeSourceId, urls: srcUrls, prev_status: src.status }];
     const tgtUpdate = {
       merged_ticket_ids: newIds,
       updated_at: new Date().toISOString()
@@ -2569,13 +2685,13 @@ async function unmergeTickets(primaryId) {
 
   // merged_ticket_ids is now [{id, urls:[]}] — handle legacy plain-string IDs too
   const mergedEntries = (primary.merged_ticket_ids || []).map(e =>
-    typeof e === 'string' ? { id: e, urls: [] } : e
+    typeof e === 'string' ? { id: e, urls: [], prev_status: 'open' } : { prev_status: 'open', ...e }
   );
   const mergedNums = mergedEntries.map(e => {
     const t = tickets.find(x => x.id === e.id);
     return t ? `#${t.ticket_number}` : '(unknown)';
   }).join(', ');
-  if (!confirm(`Unmerge ${mergedNums} from #${primary.ticket_number}?\n\nThey will be restored to open status and their comments and images returned.`)) return;
+  if (!confirm(`Unmerge ${mergedNums} from #${primary.ticket_number}?\n\nThey will be restored to their previous status and their comments and images returned.`)) return;
 
   const getUrls = t => {
     try { return t.attachment_urls ? JSON.parse(t.attachment_urls) : (t.attachment_url ? [t.attachment_url] : []); }
@@ -2595,7 +2711,7 @@ async function unmergeTickets(primaryId) {
       if (entry.urls?.length) {
         primaryUrls = primaryUrls.filter(u => !entry.urls.includes(u));
       }
-      src.status = 'open'; src.merged_into = null;
+      src.status = entry.prev_status || 'open'; src.merged_into = null;
     }
     primary.merged_ticket_ids = [];
     primary.attachment_urls = primaryUrls.length ? JSON.stringify(primaryUrls) : null;
@@ -2627,7 +2743,7 @@ async function unmergeTickets(primaryId) {
       if (entry.urls?.length) {
         primaryUrls = primaryUrls.filter(u => !entry.urls.includes(u));
       }
-      await sbClient.from('tickets').update({ status: 'open', merged_into: null }).eq('id', entry.id);
+      await sbClient.from('tickets').update({ status: entry.prev_status || 'open', merged_into: null }).eq('id', entry.id);
     }
 
     const primaryUpdate = {
