@@ -109,6 +109,10 @@ th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
 .settings-grid > * { break-inside: avoid; margin-bottom: 16px; }
 @media (max-width: 900px) { .settings-grid { columns: 2; } }
 @media (max-width: 600px) { .settings-grid { columns: 1; } .content { padding: 16px; } }
+.reports-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.reports-grid > .full-width { grid-column: 1 / -1; }
+@media (max-width: 900px) { .reports-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .reports-grid { grid-template-columns: 1fr; } }
 
 /* ── Hamburger & mobile menu ── */
 .hamburger {
@@ -775,10 +779,9 @@ textarea.fc { resize: vertical; min-height: 80px; }
         </div>
       </div>
 
-      <!-- Reports -->
       <div class="page" id="page-reports">
         <div class="page-header"><div><h1>Reports</h1><p>Support performance overview</p></div></div>
-        <div class="settings-grid">
+        <div class="reports-grid">
 
           <div class="table-card" style="padding:18px">
             <div style="font-size:13px;font-weight:600;margin-bottom:14px">Tickets by status</div>
@@ -803,14 +806,6 @@ textarea.fc { resize: vertical; min-height: 80px; }
             <div id="report-resolution-time"></div>
           </div>
 
-          <div class="table-card" style="padding:18px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-              <div style="font-size:13px;font-weight:600">Agent performance</div>
-              <div style="font-size:11px;color:var(--text3)">Resolutions &amp; avg time</div>
-            </div>
-            <div id="report-agent-performance"></div>
-          </div>
-
           <div class="table-card" style="padding:20px" id="ticket-companies-card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
               <div style="font-size:13px;font-weight:600">Companies in tickets</div>
@@ -828,7 +823,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </div>
 
           <!-- Tickets over time -->
-          <div class="table-card" style="padding:20px;grid-column:1/-1">
+          <div class="table-card full-width" style="padding:20px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
               <div>
                 <div style="font-size:13px;font-weight:600">Tickets over time</div>
@@ -845,7 +840,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </div>
 
           <!-- Agent performance (full width) -->
-          <div class="table-card" style="padding:20px;grid-column:1/-1" id="agent-perf-card">
+          <div class="table-card full-width" style="padding:20px" id="agent-perf-card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px">
               <div>
                 <div style="font-size:13px;font-weight:600">Agent performance</div>
@@ -3296,9 +3291,7 @@ function renderReports() {
         <div style="width:70px;text-align:right;font-weight:600">${fmtDur(avg)}</div>
         <div style="width:40px;text-align:right;font-size:11px;color:var(--text3)">${count} ticket${count!==1?'s':''}</div>
       </div>`).join('')}`;
-  // Legacy small agent performance card (kept for compatibility, now hidden via card replacement)
-  const agentPerf = document.getElementById('report-agent-performance');
-  if (agentPerf) agentPerf.innerHTML = '';
+  // Render full agent performance section
   renderAgentPerfFull();
   renderTimeChart();
 }
@@ -3316,14 +3309,23 @@ function setAgentPerfMonths(n) {
 
 function renderAgentPerfFull() {
   const el = document.getElementById('report-agent-perf-full');
-  if (!el) return;
+  if (!el) { console.warn('[AgentPerf] element not found'); return; }
 
   const rTickets = reportTickets();
   const staff    = profiles.filter(p => p.role === 'admin' || p.role === 'super_admin');
 
+  console.log('[AgentPerf] profiles:', profiles.length, '| staff:', staff.length, '| tickets:', rTickets.length);
+
   if (!staff.length) {
-    el.innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--text3)">No agents found.</div>';
-    return;
+    // Also try allProfiles as fallback — profiles may not be loaded yet
+    const fallbackStaff = (allProfiles||[]).filter(p => p.role === 'admin' || p.role === 'super_admin');
+    console.log('[AgentPerf] fallback staff from allProfiles:', fallbackStaff.length);
+    if (!fallbackStaff.length) {
+      el.innerHTML = '<div style="padding:24px;text-align:center;font-size:13px;color:var(--text3)">No agents found. Profiles may still be loading.</div>';
+      return;
+    }
+    // Use fallback
+    profiles.push(...fallbackStaff.filter(p => !profiles.find(x => x.id === p.id)));
   }
 
   // Build month keys for the selected window (newest last)
@@ -3369,6 +3371,8 @@ function renderAgentPerfFull() {
 
     return { agent, totalResolved, totalAssigned, openCount, rate, avgResMs, monthly };
   }).sort((a, b) => b.totalResolved - a.totalResolved);
+
+  console.log('[AgentPerf] agentRows:', agentRows.map(r => ({name: r.agent.full_name, assigned: r.totalAssigned, resolved: r.totalResolved})));
 
   // Max monthly value across all agents (for bar scaling)
   const allMonthly = agentRows.flatMap(r => r.monthly);
