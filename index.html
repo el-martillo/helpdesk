@@ -1035,14 +1035,16 @@ function startRealtime() {
       const t = payload.new;
       const oldStatus = payload.old?.status;
       const newStatus = t?.status;
-      // Reload the ticket list
       loadClientTickets();
-      // Toast only if status actually changed
       if (oldStatus && newStatus && oldStatus !== newStatus) {
         const labels = { open:'Open', in_progress:'In Progress', waiting:'Waiting for info', resolved:'Resolved' };
         const label = labels[newStatus] || newStatus;
         toast(`Ticket #${t.ticket_number} updated: ${label}`);
       }
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, payload => {
+      const key = payload.new?.key || payload.old?.key;
+      if (key === 'categories') loadCategoriesFromSupabase();
     })
     .subscribe();
 }
@@ -1383,6 +1385,7 @@ async function loadCategoriesFromSupabase() {
     const { data } = await sbClient.from('app_settings').select('value').eq('key','categories').maybeSingle();
     categoriesList = (data?.value ? JSON.parse(data.value) : []).filter(Boolean);
   } catch { categoriesList = []; }
+  populateCategoryDropdown();
 }
 
 function getCategories() {
