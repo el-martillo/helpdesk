@@ -47,8 +47,8 @@
     --warn-l:#371f04; --danger-l:#3a0f0f;
   }
 }
-html, body { height: 100%; font-family: var(--font); background: var(--bg); color: var(--text1); font-size: 14px; }
-#app { display: flex; flex-direction: column; min-height: 100vh; }
+html, body { height: 100%; font-family: var(--font); background: transparent; color: var(--text1); font-size: 14px; }
+#app { display: flex; flex-direction: column; min-height: 100vh; background: var(--bg); position: relative; z-index: 2; }
 .main-bg { flex: 1; background: #dce8f5; display: flex; flex-direction: column; }
 @media (prefers-color-scheme: dark) { .main-bg { background: #0d1b2e; } }
 
@@ -123,9 +123,11 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .close-x:hover { color: var(--text1); }
 
 /* Screens */
-.screen { display: none; min-height: 100vh; align-items: center; justify-content: center; background: var(--bg); padding: 24px; }
-.screen.active { display: flex; }
-.screen-card { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-l); padding: 32px; width: 100%; max-width: 400px; box-shadow: var(--shadow); }
+.screen { display: none; min-height: 100vh; align-items: center; justify-content: center; background: transparent; padding: 24px; }
+.screen.active { display: flex; position: relative; z-index: 1; }
+#idx-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.screen-card { position: relative; z-index: 1; background: rgba(255,255,255,0.92); border: 1px solid rgba(255,255,255,0.6); border-radius: var(--radius-l); padding: 32px; width: 100%; max-width: 400px; box-shadow: 0 8px 40px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+@media (prefers-color-scheme: dark) { .screen-card { background: rgba(20,20,28,0.92); border-color: rgba(255,255,255,.1); } }
 .screen-card h2 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
 .screen-card .desc { font-size: 13px; color: var(--text2); margin-bottom: 24px; line-height: 1.6; }
 .hint { font-size: 11px; color: var(--text3); margin-top: 4px; }
@@ -344,6 +346,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 </script>
 </head>
 <body>
+<canvas id="idx-canvas"></canvas>
 
 <!-- Config screen (only shown if no saved URL) -->
 <div id="cfg-screen" class="screen active">
@@ -825,7 +828,7 @@ function loadDemo() {
   currentProfile={id:'p5',full_name:'Jane Doe',role:'client'};
   document.getElementById('cfg-screen').classList.remove('active');
   document.getElementById('auth-screen').classList.remove('active');
-  document.getElementById('app').style.display='flex';
+  document.getElementById('app').style.display='flex'; stopIdxCanvas();
   const fu = document.getElementById('footer-user-count');
   if (fu) fu.textContent = DEMO_PROFILES.length;
   updateUserHeader();
@@ -1088,7 +1091,7 @@ async function signOut() {
 
 function showApp() {
   document.getElementById('auth-screen').classList.remove('active');
-  document.getElementById('app').style.display='flex';
+  document.getElementById('app').style.display='flex'; stopIdxCanvas();
   updateUserHeader();
   loadClientTickets();
   startRealtime();
@@ -1807,7 +1810,80 @@ function onRecaptchaLoad() {
   window._suWidgetId = grecaptcha.render('recaptcha-signup', { sitekey: '6LcDeAAtAAAAADep9JhT8Tgf5HoXDxn_VZ1JFjSQ', theme: dark });
 }
 
-document.addEventListener('DOMContentLoaded', initSupabase);
+document.addEventListener('DOMContentLoaded', () => { initSupabase(); startIdxCanvas(); });
+
+/* ── Login background canvas ── */
+let _idxCanvasRaf = null;
+function startIdxCanvas() {
+  const canvas = document.getElementById('idx-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W, H;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // 20-second seamless loop: dark blue → cyan gradient sweeping top-right to bottom-left
+  // Use a large oversized gradient that shifts position over time
+  const DURATION = 20000; // ms
+  let startTime  = null;
+
+  // Colour stops for the sweep: dark navy → deep blue → teal → bright cyan → back to navy
+  // We tile by using a 300%×300% gradient and animating background-position equivalent
+  // On canvas: we'll draw a rotated linear gradient and animate the offset
+
+  function draw(ts) {
+    if (!startTime) startTime = ts;
+    const t = ((ts - startTime) % DURATION) / DURATION; // 0→1 seamless
+
+    // Gradient angle: top-right to bottom-left = 225° (or -45°)
+    const angle = (225 * Math.PI) / 180;
+    const cos   = Math.cos(angle);
+    const sin   = Math.sin(angle);
+    const diag  = Math.sqrt(W * W + H * H);
+
+    // Shift the gradient origin over time for a travelling wave effect
+    // Use a large virtual gradient with offset that loops
+    const offset = t * diag * 1.2; // travel one full diagonal per cycle
+
+    const x0 = W * 0.5 + cos * (diag * 0.5 + offset);
+    const y0 = H * 0.5 + sin * (diag * 0.5 + offset);
+    const x1 = W * 0.5 - cos * (diag * 0.5 + offset);
+    const y1 = H * 0.5 - sin * (diag * 0.5 + offset);
+
+    const grad = ctx.createLinearGradient(x0, y0, x1, y1);
+
+    // Seamless colour loop: the stops repeat such that start ≈ end
+    grad.addColorStop(0.00, '#000818');
+    grad.addColorStop(0.12, '#000e2e');
+    grad.addColorStop(0.24, '#001a4a');
+    grad.addColorStop(0.36, '#003060');
+    grad.addColorStop(0.48, '#006080');
+    grad.addColorStop(0.58, '#009898');
+    grad.addColorStop(0.66, '#00c8c8');
+    grad.addColorStop(0.74, '#00d8e8');
+    grad.addColorStop(0.82, '#006080');
+    grad.addColorStop(0.90, '#002040');
+    grad.addColorStop(1.00, '#000818');
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    _idxCanvasRaf = requestAnimationFrame(draw);
+  }
+
+  _idxCanvasRaf = requestAnimationFrame(draw);
+}
+
+function stopIdxCanvas() {
+  if (_idxCanvasRaf) { cancelAnimationFrame(_idxCanvasRaf); _idxCanvasRaf = null; }
+  const canvas = document.getElementById('idx-canvas');
+  if (canvas) canvas.style.display = 'none';
+}
 </script>
 <style>
 .footer {
