@@ -123,10 +123,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .close-x:hover { color: var(--text1); }
 
 /* Screens */
-.screen { display: none; position: fixed; inset: 0; }
+.screen { display: none; position: fixed; inset: 0; overflow-y: auto; }
 .screen.active { display: block; z-index: 1; }
 #idx-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-.screen-card { position: absolute; background: rgba(255,255,255,0.92); border: 1px solid rgba(255,255,255,0.6); border-radius: var(--radius-l); padding: 24px 32px 32px; width: calc(100% - 32px); max-width: 400px; box-shadow: 0 8px 40px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.screen-card { position: relative; margin: 24px auto; background: rgba(255,255,255,0.92); border: 1px solid rgba(255,255,255,0.6); border-radius: var(--radius-l); padding: 24px 32px 16px; width: calc(100% - 48px); max-width: 400px; box-shadow: 0 8px 40px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 @media (prefers-color-scheme: dark) { .screen-card { background: rgba(20,20,28,0.92); border-color: rgba(255,255,255,.1); } }
 .screen-card h2 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
 .screen-card .desc { font-size: 13px; color: var(--text2); margin-bottom: 24px; line-height: 1.6; }
@@ -1822,9 +1822,11 @@ function initScreenDrag() {
     const card = screen.querySelector('.screen-card');
     if (!card) return;
     requestAnimationFrame(() => {
-      const vw = window.innerWidth, vh = window.innerHeight;
-      card.style.left = Math.max(8, (vw - card.offsetWidth)  / 2) + 'px';
-      card.style.top  = Math.max(8, (vh - card.offsetHeight) / 2) + 'px';
+      const vh = window.innerHeight;
+      const cardH = card.offsetHeight;
+      // If card fits in viewport, add top margin to vertically centre it; otherwise let it scroll
+      const topMargin = cardH < vh ? Math.max(24, (vh - cardH) / 2) : 24;
+      card.style.marginTop = topMargin + 'px';
     });
   }
   document.querySelectorAll('.screen').forEach(screen => {
@@ -1837,12 +1839,14 @@ function initScreenDrag() {
       const card = handle.closest('.screen-card');
       if (!card) return;
       e.preventDefault();
-      const startX = e.clientX - card.offsetLeft;
       const startY = e.clientY - card.offsetTop;
+      const startX = e.clientX - (card.getBoundingClientRect().left);
       handle.style.cursor = 'grabbing';
       function onMove(e) {
         const vw = window.innerWidth, vh = window.innerHeight;
-        card.style.left = Math.max(0, Math.min(vw - card.offsetWidth,  e.clientX - startX)) + 'px';
+        card.style.position = 'absolute';
+        card.style.margin = '0';
+        card.style.left = Math.max(0, Math.min(vw - card.offsetWidth, e.clientX - startX)) + 'px';
         card.style.top  = Math.max(0, Math.min(vh - card.offsetHeight, e.clientY - startY)) + 'px';
       }
       function onUp() {
