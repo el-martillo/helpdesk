@@ -5949,28 +5949,55 @@ function initBeachCanvas(canvasId) {
   const ctx = canvas.getContext('2d');
   let W, H, raf;
 
-  function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-  }
-  resize();
-  window.addEventListener('resize', resize);
-
-  const GRID_COLS = 16;   // vertical lines each side — wider spread
-  const GRID_ROWS = 14;   // more horizontal lines for density
-  const SPEED     = 0.0008; // much slower travel
-  const HORIZON   = 0.5;  // horizon dead centre
-  const GLOW      = 6;    // neon glow blur radius
-
-  // Colours
+  const GRID_COLS = 32;
+  const GRID_ROWS = 14;
+  const SPEED     = 0.0008;
+  const HORIZON   = 0.5;
+  const GLOW      = 6;
   const BG_TOP    = '#000010';
   const BG_BOT    = '#0a003a';
   const LINE_COL  = '#00c8ff';
   const GLOW_COL  = 'rgba(0,200,255,0.35)';
   const FADE_COL  = 'rgba(0,180,255,0.08)';
+  const MAX_STREAKS = 5;
 
-  // Progress cycles 0→1 continuously
   let progress = 0;
+  let hY, cx;
+  const streaks = [];
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    hY = H * HORIZON;
+    cx = W / 2;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function spawnStreak() {
+    const col = Math.floor(Math.random() * (GRID_COLS * 2 + 1)) - GRID_COLS;
+    streaks.push({
+      col,
+      y: H + 40,
+      length: 18 + Math.random() * 30,
+      speed: 1.5 + Math.random() * 2.5,
+    });
+  }
+
+  const ceilStreaks = [];
+  function spawnCeilStreak() {
+    const col = Math.floor(Math.random() * (GRID_COLS * 2 + 1)) - GRID_COLS;
+    ceilStreaks.push({
+      col,
+      y: hY,                             // start at horizon
+      length: 18 + Math.random() * 30,
+      speed: 1.5 + Math.random() * 2.5,  // moves upward
+    });
+  }
+
+  // Seed a couple to start
+  spawnStreak(); spawnStreak();
+  spawnCeilStreak(); spawnCeilStreak();
 
   function drawGrid() {
     // Background
@@ -5982,12 +6009,12 @@ function initBeachCanvas(canvasId) {
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, W, H);
 
-    const hY = H * HORIZON;
-    const cx = W / 2;
+    hY = H * HORIZON;
+    cx = W / 2;
 
     // Helper: perspective project x — spread wider than before
     function projX(normX, d) {
-      return cx + normX * W * 0.7 * d;
+      return cx + normX * W * 1.5 * d;
     }
 
     // ── Floor grid ──
@@ -6003,8 +6030,9 @@ function initBeachCanvas(canvasId) {
       const z  = (z0 + progress) % 1;
       if (z < 0.01) continue;
       const d  = z;
-      // perspective: y goes from hY (d=0) to H (d=1)
-      const y  = hY + (H - hY) * (1 - 1 / (1 + d * 10));
+      // Normalise so d=1 → y=H exactly
+      const frac = (1 - 1 / (1 + d * 10)) / (1 - 1 / 11);
+      const y  = hY + (H - hY) * frac;
       const alpha = Math.min(1, d * 2.5);
       ctx.strokeStyle = `rgba(0,200,255,${alpha * 0.8})`;
       ctx.lineWidth   = 0.8 + d * 1.4;
@@ -6014,18 +6042,19 @@ function initBeachCanvas(canvasId) {
       ctx.stroke();
     }
 
-    // Vertical lines floor
+    // Vertical lines floor — extend well past bottom edge
     for (let i = -GRID_COLS; i <= GRID_COLS; i++) {
-      if (i === 0) continue;
+
       const normX = i / GRID_COLS;
       const xHorizon = projX(normX, 0.001);
-      const xBottom  = projX(normX, 1);
+      // Extrapolate past H by projecting to depth > 1
+      const xBottom  = projX(normX, 2.5);
       const alpha    = 1 - Math.abs(normX) * 0.2;
       ctx.strokeStyle = `rgba(0,200,255,${alpha * 0.75})`;
-      ctx.lineWidth   = 0.6 + (1 - Math.abs(normX)) * 1.2;
+      ctx.lineWidth   = 1.0;
       ctx.beginPath();
       ctx.moveTo(xHorizon, hY);
-      ctx.lineTo(xBottom,  H);
+      ctx.lineTo(xBottom,  H * 2);
       ctx.stroke();
     }
     ctx.restore();
@@ -6056,17 +6085,17 @@ function initBeachCanvas(canvasId) {
       ctx.stroke();
     }
 
-    // Vertical lines ceiling
+    // Vertical lines ceiling — extend well past top edge
     for (let i = -GRID_COLS; i <= GRID_COLS; i++) {
-      if (i === 0) continue;
+
       const normX    = i / GRID_COLS;
-      const xTop     = projX(normX, 1);
+      const xTop     = projX(normX, 2.5);
       const xHorizon = projX(normX, 0.001);
       const alpha    = (1 - Math.abs(normX) * 0.2) * 0.65;
       ctx.strokeStyle = `rgba(0,170,255,${alpha})`;
-      ctx.lineWidth   = 0.5 + (1 - Math.abs(normX)) * 1.0;
+      ctx.lineWidth   = 1.0;
       ctx.beginPath();
-      ctx.moveTo(xTop,     0);
+      ctx.moveTo(xTop,     -H);
       ctx.lineTo(xHorizon, hY);
       ctx.stroke();
     }
@@ -6080,10 +6109,68 @@ function initBeachCanvas(canvasId) {
     glow.addColorStop(1,   'rgba(0,180,255,0)');
     ctx.fillStyle = glow;
     ctx.fillRect(0, hY - 40, W, 80);
+
+    // ── Glitch streaks — floor: travel upward ──
+    streaks.forEach(s => {
+      const normX  = s.col / GRID_COLS;
+      const frac   = Math.max(0, (s.y - hY) / (H - hY));
+      const fracT  = Math.max(0, (s.y - s.length - hY) / (H - hY));
+      const xBot   = cx + normX * W * 1.5 * (frac  * 2.5);
+      const xTopS  = cx + normX * W * 1.5 * (fracT * 2.5);
+      if (s.y > hY) {
+        const grad = ctx.createLinearGradient(xTopS, s.y - s.length, xBot, s.y);
+        grad.addColorStop(0,   'rgba(255,255,255,0)');
+        grad.addColorStop(0.5, 'rgba(255,255,255,0.95)');
+        grad.addColorStop(1,   'rgba(200,240,255,0.5)');
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(xTopS, s.y - s.length);
+        ctx.lineTo(xBot,  s.y);
+        ctx.stroke();
+      }
+    });
+
+    // ── Glitch streaks — ceiling: travel upward from horizon ──
+    ceilStreaks.forEach(s => {
+      const normX  = s.col / GRID_COLS;
+      // s.y is the head (top), s.y + s.length is the tail (closer to horizon)
+      const fracHead = Math.max(0, (hY - s.y)               / hY);
+      const fracTail = Math.max(0, (hY - (s.y + s.length))  / hY);
+      const xHead  = cx + normX * W * 1.5 * (fracHead * 2.5);
+      const xTail  = cx + normX * W * 1.5 * (fracTail * 2.5);
+      if (s.y < hY) {
+        const grad = ctx.createLinearGradient(xHead, s.y, xTail, s.y + s.length);
+        grad.addColorStop(0,   'rgba(255,255,255,0.95)'); // bright head at top
+        grad.addColorStop(0.5, 'rgba(255,255,255,0.6)');
+        grad.addColorStop(1,   'rgba(200,240,255,0)');    // fade toward horizon
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(xHead, s.y);
+        ctx.lineTo(xTail, s.y + s.length);
+        ctx.stroke();
+      }
+    });
   }
 
   function loop() {
     progress = (progress + SPEED) % 1;
+
+    // Floor streaks — move upward
+    for (let i = streaks.length - 1; i >= 0; i--) {
+      streaks[i].y -= streaks[i].speed;
+      if (streaks[i].y + streaks[i].length < hY) streaks.splice(i, 1);
+    }
+    if (streaks.length < MAX_STREAKS && Math.random() < 0.008) spawnStreak();
+
+    // Ceiling streaks — move upward (away from horizon)
+    for (let i = ceilStreaks.length - 1; i >= 0; i--) {
+      ceilStreaks[i].y -= ceilStreaks[i].speed;
+      if (ceilStreaks[i].y + ceilStreaks[i].length < 0) ceilStreaks.splice(i, 1);
+    }
+    if (ceilStreaks.length < MAX_STREAKS && Math.random() < 0.008) spawnCeilStreak();
+
     drawGrid();
     raf = requestAnimationFrame(loop);
   }
