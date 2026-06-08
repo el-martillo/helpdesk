@@ -5942,7 +5942,7 @@ function initKeyboardShortcuts() {
   });
 }
 
-/* ── Beach canvas ── */
+/* ── Tron grid canvas ── */
 function initBeachCanvas(canvasId) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
@@ -5956,102 +5956,139 @@ function initBeachCanvas(canvasId) {
   resize();
   window.addEventListener('resize', resize);
 
-  // Wave parameters — 4 layers, 1/10th speed
-  const waves = [
-    { amp: 18, period: 0.012, speed: 0.00004, phase: 0,    alpha: 0.55, yFrac: 0.60, foam: true  },
-    { amp: 12, period: 0.016, speed: 0.00003, phase: 2.1,  alpha: 0.45, yFrac: 0.65, foam: true  },
-    { amp:  9, period: 0.020, speed: 0.000025,phase: 4.2,  alpha: 0.35, yFrac: 0.70, foam: false },
-    { amp:  6, period: 0.010, speed: 0.000015,phase: 1.0,  alpha: 0.25, yFrac: 0.74, foam: false },
-  ];
+  const GRID_COLS = 16;   // vertical lines each side — wider spread
+  const GRID_ROWS = 14;   // more horizontal lines for density
+  const SPEED     = 0.0008; // much slower travel
+  const HORIZON   = 0.5;  // horizon dead centre
+  const GLOW      = 6;    // neon glow blur radius
 
-  let t = 0;
+  // Colours
+  const BG_TOP    = '#000010';
+  const BG_BOT    = '#0a003a';
+  const LINE_COL  = '#00c8ff';
+  const GLOW_COL  = 'rgba(0,200,255,0.35)';
+  const FADE_COL  = 'rgba(0,180,255,0.08)';
 
-  function draw() {
-    t++;
-    ctx.clearRect(0, 0, W, H);
+  // Progress cycles 0→1 continuously
+  let progress = 0;
 
-    // Sky gradient — soft Mediterranean blue
-    const sky = ctx.createLinearGradient(0, 0, 0, H * 0.62);
-    sky.addColorStop(0,   '#5bb8f5');
-    sky.addColorStop(0.4, '#82cef8');
-    sky.addColorStop(1,   '#b8e8ff');
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, W, H * 0.62);
+  function drawGrid() {
+    // Background
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0,         BG_TOP);
+    bg.addColorStop(HORIZON,   '#060022');
+    bg.addColorStop(HORIZON,   '#030015');
+    bg.addColorStop(1,         BG_BOT);
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
 
-    // Sea body — deep teal fading to turquoise near shore
-    const sea = ctx.createLinearGradient(0, H * 0.55, 0, H * 0.78);
-    sea.addColorStop(0,   '#0f7ab0');
-    sea.addColorStop(0.4, '#1a9ed4');
-    sea.addColorStop(0.8, '#4cc4e8');
-    sea.addColorStop(1,   '#7adaf0');
-    ctx.fillStyle = sea;
-    ctx.fillRect(0, H * 0.55, W, H * 0.78);
+    const hY = H * HORIZON;
+    const cx = W / 2;
 
-    // Draw each wave layer back-to-front
-    waves.forEach(w => {
-      const yBase = H * w.yFrac;
-      ctx.beginPath();
-      ctx.moveTo(0, yBase);
-      for (let x = 0; x <= W; x += 2) {
-        const y = yBase + Math.sin(x * w.period + t * w.speed * W + w.phase) * w.amp
-                        + Math.sin(x * w.period * 1.7 + t * w.speed * W * 0.6 + w.phase + 1) * w.amp * 0.4;
-        ctx.lineTo(x, y);
-      }
-      ctx.lineTo(W, H);
-      ctx.lineTo(0, H * 0.78);
-      ctx.closePath();
-
-      const waveCol = ctx.createLinearGradient(0, yBase - w.amp, 0, yBase + w.amp * 2);
-      waveCol.addColorStop(0, `rgba(255,255,255,${w.alpha * 0.7})`);
-      waveCol.addColorStop(1, `rgba(100,210,240,${w.alpha})`);
-      ctx.fillStyle = waveCol;
-      ctx.fill();
-
-      if (w.foam) {
-        ctx.beginPath();
-        for (let x = 0; x <= W; x += 3) {
-          const y = yBase + Math.sin(x * w.period + t * w.speed * W + w.phase) * w.amp
-                          + Math.sin(x * w.period * 1.7 + t * w.speed * W * 0.6 + w.phase + 1) * w.amp * 0.4;
-          if (x === 0) ctx.moveTo(x, y - 2);
-          else ctx.lineTo(x, y - 2);
-        }
-        ctx.strokeStyle = `rgba(255,255,255,${w.alpha * 1.4})`;
-        ctx.lineWidth = 2.5;
-        ctx.stroke();
-      }
-    });
-
-    // Wet sand strip
-    const wetSand = ctx.createLinearGradient(0, H * 0.73, 0, H * 0.80);
-    wetSand.addColorStop(0,   '#b8d8c8');
-    wetSand.addColorStop(0.5, '#c8c090');
-    wetSand.addColorStop(1,   '#d4b870');
-    ctx.fillStyle = wetSand;
-    ctx.fillRect(0, H * 0.73, W, H * 0.07);
-
-    // Dry golden sand
-    const sand = ctx.createLinearGradient(0, H * 0.78, 0, H);
-    sand.addColorStop(0,   '#d4b870');
-    sand.addColorStop(0.3, '#e0c878');
-    sand.addColorStop(0.7, '#e8d490');
-    sand.addColorStop(1,   '#f0dca0');
-    ctx.fillStyle = sand;
-    ctx.fillRect(0, H * 0.78, W, H * 0.22);
-
-    // Sand grain texture
-    ctx.fillStyle = 'rgba(160,120,40,0.06)';
-    for (let g = 0; g < 60; g++) {
-      const gx = ((g * 137.5) % 1) * W;
-      const gy = H * 0.80 + ((g * 97.3) % 1) * H * 0.18;
-      ctx.beginPath();
-      ctx.arc(gx, gy, 1.2, 0, Math.PI * 2);
-      ctx.fill();
+    // Helper: perspective project x — spread wider than before
+    function projX(normX, d) {
+      return cx + normX * W * 0.7 * d;
     }
 
-    raf = requestAnimationFrame(draw);
+    // ── Floor grid ──
+    ctx.save();
+    // Clip to below horizon
+    ctx.beginPath();
+    ctx.rect(0, hY, W, H - hY);
+    ctx.clip();
+
+    // Horizontal lines — evenly spaced in perspective
+    for (let i = 0; i <= GRID_ROWS; i++) {
+      const z0 = i / GRID_ROWS;
+      const z  = (z0 + progress) % 1;
+      if (z < 0.01) continue;
+      const d  = z;
+      // perspective: y goes from hY (d=0) to H (d=1)
+      const y  = hY + (H - hY) * (1 - 1 / (1 + d * 10));
+      const alpha = Math.min(1, d * 2.5);
+      ctx.strokeStyle = `rgba(0,200,255,${alpha * 0.8})`;
+      ctx.lineWidth   = 0.8 + d * 1.4;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+
+    // Vertical lines floor
+    for (let i = -GRID_COLS; i <= GRID_COLS; i++) {
+      if (i === 0) continue;
+      const normX = i / GRID_COLS;
+      const xHorizon = projX(normX, 0.001);
+      const xBottom  = projX(normX, 1);
+      const alpha    = 1 - Math.abs(normX) * 0.2;
+      ctx.strokeStyle = `rgba(0,200,255,${alpha * 0.75})`;
+      ctx.lineWidth   = 0.6 + (1 - Math.abs(normX)) * 1.2;
+      ctx.beginPath();
+      ctx.moveTo(xHorizon, hY);
+      ctx.lineTo(xBottom,  H);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // ── Ceiling grid (mirrored) ──
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, W, hY);
+    ctx.clip();
+
+    // Horizontal lines ceiling — use same perspective factor, map to 0..hY
+    for (let i = 0; i <= GRID_ROWS; i++) {
+      const z0 = i / GRID_ROWS;
+      const z  = (z0 + progress) % 1;
+      if (z < 0.01) continue;
+      const d  = z;
+      // Map d=0 → y=hY, d=1 → y=0 using same hyperbolic perspective as floor
+      // Floor: y = hY + (H-hY) * (1 - 1/(1 + d*10))  so at d=1: y = hY + (H-hY)*10/11
+      // Ceiling mirror: scale the fraction to full hY range and invert
+      const frac = (1 - 1 / (1 + d * 10)) / (1 - 1 / 11); // normalise to 0..1
+      const y  = hY * (1 - frac);
+      const alpha = Math.min(1, d * 2.5) * 0.75;
+      ctx.strokeStyle = `rgba(0,180,255,${alpha * 0.8})`;
+      ctx.lineWidth   = 0.8 + d * 1.2;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+
+    // Vertical lines ceiling
+    for (let i = -GRID_COLS; i <= GRID_COLS; i++) {
+      if (i === 0) continue;
+      const normX    = i / GRID_COLS;
+      const xTop     = projX(normX, 1);
+      const xHorizon = projX(normX, 0.001);
+      const alpha    = (1 - Math.abs(normX) * 0.2) * 0.65;
+      ctx.strokeStyle = `rgba(0,170,255,${alpha})`;
+      ctx.lineWidth   = 0.5 + (1 - Math.abs(normX)) * 1.0;
+      ctx.beginPath();
+      ctx.moveTo(xTop,     0);
+      ctx.lineTo(xHorizon, hY);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // ── Horizon glow ──
+
+    const glow = ctx.createLinearGradient(0, hY - 40, 0, hY + 40);
+    glow.addColorStop(0,   'rgba(0,180,255,0)');
+    glow.addColorStop(0.5, 'rgba(0,180,255,0.22)');
+    glow.addColorStop(1,   'rgba(0,180,255,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, hY - 40, W, 80);
   }
 
-  draw();
+  function loop() {
+    progress = (progress + SPEED) % 1;
+    drawGrid();
+    raf = requestAnimationFrame(loop);
+  }
+
+  loop();
   return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
 }
 
