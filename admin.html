@@ -1295,6 +1295,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
         </div>
       </div>
+
+<div class="page" id="page-directory">
   <div class="page-header">
     <div>
       <h1>Staff Directory</h1>
@@ -3858,7 +3860,7 @@ async function deleteUser(id) {
     await requireReauth(`Permanently delete user "${delP?.full_name || delP?.email || id}"? This cannot be undone.`);
   } catch(e) { return; } // cancelled
   // Call the database function that hard-deletes from both profiles and auth.users
-  const { error } = await sbClient.rpc('delete_user_hard', { p_user_id: id });
+  const { error } = await sbClient.rpc('delete_user_hard', { target_user_id: id });
   if (error) {
     // Fallback: delete profile only if RPC not available
     if (error.message.includes('function') || error.code === '42883') {
@@ -4053,7 +4055,7 @@ async function deleteOrphanedAccount(userId, email, btn) {
   btn.disabled = true;
   btn.textContent = 'Deleting…';
 
-  const { error } = await sbClient.rpc('delete_user_hard', { p_user_id: userId });
+  const { error } = await sbClient.rpc('delete_user_hard', { target_user_id: userId });
   if (error) {
     toast('Delete failed: ' + error.message);
     btn.disabled = false;
