@@ -118,6 +118,22 @@ html, body { height: 100%; font-family: var(--font); background: var(--bg); colo
       linear-gradient(180deg, #1a2535 0%, #253040 18%, #1c2a38 36%, #2a3848 54%, #182030 72%, #22303f 100%);
   }
 }
+#page-settings {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.16) 25%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.10) 75%, rgba(255,255,255,0) 100%),
+    linear-gradient(180deg, #c8b8d8 0%, #ddd0ea 15%, #b8a8cc 32%, #cfc0de 50%, #a898be 66%, #c0b0d4 83%, #b0a0c8 100%);
+  border-radius: var(--radius);
+  margin: -24px -24px 0;
+  padding: 24px;
+  min-height: 100%;
+}
+@media (prefers-color-scheme: dark) {
+  #page-settings {
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.04) 75%, rgba(255,255,255,0) 100%),
+      linear-gradient(180deg, #221830 0%, #2e2040 15%, #1e1628 32%, #2a1e3a 50%, #1a1226 66%, #261a36 83%, #1e1430 100%);
+  }
+}
 th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
 th.sortable:hover { color: var(--text1); background: var(--surface); }
 th.sort-asc::after  { content: ' ↑'; color: var(--accent); font-size: 10px; }
@@ -1153,7 +1169,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
               Export all tickets, profiles, and comments as a JSON file. The backup is generated directly from your Supabase database and downloaded to your browser.
             </div>
 
-            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:16px" id="backup-stats">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px" id="backup-stats">
               <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
                 <div style="font-size:22px;font-weight:600;color:var(--accent)" id="bk-tickets">—</div>
                 <div style="font-size:11px;color:var(--text3);margin-top:2px">Tickets</div>
