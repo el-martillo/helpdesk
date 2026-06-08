@@ -2302,6 +2302,12 @@ async function confirmMerge() {
   const btn = document.getElementById('btn-do-merge');
   btn.disabled = true; btn.textContent = 'Merging…';
 
+  // Helper: parse attachment URLs from a ticket object
+  const getUrls = t => {
+    try { return t.attachment_urls ? JSON.parse(t.attachment_urls) : (t.attachment_url ? [t.attachment_url] : []); }
+    catch(e) { return t.attachment_url ? [t.attachment_url] : []; }
+  };
+
   if (demoMode) {
     const srcComments = (DEMO_COMMENTS[mergeSourceId] || []).map(c => ({
       ...c, source_ticket_number: src.ticket_number
@@ -2314,9 +2320,18 @@ async function confirmMerge() {
       body: `⛙ Ticket #${src.ticket_number} ("${src.subject}") was merged into this ticket.`,
       is_internal: true, created_at: new Date().toISOString(), source_ticket_number: null
     });
+    // Merge images
+    const srcUrls = getUrls(src);
+    const tgtUrls = getUrls(target);
+    const combinedUrls = [...tgtUrls, ...srcUrls];
+    if (combinedUrls.length) {
+      target.attachment_urls = JSON.stringify(combinedUrls);
+      target.attachment_url  = combinedUrls[0];
+    }
     src.status = 'merged'; src.merged_into = target.id;
     if (!target.merged_ticket_ids) target.merged_ticket_ids = [];
-    target.merged_ticket_ids.push(src.id);
+    // Store as object so unmerge can strip the exact URLs back out
+    target.merged_ticket_ids.push({ id: src.id, urls: srcUrls });
     target.updated_at = new Date().toISOString();
     closeModal('modal-merge-ticket');
     loadTickets();
@@ -2344,15 +2359,31 @@ async function confirmMerge() {
       is_internal: true,
       source_ticket_number: null
     });
+
+    // Merge images: fetch fresh target row to get current attachment_urls
+    const { data: tgtRow } = await sbClient.from('tickets').select('attachment_url,attachment_urls').eq('id', mergeTargetId).single();
+    const srcUrls = getUrls(src);
+    const tgtUrls = getUrls(tgtRow || target);
+    const combinedUrls = [...tgtUrls, ...srcUrls];
+
     const { error: se } = await sbClient.from('tickets').update({
       status: 'merged', merged_into: mergeTargetId
     }).eq('id', mergeSourceId);
     if (se) throw se;
-    const newIds = [...(target.merged_ticket_ids || []), mergeSourceId];
-    const { error: te } = await sbClient.from('tickets').update({
-      merged_ticket_ids: newIds, updated_at: new Date().toISOString()
-    }).eq('id', mergeTargetId);
+
+    const existingIds = target.merged_ticket_ids || [];
+    const newIds = [...existingIds, { id: mergeSourceId, urls: srcUrls }];
+    const tgtUpdate = {
+      merged_ticket_ids: newIds,
+      updated_at: new Date().toISOString()
+    };
+    if (combinedUrls.length) {
+      tgtUpdate.attachment_urls = JSON.stringify(combinedUrls);
+      tgtUpdate.attachment_url  = combinedUrls[0];
+    }
+    const { error: te } = await sbClient.from('tickets').update(tgtUpdate).eq('id', mergeTargetId);
     if (te) throw te;
+
     closeModal('modal-merge-ticket');
     await loadTickets();
     toast(`Ticket #${src.ticket_number} merged into #${target.ticket_number}`);
@@ -2366,23 +2397,41 @@ async function confirmMerge() {
 async function unmergeTickets(primaryId) {
   const primary = tickets.find(x => x.id === primaryId);
   if (!primary || !primary.merged_ticket_ids?.length) return;
-  const mergedNums = primary.merged_ticket_ids.map(mid => {
-    const t = tickets.find(x => x.id === mid);
+
+  // merged_ticket_ids is now [{id, urls:[]}] — handle legacy plain-string IDs too
+  const mergedEntries = (primary.merged_ticket_ids || []).map(e =>
+    typeof e === 'string' ? { id: e, urls: [] } : e
+  );
+  const mergedNums = mergedEntries.map(e => {
+    const t = tickets.find(x => x.id === e.id);
     return t ? `#${t.ticket_number}` : '(unknown)';
   }).join(', ');
-  if (!confirm(`Unmerge ${mergedNums} from #${primary.ticket_number}?\n\nThey will be restored to open status and their comments returned.`)) return;
+  if (!confirm(`Unmerge ${mergedNums} from #${primary.ticket_number}?\n\nThey will be restored to open status and their comments and images returned.`)) return;
+
+  const getUrls = t => {
+    try { return t.attachment_urls ? JSON.parse(t.attachment_urls) : (t.attachment_url ? [t.attachment_url] : []); }
+    catch(e) { return t.attachment_url ? [t.attachment_url] : []; }
+  };
 
   if (demoMode) {
-    for (const mid of primary.merged_ticket_ids) {
-      const src = tickets.find(x => x.id === mid); if (!src) continue;
+    let primaryUrls = getUrls(primary);
+    for (const entry of mergedEntries) {
+      const src = tickets.find(x => x.id === entry.id); if (!src) continue;
       const targetComments = DEMO_COMMENTS[primaryId] || [];
-      DEMO_COMMENTS[mid] = targetComments
+      DEMO_COMMENTS[entry.id] = targetComments
         .filter(c => c.source_ticket_number === src.ticket_number)
         .map(c => ({ ...c, source_ticket_number: null }));
       DEMO_COMMENTS[primaryId] = targetComments.filter(c => c.source_ticket_number !== src.ticket_number);
+      // Strip source's URLs back off the primary
+      if (entry.urls?.length) {
+        primaryUrls = primaryUrls.filter(u => !entry.urls.includes(u));
+      }
       src.status = 'open'; src.merged_into = null;
     }
-    primary.merged_ticket_ids = []; primary.updated_at = new Date().toISOString();
+    primary.merged_ticket_ids = [];
+    primary.attachment_urls = primaryUrls.length ? JSON.stringify(primaryUrls) : null;
+    primary.attachment_url  = primaryUrls[0] || null;
+    primary.updated_at = new Date().toISOString();
     closeModal('modal-ticket-detail'); loadTickets();
     toast(`Tickets unmerged from #${primary.ticket_number}`);
     setTimeout(() => openTicketDetail(primaryId), 300);
@@ -2390,22 +2439,36 @@ async function unmergeTickets(primaryId) {
   }
 
   try {
-    for (const mid of primary.merged_ticket_ids) {
-      const src = tickets.find(x => x.id === mid); if (!src) continue;
+    // Fetch fresh primary row for current attachment_urls
+    const { data: primaryRow } = await sbClient.from('tickets').select('attachment_url,attachment_urls').eq('id', primaryId).single();
+    let primaryUrls = getUrls(primaryRow || primary);
+
+    for (const entry of mergedEntries) {
+      const src = tickets.find(x => x.id === entry.id); if (!src) continue;
       const { data: movedComments } = await sbClient
         .from('comments').select('id').eq('ticket_id', primaryId).eq('source_ticket_number', src.ticket_number);
       if (movedComments?.length) {
         for (const c of movedComments) {
-          await sbClient.from('comments').update({ ticket_id: mid, source_ticket_number: null }).eq('id', c.id);
+          await sbClient.from('comments').update({ ticket_id: entry.id, source_ticket_number: null }).eq('id', c.id);
         }
       }
       await sbClient.from('comments').delete()
         .eq('ticket_id', primaryId).like('body', `⛙ Ticket #${src.ticket_number}%`);
-      await sbClient.from('tickets').update({ status: 'open', merged_into: null }).eq('id', mid);
+      // Strip source URLs from primary
+      if (entry.urls?.length) {
+        primaryUrls = primaryUrls.filter(u => !entry.urls.includes(u));
+      }
+      await sbClient.from('tickets').update({ status: 'open', merged_into: null }).eq('id', entry.id);
     }
-    await sbClient.from('tickets').update({
-      merged_ticket_ids: [], updated_at: new Date().toISOString()
-    }).eq('id', primaryId);
+
+    const primaryUpdate = {
+      merged_ticket_ids: [],
+      updated_at: new Date().toISOString(),
+      attachment_urls: primaryUrls.length ? JSON.stringify(primaryUrls) : null,
+      attachment_url:  primaryUrls[0] || null,
+    };
+    await sbClient.from('tickets').update(primaryUpdate).eq('id', primaryId);
+
     closeModal('modal-ticket-detail');
     await loadTickets();
     toast(`Tickets unmerged from #${primary.ticket_number}`);
