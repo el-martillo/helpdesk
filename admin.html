@@ -264,11 +264,60 @@ th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
   .footer-bug-link { display: none !important; }
   .scroll-top-btn { display: none !important; }
 }
-.page { display: none; }
-.page.active { display: block; }
-.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; gap: 12px; }
-.page-header h1 { font-size: 18px; font-weight: 600; }
-.page-header p { font-size: 12px; color: var(--text2); margin-top: 2px; }
+@keyframes skyDay {
+  0%   { background-position: 0% 50%; }    /* midnight */
+  8%   { background-position: 8% 50%; }    /* pre-dawn deep navy */
+  16%  { background-position: 16% 50%; }   /* dawn orange-pink */
+  28%  { background-position: 28% 50%; }   /* sunrise gold */
+  40%  { background-position: 40% 50%; }   /* mid-morning blue */
+  55%  { background-position: 55% 50%; }   /* midday bright blue */
+  68%  { background-position: 68% 50%; }   /* afternoon warm */
+  78%  { background-position: 78% 50%; }   /* sunset orange-red */
+  88%  { background-position: 88% 50%; }   /* dusk purple */
+  96%  { background-position: 96% 50%; }   /* twilight deep blue */
+  100% { background-position: 100% 50%; }  /* back to midnight */
+}
+#page-dashboard {
+  background: linear-gradient(90deg,
+    #0a0a1a 0%,      /* midnight */
+    #0d1b3e 5%,      /* pre-dawn navy */
+    #1a1a4a 8%,      /* deep night fading */
+    #3d2b6e 12%,     /* pre-dawn purple */
+    #8b3a52 16%,     /* dawn rose */
+    #c05a30 20%,     /* early sunrise orange */
+    #e8892a 24%,     /* sunrise gold */
+    #f5b840 28%,     /* golden hour */
+    #88bbe8 34%,     /* morning blue */
+    #5aaae0 40%,     /* mid-morning */
+    #3d9bd8 46%,     /* late morning */
+    #2a88d0 52%,     /* midday */
+    #3a9ad5 58%,     /* afternoon */
+    #5ab0e0 62%,     /* late afternoon */
+    #e89040 68%,     /* golden hour pm */
+    #e05520 74%,     /* sunset orange */
+    #c03028 78%,     /* sunset red */
+    #8b2060 82%,     /* dusk magenta */
+    #4a1560 86%,     /* twilight purple */
+    #1a1040 90%,     /* deep dusk */
+    #0d0d2e 95%,     /* near midnight */
+    #0a0a1a 100%     /* midnight */
+  );
+  background-size: 600% 100%;
+  animation: skyDay 30s linear infinite;
+  border-radius: var(--radius);
+  margin: -24px -24px 0;
+  padding: 24px;
+  min-height: 100%;
+}
+/* Dashboard header always readable against any sky colour */
+#page-dashboard .page-header h1 {
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,.5), 0 0 20px rgba(0,0,0,.3);
+}
+#page-dashboard .page-header p {
+  color: rgba(255,255,255,.8);
+  text-shadow: 0 1px 3px rgba(0,0,0,.4);
+}
 
 /* Buttons */
 .btn {
@@ -405,9 +454,11 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .internal-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); cursor: pointer; }
 
 /* Auth / config screens */
-.screen { display: none; height: 100vh; align-items: center; justify-content: center; background: var(--bg); }
+.screen { display: none; height: 100vh; align-items: center; justify-content: center; background: transparent; position: relative; }
 .screen.active { display: flex; }
-.screen-card { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-l); padding: 32px; width: 100%; max-width: 420px; box-shadow: var(--shadow); }
+#beach-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+.screen-card { position: relative; z-index: 1; background: rgba(255,255,255,0.92); border: 1px solid rgba(255,255,255,0.6); border-radius: var(--radius-l); padding: 32px; width: 100%; max-width: 420px; box-shadow: 0 8px 40px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+@media (prefers-color-scheme: dark) { .screen-card { background: rgba(28,28,26,0.92); border-color: rgba(255,255,255,.1); } }
 .screen-card h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
 .screen-card .desc { font-size: 13px; color: var(--text2); margin-bottom: 22px; line-height: 1.6; }
 .hint { font-size: 11px; color: var(--text3); margin-top: 4px; }
@@ -465,6 +516,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
 </head>
 <body>
+<canvas id="beach-canvas"></canvas>
 
 <!-- Config screen -->
 <div id="cfg-screen" class="screen active">
@@ -5876,7 +5928,126 @@ function initKeyboardShortcuts() {
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => { initSupabase(); initKeyboardShortcuts(); });
+/* ── Beach canvas ── */
+function initBeachCanvas(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W, H, raf;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Wave parameters — 4 layers, 1/10th speed
+  const waves = [
+    { amp: 18, period: 0.012, speed: 0.00004, phase: 0,    alpha: 0.55, yFrac: 0.60, foam: true  },
+    { amp: 12, period: 0.016, speed: 0.00003, phase: 2.1,  alpha: 0.45, yFrac: 0.65, foam: true  },
+    { amp:  9, period: 0.020, speed: 0.000025,phase: 4.2,  alpha: 0.35, yFrac: 0.70, foam: false },
+    { amp:  6, period: 0.010, speed: 0.000015,phase: 1.0,  alpha: 0.25, yFrac: 0.74, foam: false },
+  ];
+
+  let t = 0;
+
+  function draw() {
+    t++;
+    ctx.clearRect(0, 0, W, H);
+
+    // Sky gradient — soft Mediterranean blue
+    const sky = ctx.createLinearGradient(0, 0, 0, H * 0.62);
+    sky.addColorStop(0,   '#5bb8f5');
+    sky.addColorStop(0.4, '#82cef8');
+    sky.addColorStop(1,   '#b8e8ff');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H * 0.62);
+
+    // Sea body — deep teal fading to turquoise near shore
+    const sea = ctx.createLinearGradient(0, H * 0.55, 0, H * 0.78);
+    sea.addColorStop(0,   '#0f7ab0');
+    sea.addColorStop(0.4, '#1a9ed4');
+    sea.addColorStop(0.8, '#4cc4e8');
+    sea.addColorStop(1,   '#7adaf0');
+    ctx.fillStyle = sea;
+    ctx.fillRect(0, H * 0.55, W, H * 0.78);
+
+    // Draw each wave layer back-to-front
+    waves.forEach(w => {
+      const yBase = H * w.yFrac;
+      ctx.beginPath();
+      ctx.moveTo(0, yBase);
+      for (let x = 0; x <= W; x += 2) {
+        const y = yBase + Math.sin(x * w.period + t * w.speed * W + w.phase) * w.amp
+                        + Math.sin(x * w.period * 1.7 + t * w.speed * W * 0.6 + w.phase + 1) * w.amp * 0.4;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W, H);
+      ctx.lineTo(0, H * 0.78);
+      ctx.closePath();
+
+      const waveCol = ctx.createLinearGradient(0, yBase - w.amp, 0, yBase + w.amp * 2);
+      waveCol.addColorStop(0, `rgba(255,255,255,${w.alpha * 0.7})`);
+      waveCol.addColorStop(1, `rgba(100,210,240,${w.alpha})`);
+      ctx.fillStyle = waveCol;
+      ctx.fill();
+
+      if (w.foam) {
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 3) {
+          const y = yBase + Math.sin(x * w.period + t * w.speed * W + w.phase) * w.amp
+                          + Math.sin(x * w.period * 1.7 + t * w.speed * W * 0.6 + w.phase + 1) * w.amp * 0.4;
+          if (x === 0) ctx.moveTo(x, y - 2);
+          else ctx.lineTo(x, y - 2);
+        }
+        ctx.strokeStyle = `rgba(255,255,255,${w.alpha * 1.4})`;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
+    });
+
+    // Wet sand strip
+    const wetSand = ctx.createLinearGradient(0, H * 0.73, 0, H * 0.80);
+    wetSand.addColorStop(0,   '#b8d8c8');
+    wetSand.addColorStop(0.5, '#c8c090');
+    wetSand.addColorStop(1,   '#d4b870');
+    ctx.fillStyle = wetSand;
+    ctx.fillRect(0, H * 0.73, W, H * 0.07);
+
+    // Dry golden sand
+    const sand = ctx.createLinearGradient(0, H * 0.78, 0, H);
+    sand.addColorStop(0,   '#d4b870');
+    sand.addColorStop(0.3, '#e0c878');
+    sand.addColorStop(0.7, '#e8d490');
+    sand.addColorStop(1,   '#f0dca0');
+    ctx.fillStyle = sand;
+    ctx.fillRect(0, H * 0.78, W, H * 0.22);
+
+    // Sand grain texture
+    ctx.fillStyle = 'rgba(160,120,40,0.06)';
+    for (let g = 0; g < 60; g++) {
+      const gx = ((g * 137.5) % 1) * W;
+      const gy = H * 0.80 + ((g * 97.3) % 1) * H * 0.18;
+      ctx.beginPath();
+      ctx.arc(gx, gy, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    raf = requestAnimationFrame(draw);
+  }
+
+  draw();
+  return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
+}
+
+let _beachCleanup = null;
+function startBeachCanvas() {
+  if (_beachCleanup) return; // already running
+  _beachCleanup = initBeachCanvas('beach-canvas');
+}
+
+document.addEventListener('DOMContentLoaded', () => { initSupabase(); initKeyboardShortcuts(); startBeachCanvas(); });
 
 /* ── Directory admin ──────────────────────────────────────── */
 /* ── Directory admin state ── */
