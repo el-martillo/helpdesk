@@ -581,7 +581,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Audit log
       </div>
-      <div class="nav-item" id="nav-settings" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList();loadRateLimits();loadSessionTimeout();loadReportStart();loadOrphanedAccounts()">
+      <div class="nav-item" id="nav-settings" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList();loadCategories();loadRateLimits();loadSessionTimeout();loadReportStart();loadOrphanedAccounts()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </div>
@@ -1128,6 +1128,24 @@ textarea.fc { resize: vertical; min-height: 80px; }
             </div>
           </div>
 
+          <!-- Categories section -->
+          <div class="table-card" style="padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Ticket categories</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+              Manage categories available when submitting tickets on both the client portal and admin panel. Changes are saved to the database immediately.
+            </div>
+            <div id="cat-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+              <div style="text-align:center;padding:16px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input class="fc" id="new-cat-input" type="text" placeholder="Add category…" style="max-width:260px" onkeydown="if(event.key==='Enter')addCategory()"/>
+              <button class="btn primary" onclick="addCategory()">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                Add
+              </button>
+            </div>
+          </div>
+
           <!-- Backup section -->
           <div class="table-card" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Database backup</div>
@@ -1440,7 +1458,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <select id="nt-priority" class="fc"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="critical">Critical</option></select>
       </div>
       <div class="fg"><label class="fl">Category</label>
-        <select id="nt-category" class="fc"><option value="Billing">Billing</option><option value="Technical">Technical</option><option value="Account">Account</option><option value="General">General</option></select>
+        <select id="nt-category" class="fc"></select>
       </div>
     </div>
     <div class="fg">
@@ -1937,7 +1955,7 @@ async function signIn() {
   const mobNm = document.getElementById('mob-name-admin');
   if (mobAv) { mobAv.textContent = initials(_mn); mobAv.className = 'avatar ' + avColor(prof?.id||''); }
   if (mobNm) mobNm.textContent = _mn;
-  loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart();
+  loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart(); loadCategories();
 }
 async function signOut() { if(realtimeChannel && sbClient) sbClient.removeChannel(realtimeChannel); if(sbClient) await sbClient.auth.signOut(); location.reload(); }
 function clearCreds() { localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key'); location.reload(); }
@@ -3009,6 +3027,25 @@ function ntPopulateRequesterDropdown() {
     makeOpts(groups.client, 'Clients') +
     makeOpts(groups.agent,  'Agents') +
     makeOpts(groups.admin,  'Admins');
+  ntPopulateCategoryDropdown();
+}
+
+function ntGetCategories() {
+  return categoriesList.length ? categoriesList : ['Technical','Billing','Account','General'];
+}
+
+function ntPopulateCategoryDropdown() {
+  const sel = document.getElementById('nt-category');
+  if (!sel) return;
+  const cats = ntGetCategories();
+  const current = sel.value || cats[0];
+  sel.innerHTML = cats.map(c =>
+    `<option value="${c}" ${c === current ? 'selected' : ''}>${c}</option>`
+  ).join('');
+}
+
+async function loadCategories() {
+  // Now a no-op — loadCategories() populates categoriesList on sign-in
 }
 
 function ntFillRequester(profileId) {
@@ -3086,19 +3123,21 @@ async function createTicket() {
 function renderAgents() {
   const grid = document.getElementById('agents-grid');
   if (!grid) return;
-  // Use allProfiles (full list) if available, otherwise fall back to profiles
   const source = (allProfiles && allProfiles.length) ? allProfiles : profiles;
   const agents = source.filter(p => p.role === 'admin' || p.role === 'super_admin');
   const openByAgent = {};
   tickets.forEach(t => { if (t.assignee_id && t.status !== 'resolved') openByAgent[t.assignee_id] = (openByAgent[t.assignee_id] || 0) + 1; });
   const resolvedByAgent = {};
   tickets.forEach(t => { if (t.assignee_id && t.status === 'resolved') resolvedByAgent[t.assignee_id] = (resolvedByAgent[t.assignee_id] || 0) + 1; });
-  const ss = { online:'s-open', away:'s-waiting', offline:'s-closed' };
   if (!agents.length) {
     grid.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:4px 0">No team members found.</div>';
     return;
   }
-  grid.innerHTML = agents.map(p => `
+  grid.innerHTML = agents.map(p => {
+    const lastSeen = demoMode
+      ? 'recently'
+      : lastSignInMap[p.id] ? 'Active ' + timeAgo(lastSignInMap[p.id]) : 'Never signed in';
+    return `
     <div class="table-card" style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;transition:box-shadow .15s"
          onclick="openEditUser('${p.id}')"
          onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'"
@@ -3109,10 +3148,11 @@ function renderAgents() {
         <div style="font-size:11px;color:var(--text2);margin-top:2px">${p.role === 'super_admin' ? 'Super Admin' : 'Admin'} · ${openByAgent[p.id] || 0} open · ${resolvedByAgent[p.id] || 0} resolved</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-        <span class="sb ${ss[p.status] || 's-closed'}" style="font-size:10px">${p.status || 'offline'}</span>
+        <span style="font-size:11px;color:var(--text3);text-align:right">${esc(lastSeen)}</span>
         <span style="font-size:10px;color:var(--text3)">click to edit</span>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 
@@ -3665,7 +3705,7 @@ async function initSupabase() {
       if (rb) rb.textContent = prof?.role === 'super_admin' ? 'Super Admin' : 'Admin';
       applyRoleUI(prof?.role);
       document.getElementById('app').style.display = 'flex';
-      loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart();
+      loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart(); loadCategories();
     } else {
       showAuthScreen();
       loadVersion();
@@ -3678,7 +3718,8 @@ async function initSupabase() {
 
 /* ── Users management ── */
 let allProfiles = [];
-let authVerifiedMap = {}; // email → true/false
+let authVerifiedMap = {}; // id → true/false
+let lastSignInMap   = {}; // id → ISO timestamp
 
 async function loadAllProfiles() {
   const tbody = document.getElementById('users-tbody');
@@ -3698,9 +3739,13 @@ async function loadAllProfiles() {
   allProfiles = data || [];
   // Fetch verified status via RPC
   authVerifiedMap = {};
+  lastSignInMap   = {};
   try {
     const { data: authData } = await sbClient.rpc('get_users_verified_status');
-    if (authData) authData.forEach(r => { authVerifiedMap[r.user_id] = !!r.email_confirmed_at; });
+    if (authData) authData.forEach(r => {
+      authVerifiedMap[r.user_id] = !!r.email_confirmed_at;
+      if (r.last_sign_in_at) lastSignInMap[r.user_id] = r.last_sign_in_at;
+    });
   } catch(e) { console.warn('Could not load verified status:', e.message); }
   renderUsersTable();
   renderAgents();
@@ -4679,6 +4724,109 @@ async function persistOrgs() {
     .upsert({ key: 'organisations', value: JSON.stringify(companiesList) }, { onConflict: 'key' });
   if (error) toast('Error saving organisations: ' + error.message);
   else { toast('Organisations saved'); logSystemEvent('orgs_updated',`${companiesList.length} organisations: ${companiesList.join(', ')}`); }
+}
+
+/* ── Ticket categories ── */
+let categoriesList = [];
+const CAT_KEY = 'categories';
+const CAT_DEFAULTS = ['Technical','Billing','Account','General'];
+
+async function loadCategories() {
+  categoriesList = [];
+  if (demoMode) {
+    categoriesList = [...CAT_DEFAULTS];
+    renderCategoryList();
+    ntPopulateCategoryDropdown();
+    return;
+  }
+  if (!sbClient) return;
+  try {
+    const { data } = await sbClient.from('app_settings').select('value').eq('key', CAT_KEY).maybeSingle();
+    categoriesList = (data?.value ? JSON.parse(data.value) : CAT_DEFAULTS).filter(Boolean);
+  } catch { categoriesList = [...CAT_DEFAULTS]; }
+  renderCategoryList();
+  ntPopulateCategoryDropdown();
+}
+
+function renderCategoryList() {
+  const el = document.getElementById('cat-list');
+  if (!el) return;
+  if (!categoriesList.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:4px 0">No categories yet.</div>';
+    return;
+  }
+  el.innerHTML = categoriesList.map((c, i) => `
+    <div style="display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)" id="cat-row-${i}">
+      <span id="cat-label-${i}" style="flex:1;font-size:13px">${esc(c)}</span>
+      <input class="fc" id="cat-input-${i}" type="text" value="${esc(c)}" style="flex:1;display:none;padding:4px 8px;font-size:13px" onkeydown="if(event.key==='Enter')saveCatEdit(${i});if(event.key==='Escape')cancelCatEdit(${i})"/>
+      <button class="btn sm" id="cat-edit-btn-${i}" onclick="startCatEdit(${i})" title="Edit" style="padding:3px 8px">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button class="btn sm" id="cat-save-btn-${i}" onclick="saveCatEdit(${i})" style="display:none;padding:3px 8px;background:var(--accent-l);color:var(--accent);border-color:var(--accent-l)">✓</button>
+      <button class="btn sm" id="cat-cancel-btn-${i}" onclick="cancelCatEdit(${i})" style="display:none;padding:3px 8px">✕</button>
+      <button class="btn sm" id="cat-del-btn-${i}" onclick="removeCategory(${i})" style="color:var(--danger);border-color:var(--danger-l);background:var(--danger-l);padding:3px 8px" title="Remove">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      </button>
+    </div>`).join('');
+}
+
+function startCatEdit(i) {
+  document.getElementById(`cat-label-${i}`).style.display      = 'none';
+  document.getElementById(`cat-input-${i}`).style.display      = 'block';
+  document.getElementById(`cat-edit-btn-${i}`).style.display   = 'none';
+  document.getElementById(`cat-save-btn-${i}`).style.display   = 'inline-flex';
+  document.getElementById(`cat-cancel-btn-${i}`).style.display = 'inline-flex';
+  document.getElementById(`cat-del-btn-${i}`).style.display    = 'none';
+  const inp = document.getElementById(`cat-input-${i}`);
+  inp.focus(); inp.select();
+}
+
+function cancelCatEdit(i) {
+  document.getElementById(`cat-label-${i}`).style.display      = 'block';
+  document.getElementById(`cat-input-${i}`).style.display      = 'none';
+  document.getElementById(`cat-edit-btn-${i}`).style.display   = 'inline-flex';
+  document.getElementById(`cat-save-btn-${i}`).style.display   = 'none';
+  document.getElementById(`cat-cancel-btn-${i}`).style.display = 'none';
+  document.getElementById(`cat-del-btn-${i}`).style.display    = 'inline-flex';
+  document.getElementById(`cat-input-${i}`).value = categoriesList[i];
+}
+
+async function saveCatEdit(i) {
+  const val = (document.getElementById(`cat-input-${i}`)?.value || '').trim();
+  if (!val) { toast('Category name cannot be empty'); return; }
+  if (categoriesList.some((c, j) => j !== i && c.toLowerCase() === val.toLowerCase())) { toast('Category already exists'); return; }
+  categoriesList[i] = val;
+  renderCategoryList();
+  ntPopulateCategoryDropdown();
+  await persistCategories();
+}
+
+async function addCategory() {
+  const input = document.getElementById('new-cat-input');
+  const val = (input?.value || '').trim();
+  if (!val) return;
+  if (categoriesList.map(c => c.toLowerCase()).includes(val.toLowerCase())) { toast('Category already exists'); return; }
+  categoriesList.push(val);
+  renderCategoryList();
+  ntPopulateCategoryDropdown();
+  if (input) input.value = '';
+  await persistCategories();
+}
+
+async function removeCategory(i) {
+  if (!confirm(`Remove category "${categoriesList[i]}"?`)) return;
+  categoriesList.splice(i, 1);
+  renderCategoryList();
+  ntPopulateCategoryDropdown();
+  await persistCategories();
+}
+
+async function persistCategories() {
+  if (demoMode) { toast('Categories saved (demo)'); return; }
+  const { error } = await sbClient.from('app_settings')
+    .upsert({ key: CAT_KEY, value: JSON.stringify(categoriesList) }, { onConflict: 'key' });
+  if (error) toast('Error saving categories: ' + error.message);
+  else toast('Categories saved');
 }
 
 function populateCompanySelects() {
