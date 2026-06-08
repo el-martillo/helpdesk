@@ -48,7 +48,7 @@
   }
 }
 html, body { height: 100%; font-family: var(--font); background: transparent; color: var(--text1); font-size: 14px; }
-#app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--bg); }
+#app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--bg); position: relative; z-index: 2; }
 
 /* Topbar */
 .topbar {
@@ -2086,7 +2086,7 @@ function loadDemo() {
   applyRoleUI('admin');
   document.getElementById('cfg-screen').classList.remove('active');
   document.getElementById('auth-screen').classList.remove('active');
-  document.getElementById('app').style.display = 'flex';
+  document.getElementById('app').style.display = 'flex'; stopBeachCanvas();
   document.getElementById('topbar-user').textContent = 'Dev Kumar';
   loadTickets(); renderAgents(); renderReports(); loadAllProfiles(); loadUserCount(); loadCompanies();
 }
@@ -2140,7 +2140,7 @@ async function signIn() {
   currentProfile = prof;
   if (!prof?.role || prof?.role==='client') { document.getElementById('auth-err').textContent='Access denied. Client accounts must use the client portal.'; return; }
   document.getElementById('auth-screen').classList.remove('active');
-  document.getElementById('app').style.display = 'flex';
+  document.getElementById('app').style.display = 'flex'; stopBeachCanvas();
   document.getElementById('db-dot').className = 'dot connected';
   document.getElementById('db-label').textContent = 'Supabase connected';
   document.getElementById('topbar-user').textContent = prof?.full_name||email;
@@ -3916,7 +3916,7 @@ async function initSupabase() {
       const rb = document.getElementById('topbar-role-badge');
       if (rb) rb.textContent = prof?.role === 'super_admin' ? 'Super Admin' : 'Admin';
       applyRoleUI(prof?.role);
-      document.getElementById('app').style.display = 'flex';
+      document.getElementById('app').style.display = 'flex'; stopBeachCanvas();
       loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart(); loadCategories();
     } else {
       showAuthScreen();
@@ -6051,6 +6051,11 @@ let _beachCleanup = null;
 function startBeachCanvas() {
   if (_beachCleanup) return; // already running
   _beachCleanup = initBeachCanvas('beach-canvas');
+}
+function stopBeachCanvas() {
+  if (_beachCleanup) { _beachCleanup(); _beachCleanup = null; }
+  const canvas = document.getElementById('beach-canvas');
+  if (canvas) canvas.style.display = 'none';
 }
 
 document.addEventListener('DOMContentLoaded', () => { initSupabase(); initKeyboardShortcuts(); startBeachCanvas(); });
