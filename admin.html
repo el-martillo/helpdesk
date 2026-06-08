@@ -47,8 +47,8 @@
     --warn-l:#371f04; --danger-l:#3a0f0f;
   }
 }
-html, body { height: 100%; font-family: var(--font); background: var(--bg); color: var(--text1); font-size: 14px; }
-#app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+html, body { height: 100%; font-family: var(--font); background: transparent; color: var(--text1); font-size: 14px; }
+#app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--bg); }
 
 /* Topbar */
 .topbar {
@@ -265,50 +265,51 @@ th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
   .scroll-top-btn { display: none !important; }
 }
 @keyframes skyDay {
-  0%   { background-position: 0% 50%; }    /* midnight */
-  8%   { background-position: 8% 50%; }    /* pre-dawn deep navy */
-  16%  { background-position: 16% 50%; }   /* dawn orange-pink */
-  28%  { background-position: 28% 50%; }   /* sunrise gold */
-  40%  { background-position: 40% 50%; }   /* mid-morning blue */
-  55%  { background-position: 55% 50%; }   /* midday bright blue */
-  68%  { background-position: 68% 50%; }   /* afternoon warm */
-  78%  { background-position: 78% 50%; }   /* sunset orange-red */
-  88%  { background-position: 88% 50%; }   /* dusk purple */
-  96%  { background-position: 96% 50%; }   /* twilight deep blue */
-  100% { background-position: 100% 50%; }  /* back to midnight */
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
 }
 #page-dashboard {
-  background: linear-gradient(90deg,
-    #0a0a1a 0%,      /* midnight */
-    #0d1b3e 5%,      /* pre-dawn navy */
-    #1a1a4a 8%,      /* deep night fading */
-    #3d2b6e 12%,     /* pre-dawn purple */
-    #8b3a52 16%,     /* dawn rose */
-    #c05a30 20%,     /* early sunrise orange */
-    #e8892a 24%,     /* sunrise gold */
-    #f5b840 28%,     /* golden hour */
-    #88bbe8 34%,     /* morning blue */
-    #5aaae0 40%,     /* mid-morning */
-    #3d9bd8 46%,     /* late morning */
-    #2a88d0 52%,     /* midday */
-    #3a9ad5 58%,     /* afternoon */
-    #5ab0e0 62%,     /* late afternoon */
-    #e89040 68%,     /* golden hour pm */
-    #e05520 74%,     /* sunset orange */
-    #c03028 78%,     /* sunset red */
-    #8b2060 82%,     /* dusk magenta */
-    #4a1560 86%,     /* twilight purple */
-    #1a1040 90%,     /* deep dusk */
-    #0d0d2e 95%,     /* near midnight */
-    #0a0a1a 100%     /* midnight */
-  );
-  background-size: 600% 100%;
-  animation: skyDay 30s linear infinite;
+  position: relative;
   border-radius: var(--radius);
   margin: -24px -24px 0;
   padding: 24px;
   min-height: 100%;
 }
+#page-dashboard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: var(--radius);
+  background: linear-gradient(90deg,
+    #1a1040 0%,
+    #0d0d2e 4%,
+    #0a0a1a 8%,
+    #0d1b3e 12%,
+    #3d2b6e 17%,
+    #8b3a52 21%,
+    #c05a30 25%,
+    #e8892a 29%,
+    #f5b840 33%,
+    #88bbe8 39%,
+    #3d9bd8 46%,
+    #2a88d0 52%,
+    #5ab0e0 60%,
+    #e89040 66%,
+    #e05520 71%,
+    #c03028 75%,
+    #8b2060 79%,
+    #4a1560 83%,
+    #1a1040 88%,
+    #0d0d2e 92%,
+    #0a0a1a 96%,
+    #0d1b3e 100%
+  );
+  background-size: 400% 100%;
+  animation: skyDay 30s linear infinite;
+}
+#page-dashboard > * { position: relative; z-index: 1; }
 /* Dashboard header always readable against any sky colour */
 #page-dashboard .page-header h1 {
   color: #fff;
@@ -453,16 +454,20 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .reply-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
 .internal-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); cursor: pointer; }
 
-/* Auth / config screens */
-.screen { display: none; height: 100vh; align-items: center; justify-content: center; background: transparent; position: relative; }
-.screen.active { display: flex; }
-#beach-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
-.screen-card { position: relative; z-index: 1; background: rgba(255,255,255,0.92); border: 1px solid rgba(255,255,255,0.6); border-radius: var(--radius-l); padding: 32px; width: 100%; max-width: 420px; box-shadow: 0 8px 40px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+#beach-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.screen { display: none; position: fixed; inset: 0; align-items: center; justify-content: center; }
+.screen.active { display: flex; z-index: 1; }
+.screen-card { position: relative; z-index: 2; background: rgba(255,255,255,0.92); border: 1px solid rgba(255,255,255,0.6); border-radius: var(--radius-l); padding: 32px; width: 100%; max-width: 420px; box-shadow: 0 8px 40px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 @media (prefers-color-scheme: dark) { .screen-card { background: rgba(28,28,26,0.92); border-color: rgba(255,255,255,.1); } }
 .screen-card h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
 .screen-card .desc { font-size: 13px; color: var(--text2); margin-bottom: 22px; line-height: 1.6; }
 .hint { font-size: 11px; color: var(--text3); margin-top: 4px; }
 .demo-link { font-size: 12px; color: var(--accent); cursor: pointer; text-decoration: underline; background: none; border: none; font-family: var(--font); display: block; text-align: center; margin-top: 12px; }
+.page { display: none; }
+.page.active { display: block; }
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; gap: 12px; }
+.page-header h1 { font-size: 18px; font-weight: 600; }
+.page-header p { font-size: 12px; color: var(--text2); margin-top: 2px; }
 
 /* Loader / toast */
 .loader { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
@@ -519,7 +524,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 <canvas id="beach-canvas"></canvas>
 
 <!-- Config screen -->
-<div id="cfg-screen" class="screen active">
+<div id="cfg-screen" class="screen" style="display:none">
   <div class="screen-card">
     <h2>🎫 El Martillo I.T. Ticketing System Admin</h2>
     <p class="desc">Connect your Supabase project to get started. Your credentials are saved locally after the first connection.</p>
@@ -537,7 +542,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 </div>
 
 <!-- Auth screen -->
-<div id="auth-screen" class="screen">
+<div id="auth-screen" class="screen active">
   <div class="screen-card">
     <div style="text-align:center;margin-bottom:16px">
       <svg width="120" height="92" viewBox="0 0 680 520" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;overflow:visible">
@@ -3899,6 +3904,7 @@ async function initSupabase() {
         return;
       }
       document.getElementById('cfg-screen').classList.remove('active');
+      document.getElementById('auth-screen').classList.remove('active');
       const tu = document.getElementById('topbar-user');
       if (tu) tu.textContent = prof?.full_name || currentUser.email;
       // Sync mobile hamburger pill
