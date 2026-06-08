@@ -602,7 +602,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
         </div>
         <div class="table-card">
           <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">Recent activity</div>
-          <table><thead><tr><th class="sortable" data-sort="ticket_number" onclick="setSort('ticket_number')">ID</th><th class="sortable" data-sort="client" onclick="setSort('client')">Client</th><th class="sortable" data-sort="company" onclick="setSort('company')">Organisation</th><th class="sortable" data-sort="subject" onclick="setSort('subject')">Subject</th><th class="sortable" data-sort="status" onclick="setSort('status')">Status</th><th class="sortable" data-sort="priority" onclick="setSort('priority')">Priority</th><th class="sortable sort-desc" data-sort="updated_at" onclick="setSort('updated_at')">Updated</th><th></th></tr></thead>
+          <table><thead><tr><th class="sortable sort-desc" data-sort="ticket_number" onclick="setSort('ticket_number')">ID</th><th class="sortable" data-sort="client" onclick="setSort('client')">Client</th><th class="sortable" data-sort="company" onclick="setSort('company')">Organisation</th><th class="sortable" data-sort="subject" onclick="setSort('subject')">Subject</th><th class="sortable" data-sort="status" onclick="setSort('status')">Status</th><th class="sortable" data-sort="priority" onclick="setSort('priority')">Priority</th><th class="sortable" data-sort="updated_at" onclick="setSort('updated_at')">Updated</th><th></th></tr></thead>
           <tbody id="dash-recent-tbody"></tbody></table>
         </div>
 
@@ -702,7 +702,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </div>
           <table><thead><tr>
             <th class="cb-cell"><input type="checkbox" id="bulk-select-all" onclick="bulkToggleAll(this)" title="Select all visible"/></th>
-            <th class="sortable" data-sort="ticket_number" onclick="setSort('ticket_number')">ID</th><th class="sortable" data-sort="client" onclick="setSort('client')">Client</th><th class="sortable" data-sort="company" onclick="setSort('company')">Organisation</th><th class="sortable" data-sort="subject" onclick="setSort('subject')">Subject</th><th class="sortable" data-sort="status" onclick="setSort('status')">Status</th><th class="sortable" data-sort="priority" onclick="setSort('priority')">Priority</th><th class="sortable" data-sort="assignee" onclick="setSort('assignee')">Tech assigned</th><th class="sortable sort-desc" data-sort="updated_at" onclick="setSort('updated_at')">Updated</th><th></th></tr></thead>
+            <th class="sortable sort-desc" data-sort="ticket_number" onclick="setSort('ticket_number')">ID</th><th class="sortable" data-sort="client" onclick="setSort('client')">Client</th><th class="sortable" data-sort="company" onclick="setSort('company')">Organisation</th><th class="sortable" data-sort="subject" onclick="setSort('subject')">Subject</th><th class="sortable" data-sort="status" onclick="setSort('status')">Status</th><th class="sortable" data-sort="priority" onclick="setSort('priority')">Priority</th><th class="sortable" data-sort="assignee" onclick="setSort('assignee')">Tech assigned</th><th class="sortable" data-sort="updated_at" onclick="setSort('updated_at')">Updated</th><th></th></tr></thead>
           <tbody id="admin-tbody"></tbody></table>
         </div>
       </div>
@@ -1653,7 +1653,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 let sbClient = null, currentUser = null, currentProfile = null;
 let adminPerPage = 25;
 let tickets = [], profiles = [];
-let sortKey = 'updated_at', sortDir = 'desc';
+let sortKey = 'ticket_number', sortDir = 'desc';
 let demoMode = false;
 let mergeSourceId = null, mergeTargetId = null;
 let bulkSelected = new Set();
@@ -1894,7 +1894,7 @@ function sortTickets(list) {
 }
 function setSort(key) {
   if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-  else { sortKey = key; sortDir = key === 'updated_at' ? 'desc' : 'asc'; }
+  else { sortKey = key; sortDir = (key === 'updated_at' || key === 'ticket_number') ? 'desc' : 'asc'; }
   renderTable();
   updateSortHeaders();
 }
@@ -2181,10 +2181,10 @@ let syslogPerPage   = 50;
 const fltSort = {}; // keyed by status page name
 
 function setFltSort(page, key) {
-  if (!fltSort[page]) fltSort[page] = { key: 'updated_at', dir: 'desc' };
+  if (!fltSort[page]) fltSort[page] = { key: 'ticket_number', dir: 'desc' };
   const s = fltSort[page];
   if (s.key === key) { s.dir = s.dir === 'asc' ? 'desc' : 'asc'; }
-  else { s.key = key; s.dir = key === 'updated_at' ? 'desc' : 'asc'; }
+  else { s.key = key; s.dir = (key === 'updated_at' || key === 'ticket_number') ? 'desc' : 'asc'; }
   // Update header indicators
   document.querySelectorAll(`[id^="flt-th-${page}-"]`).forEach(th => {
     th.classList.remove('sort-asc','sort-desc');
@@ -2204,7 +2204,7 @@ function renderFilteredPage(page) {
   const pf  = document.getElementById('flt-priority-' + page)?.value || '';
   const pp  = parseInt(document.getElementById('flt-pp-' + page)?.value || '25');
 
-  if (!fltSort[page]) fltSort[page] = { key: 'updated_at', dir: 'desc' };
+  if (!fltSort[page]) fltSort[page] = { key: 'ticket_number', dir: 'desc' };
   const { key: sk, dir: sd } = fltSort[page];
 
   let list = tickets.filter(t => t.status === page);
@@ -2349,13 +2349,13 @@ function adminNav(el, page) {
         <table>
           <thead><tr>
             <th class="cb-cell"><input type="checkbox" id="flt-sel-all-${page}" onclick="bulkToggleAllFlt(this,'${page}')" title="Select all visible"/></th>
-            <th class="sortable" onclick="setFltSort('${page}','ticket_number')" id="flt-th-${page}-id">ID</th>
+            <th class="sortable sort-desc" onclick="setFltSort('${page}','ticket_number')" id="flt-th-${page}-id">ID</th>
             <th class="sortable" onclick="setFltSort('${page}','client')"        id="flt-th-${page}-client">Client</th>
             <th class="sortable" onclick="setFltSort('${page}','company')"       id="flt-th-${page}-company">Organisation</th>
             <th class="sortable" onclick="setFltSort('${page}','subject')"       id="flt-th-${page}-subject">Subject</th>
             <th class="sortable" onclick="setFltSort('${page}','priority')"      id="flt-th-${page}-priority">Priority</th>
             <th class="sortable" onclick="setFltSort('${page}','assignee')"      id="flt-th-${page}-assignee">Tech assigned</th>
-            <th class="sortable sort-desc" onclick="setFltSort('${page}','updated_at')" id="flt-th-${page}-updated">Updated</th>
+            <th class="sortable" onclick="setFltSort('${page}','updated_at')" id="flt-th-${page}-updated">Updated</th>
             <th></th>
           </tr></thead>
           <tbody id="flt-tbody-${page}"></tbody>
