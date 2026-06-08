@@ -872,6 +872,17 @@ async function signIn() {
   trackUserActivity('login', 'success', `Signed in`);
   showApp();
 }
+function clearSignupForm() {
+  ['su-name','su-email','su-phone','su-password','su-password2'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const compEl = document.getElementById('su-company');
+  if (compEl) compEl.selectedIndex = 0;
+  if (typeof grecaptcha !== 'undefined' && window._suWidgetId !== undefined) {
+    grecaptcha.reset(window._suWidgetId);
+  }
+}
+
 async function signUp() {
   if (!sbClient){loadDemo();return;}
   const recaptchaToken = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse(window._suWidgetId) : '';
@@ -910,7 +921,10 @@ async function signUp() {
 
   const {data,error}=await sbClient.auth.signUp({
     email, password: pass,
-    options: { data: { full_name: name, role: 'client', phone: phone||'', company: company||'' } }
+    options: {
+      data: { full_name: name, role: 'client', phone: phone||'', company: company||'' },
+      emailRedirectTo: 'https://el-martillo.github.io/helpdesk/index.html'
+    }
   });
 
   if (error){
@@ -932,6 +946,7 @@ async function signUp() {
   // Email confirmation required
   if (!data.session) {
     try { await sbClient.from('user_activity').insert({ user_email: email, user_name: name, action:'signup_attempt', status:'success', details:'Awaiting email confirmation' }); } catch{}
+    clearSignupForm();
     errEl.style.color='var(--success)';
     errEl.textContent='✓ Account created! Check your email to confirm your address, then sign in.';
     return;
@@ -967,6 +982,7 @@ async function signUp() {
   currentProfile = upserted || upsertData;
 
   errEl.textContent='';
+  clearSignupForm();
   trackUserActivity('signup_attempt', 'success', `Account created: ${name}`);
   toast('Account created! Welcome, '+name);
   showApp();
