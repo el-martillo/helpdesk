@@ -187,6 +187,13 @@ th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
 .settings-grid > * { break-inside: avoid; margin-bottom: 16px; }
 @media (max-width: 900px) { .settings-grid { columns: 2; } }
 @media (max-width: 600px) { .settings-grid { columns: 1; } .content { padding: 16px; } }
+/* Drag handle on settings cards */
+.settings-grid > .table-card { position: relative; }
+.settings-card-drag { position: absolute; top: 8px; right: 10px; cursor: grab; opacity: 0; transition: opacity .15s; color: var(--text3); padding: 2px; }
+.settings-grid > .table-card:hover .settings-card-drag { opacity: 1; }
+.settings-card-drag:active { cursor: grabbing; }
+.settings-grid > .table-card.drag-over { outline: 2px dashed var(--accent); outline-offset: 3px; }
+.settings-grid > .table-card.dragging { opacity: 0.4; }
 .reports-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .reports-grid > .full-width { grid-column: 1 / -1; }
 @media (max-width: 900px) { .reports-grid { grid-template-columns: repeat(2, 1fr); } }
@@ -464,10 +471,14 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .internal-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); cursor: pointer; }
 
 #beach-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-.screen { display: none; position: fixed; inset: 0; align-items: center; justify-content: center; }
-.screen.active { display: flex; z-index: 1; }
-.screen-card { position: relative; z-index: 2; background: rgba(255,255,255,0.92); border: 1px solid rgba(255,255,255,0.6); border-radius: var(--radius-l); padding: 32px; width: 100%; max-width: 420px; box-shadow: 0 8px 40px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.screen { display: none; position: fixed; inset: 0; }
+.screen.active { display: block; }
+.screen-card { position: absolute; background: rgba(255,255,255,0.92); border: 1px solid rgba(255,255,255,0.6); border-radius: var(--radius-l); padding: 24px 32px 32px; width: calc(100% - 32px); max-width: 420px; box-shadow: 0 8px 40px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 @media (prefers-color-scheme: dark) { .screen-card { background: rgba(28,28,26,0.92); border-color: rgba(255,255,255,.1); } }
+.screen-drag-handle { display: flex; align-items: center; justify-content: center; margin: -8px -8px 16px; padding: 6px; border-radius: 6px; cursor: grab; opacity: 0.35; transition: opacity .15s; }
+.screen-drag-handle:hover { opacity: 0.7; }
+.screen-drag-handle:active { cursor: grabbing; opacity: 1; }
+.screen-drag-handle svg { display: block; }
 .screen-card h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
 .screen-card .desc { font-size: 13px; color: var(--text2); margin-bottom: 22px; line-height: 1.6; }
 .hint { font-size: 11px; color: var(--text3); margin-top: 4px; }
@@ -535,6 +546,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 <!-- Config screen -->
 <div id="cfg-screen" class="screen" style="display:none">
   <div class="screen-card">
+    <div class="screen-drag-handle"><svg width="24" height="8" viewBox="0 0 24 8" fill="currentColor"><circle cx="4" cy="2" r="1.5"/><circle cx="12" cy="2" r="1.5"/><circle cx="20" cy="2" r="1.5"/><circle cx="4" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="20" cy="6" r="1.5"/></svg></div>
     <h2>🎫 El Martillo I.T. Ticketing System Admin</h2>
     <p class="desc">Connect your Supabase project to get started. Your credentials are saved locally after the first connection.</p>
     <div class="fg">
@@ -553,6 +565,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 <!-- Auth screen -->
 <div id="auth-screen" class="screen active">
   <div class="screen-card">
+    <div class="screen-drag-handle"><svg width="24" height="8" viewBox="0 0 24 8" fill="currentColor"><circle cx="4" cy="2" r="1.5"/><circle cx="12" cy="2" r="1.5"/><circle cx="20" cy="2" r="1.5"/><circle cx="4" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="20" cy="6" r="1.5"/></svg></div>
     <div style="text-align:center;margin-bottom:16px">
       <svg width="120" height="92" viewBox="0 0 680 520" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;overflow:visible">
         <style>
@@ -788,7 +801,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </div>
         </div>
       </div>
-      <div class="nav-item" id="nav-settings" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList();loadCategories();loadRateLimits();loadSessionTimeout();loadReportStart();loadOrphanedAccounts()">
+      <div class="nav-item" id="nav-settings" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList();loadCategories();loadRateLimits();loadSessionTimeout();loadReportStart();loadOrphanedAccounts();initSettingsDrag()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </div>
@@ -1239,10 +1252,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <!-- Settings -->
       <div class="page" id="page-settings">
         <div class="page-header"><div><h1>Settings</h1><p>System configuration</p></div></div>
-        <div class="settings-grid">
+        <div class="settings-grid" id="settings-grid">
 
           <!-- General settings -->
-          <div class="table-card" style="padding:20px">
+          <div class="table-card" data-card-id="general" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:14px">General</div>
             <div class="fg"><label class="fl">Company name</label><input class="fc" value="El Martillo I.T." type="text"/></div>
             <div class="fg"><label class="fl">Support email</label><input class="fc" value="helpdesk@el-martillo.com" type="email"/></div>
@@ -1262,7 +1275,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
 
           <!-- Reports start ticket -->
-          <div class="table-card" style="padding:20px">
+          <div class="table-card" data-card-id="reports-start" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Reports baseline</div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Set the starting ticket number for all reports. Tickets with a lower number will be excluded from charts and statistics. Useful for ignoring test or legacy tickets.
@@ -1282,7 +1295,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </div>
 
           <!-- Session timeout section -->
-          <div class="table-card" style="padding:20px">
+          <div class="table-card" data-card-id="session" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Session timeout</div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Automatically sign out inactive users after this many minutes. Applies to both the admin panel and the client portal. Changes take effect on the next login.
@@ -1305,7 +1318,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </div>
 
           <!-- Version section -->
-          <div class="table-card" style="padding:20px">
+          <div class="table-card" data-card-id="version" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Application version</div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Set the version number displayed in the footer across all pages.
@@ -1318,7 +1331,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </div>
 
           <!-- Organisations section -->
-          <div class="table-card" style="padding:20px">
+          <div class="table-card" data-card-id="organisations" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Organisations</div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Manage the list of organisations available in dropdowns across the system. Changes are saved to the database immediately.
@@ -1336,7 +1349,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </div>
 
           <!-- Categories section -->
-          <div class="table-card" style="padding:20px">
+          <div class="table-card" data-card-id="categories" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Ticket categories</div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Manage categories available when submitting tickets on both the client portal and admin panel. Changes are saved to the database immediately.
@@ -1354,7 +1367,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </div>
 
           <!-- Backup section -->
-          <div class="table-card" style="padding:20px">
+          <div class="table-card" data-card-id="backup" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Database backup</div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Export all tickets, profiles, and comments as a JSON file. The backup is generated directly from your Supabase database and downloaded to your browser.
@@ -1417,7 +1430,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </div>
 
           <!-- Logs download section -->
-          <div class="table-card" style="padding:20px">
+          <div class="table-card" data-card-id="logs" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Download logs</div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Export activity, system, and audit logs as CSV files for auditing or offline analysis.
@@ -1458,7 +1471,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
 
           <!-- Rate limits section -->
-          <div class="table-card" style="padding:20px">
+          <div class="table-card" data-card-id="rate-limits" style="padding:20px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
               <div style="font-size:13px;font-weight:600">Rate limiting</div>
               <span class="sb s-open" style="font-size:10px" id="rl-status-badge">—</span>
@@ -1502,7 +1515,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </div>
 
           <!-- Orphaned accounts section -->
-          <div class="table-card" style="padding:20px">
+          <div class="table-card" data-card-id="orphaned" style="padding:20px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
               <div style="font-size:13px;font-weight:600">Orphaned accounts</div>
               <button class="btn sm" onclick="loadOrphanedAccounts()">
@@ -2113,6 +2126,53 @@ function toggleClear(input) {
     });
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
   });
+
+  // Screen card drag + centering
+  function centreScreenCard(screen) {
+    const card = screen.querySelector('.screen-card');
+    if (!card) return;
+    requestAnimationFrame(() => {
+      const vw = window.innerWidth, vh = window.innerHeight;
+      card.style.left = Math.max(8, (vw - card.offsetWidth)  / 2) + 'px';
+      card.style.top  = Math.max(8, (vh - card.offsetHeight) / 2) + 'px';
+    });
+  }
+  document.querySelectorAll('.screen').forEach(screen => {
+    // Centre on show
+    const observer = new MutationObserver(() => {
+      if (screen.style.display !== 'none' && screen.classList.contains('active') ||
+          screen.style.display === 'flex' || screen.style.display === 'block') {
+        centreScreenCard(screen);
+      }
+    });
+    observer.observe(screen, { attributes: true, attributeFilter: ['class','style'] });
+    // Drag via handle
+    screen.addEventListener('mousedown', e => {
+      const handle = e.target.closest('.screen-drag-handle');
+      if (!handle) return;
+      const card = handle.closest('.screen-card');
+      if (!card) return;
+      e.preventDefault();
+      const startX = e.clientX - card.offsetLeft;
+      const startY = e.clientY - card.offsetTop;
+      handle.style.cursor = 'grabbing';
+      function onMove(e) {
+        const vw = window.innerWidth, vh = window.innerHeight;
+        card.style.left = Math.max(0, Math.min(vw - card.offsetWidth,  e.clientX - startX)) + 'px';
+        card.style.top  = Math.max(0, Math.min(vh - card.offsetHeight, e.clientY - startY)) + 'px';
+      }
+      function onUp() {
+        handle.style.cursor = '';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup',   onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup',   onUp);
+    });
+  });
+  // Centre auth screen on load
+  const auth = document.getElementById('auth-screen');
+  if (auth) centreScreenCard(auth);
 })();
 
 /* ── Connect ── */
@@ -4401,6 +4461,97 @@ async function deleteOrphanedAccount(userId, email, btn) {
   const el = document.getElementById('orphaned-list');
   const remaining = el?.querySelectorAll('button').length || 0;
   if (remaining === 0) loadOrphanedAccounts();
+}
+
+/* ── Settings card drag-to-reorder ── */
+const SETTINGS_ORDER_KEY = 'settings_card_order';
+
+async function saveSettingsOrder() {
+  if (demoMode || !sbClient) return;
+  const grid = document.getElementById('settings-grid');
+  if (!grid) return;
+  const order = [...grid.children].map(el => el.dataset.cardId).filter(Boolean);
+  try {
+    await sbClient.from('app_settings')
+      .upsert({ key: SETTINGS_ORDER_KEY, value: JSON.stringify(order) }, { onConflict: 'key' });
+  } catch(e) { console.warn('Could not save settings order:', e.message); }
+}
+
+async function restoreSettingsOrder() {
+  if (demoMode || !sbClient) return;
+  const grid = document.getElementById('settings-grid');
+  if (!grid) return;
+  try {
+    const { data } = await sbClient.from('app_settings')
+      .select('value').eq('key', SETTINGS_ORDER_KEY).maybeSingle();
+    if (!data?.value) return;
+    const order = JSON.parse(data.value);
+    const cards = {};
+    [...grid.children].forEach(el => { if (el.dataset.cardId) cards[el.dataset.cardId] = el; });
+    order.forEach(id => { if (cards[id]) grid.appendChild(cards[id]); });
+  } catch(e) { console.warn('Could not restore settings order:', e.message); }
+}
+
+function initSettingsDrag() {
+  const grid = document.getElementById('settings-grid');
+  if (!grid) return;
+
+  restoreSettingsOrder();
+
+  // Add drag handles to cards that don't have one yet
+  [...grid.children].forEach(card => {
+    if (card.querySelector('.settings-card-drag')) return;
+    const handle = document.createElement('div');
+    handle.className = 'settings-card-drag';
+    handle.title = 'Drag to reorder';
+    handle.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/>
+      <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
+      <circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/>
+    </svg>`;
+    card.appendChild(handle);
+    card.setAttribute('draggable', 'true');
+  });
+
+  let dragSrc = null;
+
+  grid.addEventListener('dragstart', e => {
+    dragSrc = e.target.closest('.table-card');
+    if (!dragSrc) return;
+    dragSrc.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  grid.addEventListener('dragend', () => {
+    if (dragSrc) dragSrc.classList.remove('dragging');
+    [...grid.querySelectorAll('.drag-over')].forEach(el => el.classList.remove('drag-over'));
+    dragSrc = null;
+    saveSettingsOrder();
+  });
+
+  grid.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const target = e.target.closest('.table-card');
+    if (!target || target === dragSrc) return;
+    [...grid.querySelectorAll('.drag-over')].forEach(el => el.classList.remove('drag-over'));
+    target.classList.add('drag-over');
+  });
+
+  grid.addEventListener('dragleave', e => {
+    const target = e.target.closest('.table-card');
+    if (target) target.classList.remove('drag-over');
+  });
+
+  grid.addEventListener('drop', e => {
+    e.preventDefault();
+    const target = e.target.closest('.table-card');
+    if (!target || !dragSrc || target === dragSrc) return;
+    target.classList.remove('drag-over');
+    const rect = target.getBoundingClientRect();
+    const after = e.clientY > rect.top + rect.height / 2;
+    grid.insertBefore(dragSrc, after ? target.nextSibling : target);
+  });
 }
 
 /* ── Backup ── */

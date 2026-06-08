@@ -123,13 +123,16 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .close-x:hover { color: var(--text1); }
 
 /* Screens */
-.screen { display: none; min-height: 100vh; align-items: center; justify-content: center; background: transparent; padding: 24px; }
-.screen.active { display: flex; position: relative; z-index: 1; }
+.screen { display: none; position: fixed; inset: 0; }
+.screen.active { display: block; z-index: 1; }
 #idx-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-.screen-card { position: relative; z-index: 1; background: rgba(255,255,255,0.92); border: 1px solid rgba(255,255,255,0.6); border-radius: var(--radius-l); padding: 32px; width: 100%; max-width: 400px; box-shadow: 0 8px 40px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.screen-card { position: absolute; background: rgba(255,255,255,0.92); border: 1px solid rgba(255,255,255,0.6); border-radius: var(--radius-l); padding: 24px 32px 32px; width: calc(100% - 32px); max-width: 400px; box-shadow: 0 8px 40px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 @media (prefers-color-scheme: dark) { .screen-card { background: rgba(20,20,28,0.92); border-color: rgba(255,255,255,.1); } }
 .screen-card h2 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
 .screen-card .desc { font-size: 13px; color: var(--text2); margin-bottom: 24px; line-height: 1.6; }
+.screen-drag-handle { display: flex; align-items: center; justify-content: center; margin: -8px -8px 16px; padding: 6px; border-radius: 6px; cursor: grab; opacity: 0.35; transition: opacity .15s; }
+.screen-drag-handle:hover { opacity: 0.7; }
+.screen-drag-handle:active { cursor: grabbing; opacity: 1; }
 .hint { font-size: 11px; color: var(--text3); margin-top: 4px; }
 .demo-link { font-size: 12px; color: var(--accent); cursor: pointer; text-decoration: underline; background: none; border: none; font-family: var(--font); display: block; text-align: center; margin-top: 12px; }
 .divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--text3); font-size: 12px; }
@@ -351,6 +354,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 <!-- Config screen (only shown if no saved URL) -->
 <div id="cfg-screen" class="screen active">
   <div class="screen-card">
+    <div class="screen-drag-handle"><svg width="24" height="8" viewBox="0 0 24 8" fill="currentColor"><circle cx="4" cy="2" r="1.5"/><circle cx="12" cy="2" r="1.5"/><circle cx="20" cy="2" r="1.5"/><circle cx="4" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="20" cy="6" r="1.5"/></svg></div>
     <h2>🎫 El Martillo I.T. Ticketing System</h2>
     <p class="desc">Connect to your support desk to submit and track tickets.</p>
     <div class="fg">
@@ -369,6 +373,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 <!-- Auth screen -->
 <div id="auth-screen" class="screen">
   <div class="screen-card">
+    <div class="screen-drag-handle"><svg width="24" height="8" viewBox="0 0 24 8" fill="currentColor"><circle cx="4" cy="2" r="1.5"/><circle cx="12" cy="2" r="1.5"/><circle cx="20" cy="2" r="1.5"/><circle cx="4" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="20" cy="6" r="1.5"/></svg></div>
     <div style="text-align:center;margin-bottom:16px">
       <svg width="120" height="92" viewBox="0 0 680 520" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;overflow:visible">
         <style>
@@ -1810,7 +1815,49 @@ function onRecaptchaLoad() {
   window._suWidgetId = grecaptcha.render('recaptcha-signup', { sitekey: '6LcDeAAtAAAAADep9JhT8Tgf5HoXDxn_VZ1JFjSQ', theme: dark });
 }
 
-document.addEventListener('DOMContentLoaded', () => { initSupabase(); startIdxCanvas(); });
+document.addEventListener('DOMContentLoaded', () => { initSupabase(); startIdxCanvas(); initScreenDrag(); });
+
+function initScreenDrag() {
+  function centreCard(screen) {
+    const card = screen.querySelector('.screen-card');
+    if (!card) return;
+    requestAnimationFrame(() => {
+      const vw = window.innerWidth, vh = window.innerHeight;
+      card.style.left = Math.max(8, (vw - card.offsetWidth)  / 2) + 'px';
+      card.style.top  = Math.max(8, (vh - card.offsetHeight) / 2) + 'px';
+    });
+  }
+  document.querySelectorAll('.screen').forEach(screen => {
+    new MutationObserver(() => {
+      if (screen.classList.contains('active')) centreCard(screen);
+    }).observe(screen, { attributes: true, attributeFilter: ['class'] });
+    screen.addEventListener('mousedown', e => {
+      const handle = e.target.closest('.screen-drag-handle');
+      if (!handle) return;
+      const card = handle.closest('.screen-card');
+      if (!card) return;
+      e.preventDefault();
+      const startX = e.clientX - card.offsetLeft;
+      const startY = e.clientY - card.offsetTop;
+      handle.style.cursor = 'grabbing';
+      function onMove(e) {
+        const vw = window.innerWidth, vh = window.innerHeight;
+        card.style.left = Math.max(0, Math.min(vw - card.offsetWidth,  e.clientX - startX)) + 'px';
+        card.style.top  = Math.max(0, Math.min(vh - card.offsetHeight, e.clientY - startY)) + 'px';
+      }
+      function onUp() {
+        handle.style.cursor = '';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+  // Centre whichever screen is initially active
+  const active = document.querySelector('.screen.active');
+  if (active) centreCard(active);
+}
 
 /* ── Login background canvas ── */
 let _idxCanvasRaf = null;
