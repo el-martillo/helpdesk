@@ -399,9 +399,9 @@ tbody tr:nth-child(even):hover td { background: var(--bg); }
 .av-green { background: var(--success-l); color: var(--success); }
 
 /* Modal */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: flex-start; justify-content: center; padding: 40px 16px; z-index: 200; overflow-y: auto; }
-.overlay.open { display: flex; }
-.modal { background: var(--surface); border-radius: var(--radius-l); border: 1px solid var(--border2); width: 100%; max-width: 560px; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,.2); }
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; z-index: 200; }
+.overlay.open { display: block; }
+.modal { background: var(--surface); border-radius: var(--radius-l); border: 1px solid var(--border2); width: 100%; max-width: 560px; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,.2); position: absolute; }
 .modal.wide { max-width: 680px; }
 /* Ticket detail modal — enhanced 3D shadow */
 #modal-ticket-detail .modal {
@@ -428,7 +428,8 @@ tbody tr:nth-child(even):hover td { background: var(--bg); }
       0 -1px 0 rgba(0,0,0,.4) inset;
   }
 }
-.modal-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 12px; }
+.modal-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 12px; cursor: grab; user-select: none; }
+.modal-head:active { cursor: grabbing; }
 .modal-title { font-size: 15px; font-weight: 600; }
 .modal-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
 .close-x { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 18px; line-height: 1; padding: 2px; }
@@ -2059,8 +2060,20 @@ const timeAgo  = iso => { if(!iso) return '—'; const m=Math.floor((Date.now()-
 const sLabel   = s => ({open:'Open',in_progress:'In progress',waiting:'Waiting',resolved:'Resolved',merged:'Merged'}[s]||s);
 const profileById = id => profiles.find(p=>p.id===id);
 function toast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
-function openModal(id){document.getElementById(id).classList.add('open');}
-function closeModal(id){document.getElementById(id).classList.remove('open');}
+function openModal(id) {
+  const overlay = document.getElementById(id);
+  if (!overlay) return;
+  overlay.classList.add('open');
+  const modal = overlay.querySelector('.modal');
+  if (!modal) return;
+  requestAnimationFrame(() => {
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const mw = modal.offsetWidth, mh = modal.offsetHeight;
+    modal.style.left = Math.max(8, (vw - mw) / 2) + 'px';
+    modal.style.top  = Math.max(8, Math.min((vh - mh) / 2, vh * 0.1)) + 'px';
+  });
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function clearSearch(inputId, callback) {
   const el = document.getElementById(inputId); if (!el) return;
   el.value = '';
@@ -2073,7 +2086,34 @@ function toggleClear(input) {
   const btn = input.parentElement?.querySelector('.search-clear');
   if (btn) btn.style.display = input.value ? 'block' : 'none';
 }
-document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+// Modal drag — grab the header to reposition
+(function initModalDrag() {
+  document.querySelectorAll('.overlay').forEach(overlay => {
+    overlay.addEventListener('mousedown', e => {
+      const head = e.target.closest('.modal-head');
+      if (!head) return;
+      const modal = head.closest('.modal');
+      if (!modal) return;
+      e.preventDefault();
+      const startX = e.clientX - modal.offsetLeft;
+      const startY = e.clientY - modal.offsetTop;
+      head.style.cursor = 'grabbing';
+      function onMove(e) {
+        const vw = window.innerWidth, vh = window.innerHeight;
+        modal.style.left = Math.max(0, Math.min(vw - modal.offsetWidth,  e.clientX - startX)) + 'px';
+        modal.style.top  = Math.max(0, Math.min(vh - modal.offsetHeight, e.clientY - startY)) + 'px';
+      }
+      function onUp() {
+        head.style.cursor = '';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup',   onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup',   onUp);
+    });
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+  });
+})();
 
 /* ── Connect ── */
 async function connectSupabase() {
