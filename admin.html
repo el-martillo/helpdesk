@@ -194,6 +194,18 @@ th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
 .table-toolbar { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .search-wrap { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--bg); border: 1px solid var(--border2); border-radius: var(--radius); flex: 1; min-width: 180px; max-width: 300px; }
 .search-wrap input { border: none; background: transparent; outline: none; font-size: 13px; color: var(--text1); width: 100%; font-family: var(--font); }
+.search-clear { display:none; background:none; border:none; cursor:pointer; color:var(--text3); padding:0; line-height:1; flex-shrink:0; font-size:15px; }
+.search-clear:hover { color:var(--text1); }
+.search-wrap:focus-within .search-clear { display:block; }
+/* Bulk actions */
+.bulk-bar { display:none; align-items:center; gap:10px; padding:8px 16px; background:var(--accent-l); border-bottom:1px solid var(--accent); font-size:13px; flex-wrap:wrap; }
+.bulk-bar.visible { display:flex; }
+.bulk-bar .bulk-count { font-weight:600; color:var(--accent); white-space:nowrap; }
+.bulk-bar .bulk-sep { color:var(--border2); }
+.bulk-bar select { padding:5px 8px; font-size:12px; border:1px solid var(--border2); border-radius:var(--radius); background:var(--surface); color:var(--text1); font-family:var(--font); cursor:pointer; }
+.cb-cell { width:36px; padding-left:14px !important; padding-right:4px !important; }
+.cb-cell input[type=checkbox] { cursor:pointer; accent-color:var(--accent); width:14px; height:14px; }
+tr.selected-row td { background:var(--accent-l) !important; }
 .filter-sel { padding: 6px 10px; font-size: 12px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text1); cursor: pointer; font-family: var(--font); }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th { padding: 10px 16px; text-align: left; font-size: 10px; font-weight: 600; color: var(--text3); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; background: var(--surface2); }
@@ -624,7 +636,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
           <div class="table-toolbar">
             <div class="search-wrap">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input type="text" id="search-input" placeholder="Search tickets…" oninput="adminPerPage=parseInt(document.getElementById('admin-per-page')?.value||'25');renderTable()"/>
+              <input type="text" id="search-input" placeholder="Search tickets…" oninput="adminPerPage=parseInt(document.getElementById('admin-per-page')?.value||'25');renderTable();toggleClear(this)"/>
+              <button class="search-clear" onclick="clearSearch('search-input',()=>{adminPerPage=parseInt(document.getElementById('admin-per-page')?.value||'25');renderTable();})">✕</button>
             </div>
             <select class="filter-sel" id="filter-status" onchange="adminPerPage=parseInt(document.getElementById('admin-per-page')?.value||'25');renderTable()">
               <option value="">All statuses</option>
@@ -653,7 +666,36 @@ textarea.fc { resize: vertical; min-height: 80px; }
               Refresh
             </button>
           </div>
-          <table><thead><tr><th class="sortable" data-sort="ticket_number" onclick="setSort('ticket_number')">ID</th><th class="sortable" data-sort="client" onclick="setSort('client')">Client</th><th class="sortable" data-sort="company" onclick="setSort('company')">Organisation</th><th class="sortable" data-sort="subject" onclick="setSort('subject')">Subject</th><th class="sortable" data-sort="status" onclick="setSort('status')">Status</th><th class="sortable" data-sort="priority" onclick="setSort('priority')">Priority</th><th class="sortable" data-sort="assignee" onclick="setSort('assignee')">Tech assigned</th><th class="sortable sort-desc" data-sort="updated_at" onclick="setSort('updated_at')">Updated</th><th></th></tr></thead>
+          <!-- Bulk action bar -->
+          <div class="bulk-bar" id="bulk-bar">
+            <span class="bulk-count"><span id="bulk-count-num">0</span> selected</span>
+            <span class="bulk-sep">|</span>
+            <label style="font-size:12px;color:var(--accent)">Status:</label>
+            <select id="bulk-status" onchange="bulkApply('status',this.value);this.value=''">
+              <option value="">— change —</option>
+              <option value="open">Open</option>
+              <option value="in_progress">In progress</option>
+              <option value="waiting">Waiting</option>
+              <option value="resolved">Resolved</option>
+            </select>
+            <label style="font-size:12px;color:var(--accent)">Priority:</label>
+            <select id="bulk-priority" onchange="bulkApply('priority',this.value);this.value=''">
+              <option value="">— change —</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+            <label style="font-size:12px;color:var(--accent)">Assign to:</label>
+            <select id="bulk-assignee" onchange="bulkApply('assignee',this.value);this.value=''">
+              <option value="">— change —</option>
+              <option value="__unassign__">Unassigned</option>
+            </select>
+            <button class="btn sm" style="margin-left:auto" onclick="bulkClearSelection()">✕ Clear selection</button>
+          </div>
+          <table><thead><tr>
+            <th class="cb-cell"><input type="checkbox" id="bulk-select-all" onclick="bulkToggleAll(this)" title="Select all visible"/></th>
+            <th class="sortable" data-sort="ticket_number" onclick="setSort('ticket_number')">ID</th><th class="sortable" data-sort="client" onclick="setSort('client')">Client</th><th class="sortable" data-sort="company" onclick="setSort('company')">Organisation</th><th class="sortable" data-sort="subject" onclick="setSort('subject')">Subject</th><th class="sortable" data-sort="status" onclick="setSort('status')">Status</th><th class="sortable" data-sort="priority" onclick="setSort('priority')">Priority</th><th class="sortable" data-sort="assignee" onclick="setSort('assignee')">Tech assigned</th><th class="sortable sort-desc" data-sort="updated_at" onclick="setSort('updated_at')">Updated</th><th></th></tr></thead>
           <tbody id="admin-tbody"></tbody></table>
         </div>
       </div>
@@ -686,7 +728,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
           <div class="table-toolbar">
             <div class="search-wrap">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input type="text" id="users-search" placeholder="Search users…" oninput="usersPerPage=parseInt(document.getElementById('users-per-page')?.value||'25');renderUsersTable()"/>
+              <input type="text" id="users-search" placeholder="Search users…" oninput="usersPerPage=parseInt(document.getElementById('users-per-page')?.value||'25');renderUsersTable();toggleClear(this)"/>
+              <button class="search-clear" onclick="clearSearch('users-search',()=>{usersPerPage=parseInt(document.getElementById('users-per-page')?.value||'25');renderUsersTable();})">✕</button>
             </div>
             <select class="filter-sel" id="users-role-filter" onchange="usersPerPage=parseInt(document.getElementById('users-per-page')?.value||'25');renderUsersTable()">
               <option value="">All roles</option>
@@ -821,7 +864,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
           <div class="table-toolbar">
             <div class="search-wrap">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input type="text" id="activity-search" placeholder="Search by user or action…" oninput="activityPerPage=parseInt(document.getElementById('activity-per-page')?.value||'50');renderActivityTable()"/>
+              <input type="text" id="activity-search" placeholder="Search by user or action…" oninput="activityPerPage=parseInt(document.getElementById('activity-per-page')?.value||'50');renderActivityTable();toggleClear(this)"/>
+              <button class="search-clear" onclick="clearSearch('activity-search',()=>{activityPerPage=parseInt(document.getElementById('activity-per-page')?.value||'50');renderActivityTable();})">✕</button>
             </div>
           </div>
           <table>
@@ -874,7 +918,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
           <div class="table-toolbar">
             <div class="search-wrap">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input type="text" id="syslog-search" placeholder="Search by user or details…" oninput="syslogPerPage=parseInt(document.getElementById('syslog-per-page')?.value||'50');renderSysLogTable()"/>
+              <input type="text" id="syslog-search" placeholder="Search by user or details…" oninput="syslogPerPage=parseInt(document.getElementById('syslog-per-page')?.value||'50');renderSysLogTable();toggleClear(this)"/>
+              <button class="search-clear" onclick="clearSearch('syslog-search',()=>{syslogPerPage=parseInt(document.getElementById('syslog-per-page')?.value||'50');renderSysLogTable();})">✕</button>
             </div>
           </div>
           <table>
@@ -1578,7 +1623,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <label class="fl">Search tickets</label>
       <div class="search-wrap" style="max-width:100%">
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" id="merge-search" placeholder="Search by #number or subject…" oninput="renderMergeList()"/>
+        <input type="text" id="merge-search" placeholder="Search by #number or subject…" oninput="renderMergeList();toggleClear(this)"/>
+        <button class="search-clear" onclick="clearSearch('merge-search',renderMergeList)">✕</button>
       </div>
     </div>
     <div class="merge-ticket-list" id="merge-ticket-list"></div>
@@ -1603,6 +1649,7 @@ let tickets = [], profiles = [];
 let sortKey = 'updated_at', sortDir = 'desc';
 let demoMode = false;
 let mergeSourceId = null, mergeTargetId = null;
+let bulkSelected = new Set();
 const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
 
 /* ── Demo data ── */
@@ -1645,6 +1692,18 @@ const profileById = id => profiles.find(p=>p.id===id);
 function toast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
+function clearSearch(inputId, callback) {
+  const el = document.getElementById(inputId); if (!el) return;
+  el.value = '';
+  const btn = el.parentElement?.querySelector('.search-clear');
+  if (btn) btn.style.display = 'none';
+  if (callback) callback();
+  el.focus();
+}
+function toggleClear(input) {
+  const btn = input.parentElement?.querySelector('.search-clear');
+  if (btn) btn.style.display = input.value ? 'block' : 'none';
+}
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
 
 /* ── Connect ── */
@@ -1786,8 +1845,9 @@ async function _reauthSubmit() {
 
 /* ── Data ── */
 async function loadTickets() {
+  bulkSelected.clear(); bulkUpdateBar();
   if (demoMode) { renderTable(); updateStats(); updateBadges(); renderDashboard(); return; }
-  document.getElementById('admin-tbody').innerHTML='<tr class="loading-row"><td colspan="8"><div class="loader"></div></td></tr>';
+  document.getElementById('admin-tbody').innerHTML='<tr class="loading-row"><td colspan="10"><div class="loader"></div></td></tr>';
   const {data,error} = await sbClient.from('tickets')
     .select('*, requester:profiles!requester_id(id,full_name,email,phone,company), assignee:profiles!assignee_id(id,full_name)')
     .order('updated_at',{ascending:false});
@@ -1854,7 +1914,7 @@ function renderTable(statusFilter) {
   list = sortTickets(list);
   const tbody = document.getElementById('admin-tbody');
   if (!tbody) return;
-  if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="9">No tickets found</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="10">No tickets found</td></tr>'; return; }
   const visible = list.slice(0, adminPerPage);
   const remaining = list.length - visible.length;
   tbody.innerHTML = visible.map(t => {
@@ -1862,7 +1922,9 @@ function renderTable(statusFilter) {
     const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
     const mergedBadge = (t.merged_ticket_ids?.length)
       ? `<span class="source-ticket-tag" title="Contains ${t.merged_ticket_ids.length} merged ticket(s)">+${t.merged_ticket_ids.length} merged</span> ` : '';
-    return `<tr onclick="openTicketDetail('${t.id}')">
+    const isSelected = bulkSelected.has(t.id);
+    return `<tr onclick="openTicketDetail('${t.id}')" class="${isSelected?'selected-row':''}">
+      <td class="cb-cell" onclick="event.stopPropagation()"><input type="checkbox" class="bulk-cb" data-id="${t.id}" ${isSelected?'checked':''} onchange="bulkToggleOne(this,'${t.id}')"/></td>
       <td><span class="tid">#${t.ticket_number}</span></td>
       <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${esc(req?.full_name)||'—'}</span></div></td>
       <td style="font-size:12px;color:var(--text2);white-space:nowrap">${esc(req?.company)||'—'}</td>
@@ -1874,13 +1936,21 @@ function renderTable(statusFilter) {
       <td><button class="btn sm" onclick="event.stopPropagation();openTicketDetail('${t.id}')">→</button></td>
     </tr>`;
   }).join('') + (remaining > 0
-    ? `<tr><td colspan="9" style="text-align:center;padding:12px;border-top:1px solid var(--border)">
+    ? `<tr><td colspan="10" style="text-align:center;padding:12px;border-top:1px solid var(--border)">
         <span style="font-size:12px;color:var(--text3);margin-right:10px">Showing ${visible.length} of ${list.length}</span>
         <button class="btn sm" onclick="adminPerPage+=25;document.getElementById('admin-per-page').value=adminPerPage<=100?adminPerPage:99999;renderTable()">Show ${Math.min(remaining,25)} more</button>
        </td></tr>`
     : list.length > 25
-      ? `<tr><td colspan="9" style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">Showing all ${list.length} tickets</td></tr>`
+      ? `<tr><td colspan="10" style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">Showing all ${list.length} tickets</td></tr>`
       : '');
+  // Sync select-all checkbox state
+  const allCbs = document.querySelectorAll('.bulk-cb');
+  const selectAll = document.getElementById('bulk-select-all');
+  if (selectAll && allCbs.length) {
+    const checkedCount = [...allCbs].filter(c=>c.checked).length;
+    selectAll.checked = checkedCount === allCbs.length;
+    selectAll.indeterminate = checkedCount > 0 && checkedCount < allCbs.length;
+  }
 }
 const getReqName = t => { const p = demoMode ? profileById(t.requester_id) : t.requester; return p?.full_name||''; };
 
@@ -1918,6 +1988,104 @@ function updateBadges() {
   document.getElementById('badge-open').textContent  = tickets.filter(t=>t.status==='open').length;
   document.getElementById('badge-inprog').textContent= tickets.filter(t=>t.status==='in_progress').length;
   document.getElementById('badge-waiting').textContent= tickets.filter(t=>t.status==='waiting').length;
+}
+
+/* ── Bulk selection ── */
+function bulkUpdateBar() {
+  const bar = document.getElementById('bulk-bar');
+  const countEl = document.getElementById('bulk-count-num');
+  if (!bar) return;
+  if (bulkSelected.size > 0) {
+    bar.classList.add('visible');
+    if (countEl) countEl.textContent = bulkSelected.size;
+    // Populate assignee dropdown from profiles each time bar shows
+    const sel = document.getElementById('bulk-assignee');
+    if (sel && profiles.length) {
+      const agents = profiles.filter(p => p.role === 'admin' || p.role === 'super_admin');
+      const existing = [...sel.options].map(o => o.value);
+      agents.forEach(p => {
+        if (!existing.includes(p.id)) {
+          const opt = document.createElement('option');
+          opt.value = p.id; opt.textContent = p.full_name;
+          sel.appendChild(opt);
+        }
+      });
+    }
+  } else {
+    bar.classList.remove('visible');
+    const sa = document.getElementById('bulk-select-all');
+    if (sa) { sa.checked = false; sa.indeterminate = false; }
+  }
+}
+function bulkToggleOne(cb, id) {
+  if (cb.checked) bulkSelected.add(id); else bulkSelected.delete(id);
+  // Update row highlight
+  const row = cb.closest('tr');
+  if (row) row.classList.toggle('selected-row', cb.checked);
+  // Update select-all state
+  const allCbs = document.querySelectorAll('.bulk-cb');
+  const selectAll = document.getElementById('bulk-select-all');
+  if (selectAll && allCbs.length) {
+    const n = [...allCbs].filter(c=>c.checked).length;
+    selectAll.checked = n === allCbs.length;
+    selectAll.indeterminate = n > 0 && n < allCbs.length;
+  }
+  bulkUpdateBar();
+}
+function bulkToggleAll(masterCb) {
+  const allCbs = document.querySelectorAll('.bulk-cb');
+  allCbs.forEach(cb => {
+    cb.checked = masterCb.checked;
+    const id = cb.dataset.id;
+    if (masterCb.checked) bulkSelected.add(id); else bulkSelected.delete(id);
+    const row = cb.closest('tr');
+    if (row) row.classList.toggle('selected-row', masterCb.checked);
+  });
+  bulkUpdateBar();
+}
+function bulkClearSelection() {
+  bulkSelected.clear();
+  document.querySelectorAll('.bulk-cb').forEach(cb => {
+    cb.checked = false;
+    const row = cb.closest('tr');
+    if (row) row.classList.remove('selected-row');
+  });
+  bulkUpdateBar();
+}
+async function bulkApply(field, value) {
+  if (!value || !bulkSelected.size) return;
+  const ids = [...bulkSelected];
+  const n = ids.length;
+  const label = field === 'status' ? `status → ${sLabel(value)}`
+    : field === 'priority' ? `priority → ${value}`
+    : `assignee → ${value === '__unassign__' ? 'Unassigned' : (profiles.find(p=>p.id===value)?.full_name||value)}`;
+  if (!confirm(`Apply ${label} to ${n} ticket${n!==1?'s':''}?`)) return;
+
+  const assigneeId = field === 'assignee' ? (value === '__unassign__' ? null : value) : undefined;
+
+  if (demoMode) {
+    ids.forEach(id => {
+      const t = tickets.find(x => x.id === id); if (!t) return;
+      if (field === 'status')   { t.status = value; t.updated_at = new Date().toISOString(); }
+      if (field === 'priority') { t.priority = value; t.updated_at = new Date().toISOString(); }
+      if (field === 'assignee') { t.assignee_id = assigneeId; }
+    });
+    bulkClearSelection(); loadTickets(); toast(`Updated ${n} ticket${n!==1?'s':''}`); return;
+  }
+
+  try {
+    const update = {};
+    if (field === 'status')   update.status = value;
+    if (field === 'priority') update.priority = value;
+    if (field === 'assignee') update.assignee_id = assigneeId;
+    const { error } = await sbClient.from('tickets').update(update).in('id', ids);
+    if (error) throw error;
+    bulkClearSelection();
+    await loadTickets();
+    toast(`Updated ${n} ticket${n!==1?'s':''}`);
+  } catch(e) {
+    toast('Bulk update failed: ' + (e.message || JSON.stringify(e)));
+  }
 }
 
 /* ── Per-page state for all tables ── */
@@ -2034,7 +2202,8 @@ function adminNav(el, page) {
         <div class="table-toolbar">
           <div class="search-wrap">
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <input type="text" id="flt-search-${page}" placeholder="Search tickets…" oninput="renderFilteredPage('${page}')"/>
+            <input type="text" id="flt-search-${page}" placeholder="Search tickets…" oninput="renderFilteredPage('${page}');toggleClear(this)"/>
+            <button class="search-clear" onclick="clearSearch('flt-search-${page}',()=>renderFilteredPage('${page}'))">✕</button>
           </div>
           <select class="filter-sel" id="flt-priority-${page}" onchange="renderFilteredPage('${page}')">
             <option value="">All priorities</option>
