@@ -1889,9 +1889,16 @@ async function loadTickets() {
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
 }
 async function loadProfiles() {
-  if (demoMode) { renderAgents(); return; }
+  if (demoMode) {
+    profiles = DEMO_PROFILES.filter(p => p.role === 'admin' || p.role === 'super_admin');
+    renderAgents();
+    renderAgentPerfFull();
+    return;
+  }
   const {data} = await sbClient.from('profiles').select('*').in('role',['admin','super_admin']);
-  if (data) profiles=data; renderAgents();
+  if (data) profiles = data;
+  renderAgents();
+  renderAgentPerfFull();
 }
 
 /* ── Render table ── */
