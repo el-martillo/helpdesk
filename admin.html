@@ -1020,7 +1020,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
               <th class="sortable sort-desc" id="aud-th-time"   onclick="setAuditSort('time')"   data-sort="time">Time</th>
               <th class="sortable"           id="aud-th-actor"  onclick="setAuditSort('actor')"  data-sort="actor">Actor</th>
               <th class="sortable"           id="aud-th-entity" onclick="setAuditSort('entity')" data-sort="entity">Entity</th>
-              <th class="sortable"           id="aud-th-id"     onclick="setAuditSort('id')"     data-sort="id">Entity ID</th>
+              <th class="sortable"           id="aud-th-id"     onclick="setAuditSort('id')"     data-sort="id">Entity</th>
               <th>Details</th>
             </tr></thead>
             <tbody id="auditlog-tbody"></tbody>
@@ -4891,6 +4891,44 @@ function setAuditSort(key) {
   renderAuditTable();
 }
 
+function formatAuditDetails(raw) {
+  if (!raw) return '—';
+
+  // Try to parse as JSON diff {old:{...}, new:{...}}
+  let parsed;
+  try { parsed = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { return esc(raw); }
+
+  // Skip noisy / internal fields
+  const SKIP = new Set(['id','created_at','updated_at','requester_id','assignee_id',
+    'attachment_url','attachment_urls','merged_ticket_ids','merged_into',
+    'source','company','organisation','contact_email','contact_phone',
+    'description','subject','ticket_number']);
+
+  if (parsed && typeof parsed === 'object' && ('old' in parsed || 'new' in parsed)) {
+    const oldR = parsed.old || {};
+    const newR = parsed.new || {};
+    const allKeys = new Set([...Object.keys(oldR), ...Object.keys(newR)]);
+    const changes = [];
+    for (const k of allKeys) {
+      if (SKIP.has(k)) continue;
+      const ov = oldR[k], nv = newR[k];
+      if (JSON.stringify(ov) === JSON.stringify(nv)) continue;
+      const fmt = v => v === null || v === undefined ? '<em style="color:var(--text3)">none</em>' : `<strong>${esc(String(v))}</strong>`;
+      changes.push(`${esc(k)}: ${fmt(ov)} → ${fmt(nv)}`);
+    }
+    if (changes.length) return `<div style="line-height:1.7">${changes.join('<br>')}</div>`;
+
+    // No tracked fields changed — show a short summary of what did change
+    const allChanged = [...allKeys].filter(k => JSON.stringify(oldR[k]) !== JSON.stringify(newR[k]));
+    if (allChanged.length) return `<span style="color:var(--text3)">${esc(allChanged.join(', '))} updated</span>`;
+    return '<span style="color:var(--text3)">no changes detected</span>';
+  }
+
+  // Plain string or simple object — just show it clean
+  if (typeof parsed === 'string') return esc(parsed);
+  return `<span style="color:var(--text3);font-size:11px;font-family:var(--mono)">${esc(JSON.stringify(parsed))}</span>`;
+}
+
 function renderAuditTable() {
   const tbody = document.getElementById('auditlog-tbody');
   if (!tbody) return;
@@ -4936,7 +4974,42 @@ function renderAuditTable() {
     // Resolve actor name from allProfiles if available
     const actorProfile = (allProfiles||[]).find(p => p.id === r.actor_id);
     const actorName = actorProfile?.full_name || r.actor_id?.slice(0,8) + '…' || '—';
-    const shortId = r.entity_id ? r.entity_id.slice(0,8) + '…' : '—';
+
+    // Resolve entity_id to something readable based on entity_type
+    let entityLabel = '—';
+    if (r.entity_id) {
+      if (r.entity_type === 'ticket') {
+        // Try to find in tickets array first, then fall back to details JSON
+        const t = tickets.find(x => x.id === r.entity_id);
+        if (t) {
+          entityLabel = `<span class="tid">#${t.ticket_number}</span><span style="font-size:11px;color:var(--text2);margin-left:4px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle">${esc(t.subject)}</span>`;
+        } else {
+          // Try to extract ticket_number from the details JSON
+          try {
+            const d = typeof r.details === 'string' ? JSON.parse(r.details) : r.details;
+            const num = d?.new?.ticket_number || d?.old?.ticket_number;
+            entityLabel = num ? `<span class="tid">#${num}</span>` : `<span class="tid" title="${esc(r.entity_id)}">${r.entity_id.slice(0,8)}…</span>`;
+          } catch { entityLabel = `<span class="tid" title="${esc(r.entity_id)}">${r.entity_id.slice(0,8)}…</span>`; }
+        }
+      } else if (r.entity_type === 'profile') {
+        const p = (allProfiles||[]).find(x => x.id === r.entity_id);
+        entityLabel = p
+          ? `<div class="flex-c" style="gap:5px"><div class="avatar ${avColor(p.id)}" style="width:18px;height:18px;font-size:8px;flex-shrink:0">${initials(p.full_name)}</div><span style="font-size:12px">${esc(p.full_name)}</span></div>`
+          : `<span class="tid" title="${esc(r.entity_id)}">${r.entity_id.slice(0,8)}…</span>`;
+      } else if (r.entity_type === 'comment') {
+        // Try to find the ticket this comment belongs to via details JSON
+        try {
+          const d = typeof r.details === 'string' ? JSON.parse(r.details) : r.details;
+          const ticketId = d?.new?.ticket_id || d?.old?.ticket_id;
+          const t = ticketId ? tickets.find(x => x.id === ticketId) : null;
+          entityLabel = t
+            ? `<span style="font-size:12px;color:var(--text2)">on <span class="tid">#${t.ticket_number}</span></span>`
+            : `<span class="tid" title="${esc(r.entity_id)}">${r.entity_id.slice(0,8)}…</span>`;
+        } catch { entityLabel = `<span class="tid" title="${esc(r.entity_id)}">${r.entity_id.slice(0,8)}…</span>`; }
+      } else {
+        entityLabel = `<span class="tid" title="${esc(r.entity_id)}">${r.entity_id.slice(0,8)}…</span>`;
+      }
+    }
 
     return `<tr>
       <td style="font-size:12px;color:var(--text3);white-space:nowrap">${timeAgo(r.created_at)}<br><span style="font-size:10px;font-family:var(--mono)">${r.created_at?.slice(0,16).replace('T',' ')}</span></td>
@@ -4947,8 +5020,8 @@ function renderAuditTable() {
         </div>
       </td>
       <td><span class="cat-badge ${entityColor[r.entity_type]||'cat-general'}">${esc(r.entity_type||'—')}</span></td>
-      <td><span class="tid" title="${esc(r.entity_id||'')}">${esc(shortId)}</span></td>
-      <td style="font-size:12px;color:var(--text2);max-width:340px;white-space:pre-wrap;word-break:break-word">${esc(r.details||'—')}</td>
+      <td style="max-width:220px">${entityLabel}</td>
+      <td style="font-size:12px;color:var(--text2);max-width:340px">${formatAuditDetails(r.details)}</td>
     </tr>`;
   }).join('') + (remaining > 0
     ? `<tr><td colspan="5" style="text-align:center;padding:12px;border-top:1px solid var(--border)">
