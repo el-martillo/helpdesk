@@ -501,7 +501,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
       </button>
       <div class="mobile-menu-sep"></div>
       <div style="padding:10px 12px 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">Manage</div>
-      <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[6],'users');loadAllProfiles();closeMobileMenu()">
+      <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[5],'users');loadAllProfiles();closeMobileMenu()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         Users
       </button>
@@ -560,12 +560,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
       </div>
       <div class="sep"></div>
       <div class="sidebar-label">Manage</div>
-      <div class="nav-item" onclick="adminNav(this,'agents')">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        Team
-      </div>
       <div class="nav-item" id="nav-users" onclick="adminNav(this,'users');loadAllProfiles()">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Users
       </div>
       <div class="nav-item" onclick="adminNav(this,'reports');renderTicketCompanies()">
@@ -579,6 +575,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <div class="nav-item" id="nav-syslog" onclick="adminNav(this,'syslog');loadSysLog()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         System log
+      </div>
+      <div class="nav-item" id="nav-auditlog" onclick="adminNav(this,'auditlog');loadAuditLog()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Audit log
       </div>
       <div class="nav-item" id="nav-settings" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList();loadRateLimits();loadSessionTimeout();loadReportStart()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -739,27 +739,32 @@ textarea.fc { resize: vertical; min-height: 80px; }
       <div class="page" id="page-waiting"></div>
       <div class="page" id="page-resolved"></div>
 
-      <!-- Agents -->
-      <div class="page" id="page-agents">
-        <div class="page-header">
-          <div><h1>Team</h1><p>Admin team members</p></div>
-
-        </div>
-        <div id="agents-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
-      </div>
-
-      <!-- Users -->
+      <!-- Users (merged with Team) -->
       <div class="page" id="page-users">
         <div class="page-header">
           <div><h1>Users</h1><p id="users-count-sub">All registered profiles</p></div>
-          <button class="btn primary" onclick="openModal('modal-add-user')">
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-            Add user
-          </button>
+          <div style="display:flex;gap:8px">
+            <button class="btn" onclick="openModal('modal-invite-agent')">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+              Invite tech
+            </button>
+            <button class="btn primary" onclick="openModal('modal-add-user')">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+              Add user
+            </button>
+          </div>
         </div>
+
+        <!-- Team section -->
+        <div style="margin-bottom:20px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:10px">Team — Admins &amp; Techs</div>
+          <div id="agents-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px"></div>
+        </div>
+
+        <!-- Clients section -->
         <div class="table-card">
           <div class="table-toolbar">
-            <div class="search-wrap">
+            <div class="search-wrap" data-tip="Focus search  /">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
               <input type="text" id="users-search" placeholder="Search users…" oninput="usersPerPage=parseInt(document.getElementById('users-per-page')?.value||'25');renderUsersTable();toggleClear(this)"/>
               <button class="search-clear" onclick="clearSearch('users-search',()=>{usersPerPage=parseInt(document.getElementById('users-per-page')?.value||'25');renderUsersTable();})">✕</button>
@@ -974,6 +979,55 @@ textarea.fc { resize: vertical; min-height: 80px; }
         </div>
       </div>
 
+      <!-- Audit log -->
+      <div class="page" id="page-auditlog">
+        <div class="page-header">
+          <div><h1>Audit log</h1><p id="auditlog-count-sub">Database-level trigger log for sensitive operations</p></div>
+          <div style="display:flex;gap:8px">
+            <select class="filter-sel" id="auditlog-entity-filter" onchange="renderAuditTable()">
+              <option value="">All entities</option>
+              <option value="ticket">Tickets</option>
+              <option value="comment">Comments</option>
+              <option value="profile">Profiles</option>
+              <option value="app_settings">Settings</option>
+            </select>
+            <select class="filter-sel" id="auditlog-per-page" onchange="auditlogPerPage=parseInt(this.value);renderAuditTable()" style="font-size:12px">
+              <option value="25">25 / page</option>
+              <option value="50" selected>50 / page</option>
+              <option value="100">100 / page</option>
+              <option value="99999">All</option>
+            </select>
+            <button class="btn sm" onclick="loadAuditLog()">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <div class="search-wrap">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" id="auditlog-search" placeholder="Search by actor, entity or details…" oninput="auditlogPerPage=parseInt(document.getElementById('auditlog-per-page')?.value||'50');renderAuditTable();toggleClear(this)"/>
+              <button class="search-clear" onclick="clearSearch('auditlog-search',()=>{auditlogPerPage=parseInt(document.getElementById('auditlog-per-page')?.value||'50');renderAuditTable();})">✕</button>
+            </div>
+            <div style="margin-left:auto;font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Read-only · Written by database triggers
+            </div>
+          </div>
+          <table>
+            <thead><tr>
+              <th class="sortable sort-desc" id="aud-th-time"   onclick="setAuditSort('time')"   data-sort="time">Time</th>
+              <th class="sortable"           id="aud-th-actor"  onclick="setAuditSort('actor')"  data-sort="actor">Actor</th>
+              <th class="sortable"           id="aud-th-entity" onclick="setAuditSort('entity')" data-sort="entity">Entity</th>
+              <th class="sortable"           id="aud-th-id"     onclick="setAuditSort('id')"     data-sort="id">Entity ID</th>
+              <th>Details</th>
+            </tr></thead>
+            <tbody id="auditlog-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Settings -->
       <div class="page" id="page-settings">
         <div class="page-header"><div><h1>Settings</h1><p>System configuration</p></div></div>
@@ -1140,9 +1194,9 @@ textarea.fc { resize: vertical; min-height: 80px; }
           <div class="table-card" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Download logs</div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Export activity and system logs as JSON files for auditing or offline analysis.
+              Export activity, system, and audit logs as CSV files for auditing or offline analysis.
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px" id="log-stats">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px" id="log-stats">
               <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
                 <div style="font-size:22px;font-weight:600;color:var(--accent)" id="log-activity">—</div>
                 <div style="font-size:11px;color:var(--text3);margin-top:2px">Activity events</div>
@@ -1150,6 +1204,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
               <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
                 <div style="font-size:22px;font-weight:600;color:var(--purple)" id="log-syslog">—</div>
                 <div style="font-size:11px;color:var(--text3);margin-top:2px">System events</div>
+              </div>
+              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
+                <div style="font-size:22px;font-weight:600;color:var(--success)" id="log-audit">—</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">Audit entries</div>
               </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -1160,6 +1218,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
               <button class="btn primary" onclick="downloadSysLog()">
                 <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 System log (CSV)
+              </button>
+              <button class="btn primary" onclick="downloadAuditLog()">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Audit log (CSV)
               </button>
               <button class="btn" onclick="loadLogStats()">
                 <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
@@ -1300,7 +1362,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
   <div class="page-header">
     <div>
       <h1>Email ingest</h1>
-      <p>Simulate an inbound support email — creates a ticket as if received at tickets@uldaarelem.resend.app</p>
+      <p>Simulate an inbound support email — creates a ticket as if received at tickets@el-martillo.com</p>
     </div>
   </div>
   <div style="max-width:560px">
@@ -2981,16 +3043,34 @@ async function createTicket() {
 
 /* ── Agents ── */
 function renderAgents() {
-  const agents=profiles.filter(p=>p.role==='admin'||p.role==='super_admin');
-  const openByAgent={};
-  tickets.forEach(t=>{if(t.assignee_id&&t.status!=='resolved') openByAgent[t.assignee_id]=(openByAgent[t.assignee_id]||0)+1;});
-  const ss={online:'s-open',away:'s-waiting',offline:'s-closed'};
-  document.getElementById('agents-grid').innerHTML=agents.map(p=>`
-    <div class="table-card" style="display:flex;align-items:center;gap:14px;padding:16px">
-      <div class="avatar ${avColor(p.id)}" style="width:42px;height:42px;font-size:15px">${initials(p.full_name)}</div>
-      <div style="flex:1"><div style="font-size:14px;font-weight:600">${p.full_name}</div>
-      <div style="font-size:12px;color:var(--text2)">${p.role==='super_admin'?'Super Admin':'Admin'} · ${openByAgent[p.id]||0} open</div></div>
-      <span class="sb ${ss[p.status]||'s-closed'}">${p.status||'offline'}</span>
+  const grid = document.getElementById('agents-grid');
+  if (!grid) return;
+  // Use allProfiles (full list) if available, otherwise fall back to profiles
+  const source = (allProfiles && allProfiles.length) ? allProfiles : profiles;
+  const agents = source.filter(p => p.role === 'admin' || p.role === 'super_admin');
+  const openByAgent = {};
+  tickets.forEach(t => { if (t.assignee_id && t.status !== 'resolved') openByAgent[t.assignee_id] = (openByAgent[t.assignee_id] || 0) + 1; });
+  const resolvedByAgent = {};
+  tickets.forEach(t => { if (t.assignee_id && t.status === 'resolved') resolvedByAgent[t.assignee_id] = (resolvedByAgent[t.assignee_id] || 0) + 1; });
+  const ss = { online:'s-open', away:'s-waiting', offline:'s-closed' };
+  if (!agents.length) {
+    grid.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:4px 0">No team members found.</div>';
+    return;
+  }
+  grid.innerHTML = agents.map(p => `
+    <div class="table-card" style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;transition:box-shadow .15s"
+         onclick="openEditUser('${p.id}')"
+         onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'"
+         onmouseout="this.style.boxShadow=''">
+      <div class="avatar ${avColor(p.id)}" style="width:40px;height:40px;font-size:14px;flex-shrink:0">${initials(p.full_name)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.full_name)}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">${p.role === 'super_admin' ? 'Super Admin' : 'Admin'} · ${openByAgent[p.id] || 0} open · ${resolvedByAgent[p.id] || 0} resolved</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+        <span class="sb ${ss[p.status] || 's-closed'}" style="font-size:10px">${p.status || 'offline'}</span>
+        <span style="font-size:10px;color:var(--text3)">click to edit</span>
+      </div>
     </div>`).join('');
 }
 
@@ -3567,6 +3647,7 @@ async function loadAllProfiles() {
     authVerifiedMap = {};
     DEMO_PROFILES.forEach(p => { authVerifiedMap[p.id] = true; });
     renderUsersTable();
+    renderAgents();
     const fuc = document.getElementById('footer-user-count'); if(fuc) fuc.textContent = allProfiles.length;
     return;
   }
@@ -3581,6 +3662,7 @@ async function loadAllProfiles() {
     if (authData) authData.forEach(r => { authVerifiedMap[r.user_id] = !!r.email_confirmed_at; });
   } catch(e) { console.warn('Could not load verified status:', e.message); }
   renderUsersTable();
+  renderAgents();
   const sub = document.getElementById('users-count-sub'); if(sub) sub.textContent = allProfiles.length + ' registered profiles';
   const fuc = document.getElementById('footer-user-count'); if(fuc) fuc.textContent = allProfiles.length;
 }
@@ -4710,15 +4792,18 @@ async function loadLogStats() {
   if (demoMode) {
     document.getElementById('log-activity').textContent = '6';
     document.getElementById('log-syslog').textContent   = '6';
+    document.getElementById('log-audit').textContent    = '5';
     return;
   }
   if (!sbClient) return;
-  const [a, s] = await Promise.all([
+  const [a, s, au] = await Promise.all([
     sbClient.from('user_activity').select('*', { count: 'exact', head: true }),
     sbClient.from('system_log').select('*',    { count: 'exact', head: true }),
+    sbClient.from('audit_log').select('*',     { count: 'exact', head: true }),
   ]);
-  document.getElementById('log-activity').textContent = a.count ?? '—';
-  document.getElementById('log-syslog').textContent   = s.count ?? '—';
+  document.getElementById('log-activity').textContent = a.count  ?? '—';
+  document.getElementById('log-syslog').textContent   = s.count  ?? '—';
+  document.getElementById('log-audit').textContent    = au.count ?? '—';
 }
 
 async function downloadActivityLog() {
@@ -4754,6 +4839,146 @@ async function downloadSysLog() {
   ], `system-log-${date}.csv`);
   toast('System log downloaded (' + data.length + ' events)');
   logSystemEvent('backup_created', `System log exported: ${data.length} events`);
+}
+
+/* ── Audit log ── */
+let auditlogPerPage = 50;
+let auditlogSort    = { key: 'time', dir: 'desc' };
+let auditLogData    = [];
+
+async function loadAuditLog() {
+  const tbody = document.getElementById('auditlog-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr class="loading-row"><td colspan="5"><div class="loader"></div></td></tr>';
+
+  if (demoMode) {
+    auditLogData = [
+      { id:'a1', created_at: new Date(Date.now()-2*60000).toISOString(),   actor_id:'p4', entity_type:'ticket',  entity_id:'t1', details:'status changed: open → in_progress' },
+      { id:'a2', created_at: new Date(Date.now()-18*60000).toISOString(),  actor_id:'p2', entity_type:'ticket',  entity_id:'t2', details:'assignee updated' },
+      { id:'a3', created_at: new Date(Date.now()-3600000).toISOString(),   actor_id:'p4', entity_type:'profile', entity_id:'p5', details:'role updated: client → admin' },
+      { id:'a4', created_at: new Date(Date.now()-2*3600000).toISOString(), actor_id:'p1', entity_type:'comment', entity_id:'c1', details:'comment created' },
+      { id:'a5', created_at: new Date(Date.now()-5*3600000).toISOString(), actor_id:'p4', entity_type:'ticket',  entity_id:'t3', details:'ticket deleted' },
+    ];
+    renderAuditTable();
+    document.getElementById('auditlog-count-sub').textContent = auditLogData.length + ' audit entries';
+    return;
+  }
+
+  const { data, error } = await sbClient
+    .from('audit_log')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Error loading audit log: ${esc(error.message)}</td></tr>`;
+    return;
+  }
+  auditLogData = data || [];
+  renderAuditTable();
+  const sub = document.getElementById('auditlog-count-sub');
+  if (sub) sub.textContent = auditLogData.length + ' audit entries';
+}
+
+function setAuditSort(key) {
+  if (auditlogSort.key === key) auditlogSort.dir = auditlogSort.dir === 'asc' ? 'desc' : 'asc';
+  else { auditlogSort.key = key; auditlogSort.dir = key === 'time' ? 'desc' : 'asc'; }
+  document.querySelectorAll('[id^="aud-th-"]').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    const col = th.id.replace('aud-th-','');
+    const keyMap = { time:'time', actor:'actor', entity:'entity', id:'id' };
+    if (keyMap[col] === auditlogSort.key) th.classList.add(auditlogSort.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+  });
+  renderAuditTable();
+}
+
+function renderAuditTable() {
+  const tbody = document.getElementById('auditlog-tbody');
+  if (!tbody) return;
+
+  const q  = (document.getElementById('auditlog-search')?.value || '').toLowerCase();
+  const ef = document.getElementById('auditlog-entity-filter')?.value || '';
+  const pp = auditlogPerPage;
+
+  let list = [...auditLogData];
+  if (ef) list = list.filter(r => r.entity_type === ef);
+  if (q)  list = list.filter(r =>
+    (r.entity_type||'').toLowerCase().includes(q) ||
+    (r.entity_id||'').toLowerCase().includes(q) ||
+    (r.details||'').toLowerCase().includes(q) ||
+    (r.actor_id||'').toLowerCase().includes(q)
+  );
+
+  // Sort
+  list.sort((a, b) => {
+    let av, bv;
+    if (auditlogSort.key === 'time')   { av = a.created_at||''; bv = b.created_at||''; }
+    else if (auditlogSort.key === 'actor')  { av = a.actor_id||''; bv = b.actor_id||''; }
+    else if (auditlogSort.key === 'entity') { av = a.entity_type||''; bv = b.entity_type||''; }
+    else if (auditlogSort.key === 'id')     { av = a.entity_id||''; bv = b.entity_id||''; }
+    else { av = a.created_at||''; bv = b.created_at||''; }
+    const cmp = String(av).localeCompare(String(bv));
+    return auditlogSort.dir === 'asc' ? cmp : -cmp;
+  });
+
+  const sub = document.getElementById('auditlog-count-sub');
+  if (sub) sub.textContent = list.length + ' audit entr' + (list.length !== 1 ? 'ies' : 'y');
+
+  if (!list.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No audit entries found</td></tr>';
+    return;
+  }
+
+  const entityColor = { ticket:'cat-technical', comment:'cat-billing', profile:'cat-account', app_settings:'cat-general' };
+  const visible   = list.slice(0, pp);
+  const remaining = list.length - visible.length;
+
+  tbody.innerHTML = visible.map(r => {
+    // Resolve actor name from allProfiles if available
+    const actorProfile = (allProfiles||[]).find(p => p.id === r.actor_id);
+    const actorName = actorProfile?.full_name || r.actor_id?.slice(0,8) + '…' || '—';
+    const shortId = r.entity_id ? r.entity_id.slice(0,8) + '…' : '—';
+
+    return `<tr>
+      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${timeAgo(r.created_at)}<br><span style="font-size:10px;font-family:var(--mono)">${r.created_at?.slice(0,16).replace('T',' ')}</span></td>
+      <td>
+        <div class="flex-c">
+          <div class="avatar ${actorProfile ? avColor(actorProfile.id) : 'av-blue'}" style="width:22px;height:22px;font-size:9px;flex-shrink:0">${initials(actorProfile?.full_name||'?')}</div>
+          <span style="font-size:12px">${esc(actorName)}</span>
+        </div>
+      </td>
+      <td><span class="cat-badge ${entityColor[r.entity_type]||'cat-general'}">${esc(r.entity_type||'—')}</span></td>
+      <td><span class="tid" title="${esc(r.entity_id||'')}">${esc(shortId)}</span></td>
+      <td style="font-size:12px;color:var(--text2);max-width:340px;white-space:pre-wrap;word-break:break-word">${esc(r.details||'—')}</td>
+    </tr>`;
+  }).join('') + (remaining > 0
+    ? `<tr><td colspan="5" style="text-align:center;padding:12px;border-top:1px solid var(--border)">
+        <span style="font-size:12px;color:var(--text3);margin-right:10px">Showing ${visible.length} of ${list.length}</span>
+        <button class="btn sm" onclick="auditlogPerPage+=50;renderAuditTable()">Show ${Math.min(remaining,50)} more</button>
+       </td></tr>`
+    : '');
+}
+
+async function downloadAuditLog() {
+  if (demoMode) { toast('Audit log download not available in demo mode'); return; }
+  toast('Fetching audit log…');
+  const { data, error } = await sbClient.from('audit_log').select('*').order('created_at', { ascending: false });
+  if (error) { toast('Error: ' + error.message); return; }
+  const date = new Date().toISOString().slice(0, 10);
+  // Enrich with actor names from allProfiles
+  const enriched = data.map(r => {
+    const actor = (allProfiles||[]).find(p => p.id === r.actor_id);
+    return { ...r, actor_name: actor?.full_name || r.actor_id || '' };
+  });
+  downloadCSV(enriched, [
+    ['created_at',   'Date / Time'],
+    ['actor_name',   'Actor'],
+    ['actor_id',     'Actor ID'],
+    ['entity_type',  'Entity type'],
+    ['entity_id',    'Entity ID'],
+    ['details',      'Details'],
+  ], `audit-log-${date}.csv`);
+  toast(`Audit log downloaded (${data.length} entries)`);
+  logSystemEvent('backup_created', `Audit log exported: ${data.length} entries`);
 }
 
 /* ── Realtime ── */
@@ -5020,7 +5245,7 @@ async function runEmailIngest() {
         'Authorization': `Bearer ${SB_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ from, to: 'tickets@uldaarelem.resend.app', subject, text }),
+      body: JSON.stringify({ from, to: 'tickets@el-martillo.com', subject, text }),
     });
     const data = await res.json();
     resultCard.style.display = 'block';
