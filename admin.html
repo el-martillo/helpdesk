@@ -305,13 +305,13 @@ th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
 .search-clear:hover { color:var(--text1); }
 .search-wrap:focus-within 
 /* Bulk actions */
-.bulk-bar { display:none; align-items:center; gap:8px; padding:8px 16px; background:var(--surface); border-bottom:1px solid var(--border); font-size:12px; white-space:nowrap; overflow-x:auto; }
+.bulk-bar { display:none; align-items:center; gap:8px; padding:8px 16px; background:var(--surface); border-bottom:1px solid var(--border); font-size:12px; flex-wrap:nowrap; overflow-x:auto; }
 .bulk-bar.visible { display:flex; }
 .bulk-bar .bulk-count { font-weight:600; color:var(--accent); white-space:nowrap; background:var(--accent-l); border:1px solid var(--accent-l); border-radius:20px; padding:2px 10px; font-size:11px; flex-shrink:0; }
 .bulk-bar .bulk-group { display:flex; align-items:center; gap:6px; flex-shrink:0; }
 .bulk-bar .bulk-label { font-size:10px; font-weight:600; color:var(--text3); white-space:nowrap; text-transform:uppercase; letter-spacing:.06em; }
 .bulk-bar .bulk-sep { width:1px; height:16px; background:var(--border2); margin:0 2px; flex-shrink:0; }
-.bulk-bar select { padding:6px 8px; font-size:12px; border:1px solid var(--border2); border-radius:var(--radius); background:var(--bg); color:var(--text1); font-family:var(--font); cursor:pointer; flex-shrink:0; max-width:120px; min-width:80px; text-overflow:ellipsis; overflow:hidden; }
+.bulk-bar select { padding:6px 8px; font-size:12px; border:1px solid var(--border2); border-radius:var(--radius); background:var(--bg); color:var(--text1); font-family:var(--font); cursor:pointer; flex-shrink:0; max-width:120px; min-width:80px; }
 .cb-cell { width:36px; padding-left:14px !important; padding-right:4px !important; }
 .cb-cell input[type=checkbox] { cursor:pointer; accent-color:var(--accent); width:14px; height:14px; }
 tr.selected-row 
@@ -2415,13 +2415,15 @@ function updateBadges() {
 
 /* ── Bulk selection ── */
 function bulkUpdateBar() {
-  const bar = document.getElementById('bulk-bar');
+  const bar     = document.getElementById('bulk-bar');
   const countEl = document.getElementById('bulk-count-num');
   if (!bar) return;
-  if (bulkSelected.size > 0) {
+  // Count actual visible checked checkboxes
+  const visibleCbs = document.querySelectorAll('.bulk-cb');
+  const n = [...visibleCbs].filter(cb => cb.checked).length;
+  if (n > 0) {
     bar.classList.add('visible');
-    if (countEl) countEl.textContent = bulkSelected.size;
-    // Populate assignee dropdown from profiles each time bar shows
+    if (countEl) countEl.textContent = n;
     const sel = document.getElementById('bulk-assignee');
     if (sel && profiles.length) {
       const agents = profiles.filter(p => p.role === 'admin' || p.role === 'super_admin');
@@ -2436,6 +2438,7 @@ function bulkUpdateBar() {
     }
   } else {
     bar.classList.remove('visible');
+    if (countEl) countEl.textContent = '0';
     const sa = document.getElementById('bulk-select-all');
     if (sa) { sa.checked = false; sa.indeterminate = false; }
   }
@@ -2513,16 +2516,16 @@ async function bulkApply(field, value) {
 
 /* ── Bulk helpers for filtered status pages ── */
 function fltBulkUpdateBar(page) {
-  const bar      = document.getElementById(`flt-bulk-bar-${page}`);
-  const countEl  = document.getElementById(`flt-bulk-count-${page}`);
+  const bar     = document.getElementById(`flt-bulk-bar-${page}`);
+  const countEl = document.getElementById(`flt-bulk-count-${page}`);
   if (!bar) return;
-  // Count selections that belong to this page's tickets
-  const pageIds = new Set(tickets.filter(t=>t.status===page).map(t=>t.id));
-  const n = [...bulkSelected].filter(id => pageIds.has(id)).length;
+  // Count only IDs that have visible checkboxes on this page
+  const visibleCbs = document.querySelectorAll(`.flt-bulk-cb-${page}`);
+  const n = [...visibleCbs].filter(cb => cb.checked).length;
   if (n > 0) { bar.classList.add('visible'); if (countEl) countEl.textContent = n; }
-  else        { bar.classList.remove('visible'); }
+  else        { bar.classList.remove('visible'); if (countEl) countEl.textContent = '0'; }
   const sa = document.getElementById(`flt-sel-all-${page}`);
-  if (sa) { const allCbs = document.querySelectorAll(`.flt-bulk-cb-${page}`); const checked = [...allCbs].filter(c=>c.checked).length; sa.checked = checked===allCbs.length && allCbs.length>0; sa.indeterminate = checked>0&&checked<allCbs.length; }
+  if (sa) { sa.checked = n === visibleCbs.length && visibleCbs.length > 0; sa.indeterminate = n > 0 && n < visibleCbs.length; }
 }
 function bulkToggleOneFlt(cb, page, id) {
   if (cb.checked) bulkSelected.add(id); else bulkSelected.delete(id);
