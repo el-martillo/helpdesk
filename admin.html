@@ -305,13 +305,13 @@ th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
 .search-clear:hover { color:var(--text1); }
 .search-wrap:focus-within 
 /* Bulk actions */
-.bulk-bar { display:none; align-items:center; gap:8px; padding:8px 16px; background:var(--accent-l); border-bottom:1px solid rgba(24,95,165,.2); font-size:12px; }
+.bulk-bar { display:none; align-items:center; gap:8px; padding:8px 16px; background:var(--surface); border-bottom:1px solid var(--border); font-size:12px; flex-wrap:wrap; }
 .bulk-bar.visible { display:flex; }
-.bulk-bar .bulk-count { font-weight:700; color:var(--accent); white-space:nowrap; background:var(--surface); border:1px solid var(--accent); border-radius:20px; padding:2px 10px; font-size:11px; }
-.bulk-bar .bulk-group { display:flex; align-items:center; gap:4px; }
-.bulk-bar .bulk-label { font-size:11px; font-weight:600; color:var(--accent); white-space:nowrap; text-transform:uppercase; letter-spacing:.04em; }
-.bulk-bar .bulk-sep { width:1px; height:18px; background:rgba(24,95,165,.2); margin:0 4px; flex-shrink:0; }
-.bulk-bar select { padding:4px 8px; font-size:12px; border:1px solid var(--border2); border-radius:var(--radius); background:var(--surface); color:var(--text1); font-family:var(--font); cursor:pointer; max-width:130px; }
+.bulk-bar .bulk-count { font-weight:600; color:var(--accent); white-space:nowrap; background:var(--accent-l); border:1px solid var(--accent-l); border-radius:20px; padding:2px 10px; font-size:11px; flex-shrink:0; }
+.bulk-bar .bulk-group { display:flex; align-items:center; gap:6px; }
+.bulk-bar .bulk-label { font-size:10px; font-weight:600; color:var(--text3); white-space:nowrap; text-transform:uppercase; letter-spacing:.06em; }
+.bulk-bar .bulk-sep { width:1px; height:16px; background:var(--border2); margin:0 2px; flex-shrink:0; }
+.bulk-bar select { padding:6px 10px; font-size:12px; border:1px solid var(--border2); border-radius:var(--radius); background:var(--bg); color:var(--text1); font-family:var(--font); cursor:pointer; max-width:150px; }
 .cb-cell { width:36px; padding-left:14px !important; padding-right:4px !important; }
 .cb-cell input[type=checkbox] { cursor:pointer; accent-color:var(--accent); width:14px; height:14px; }
 tr.selected-row 
@@ -2746,30 +2746,38 @@ function adminNav(el, page) {
         </div>
         <div class="bulk-bar" id="flt-bulk-bar-${page}">
           <span class="bulk-count"><span id="flt-bulk-count-${page}">0</span> selected</span>
-          <span class="bulk-sep">|</span>
-          <label style="font-size:12px;color:var(--accent)">Status:</label>
-          <select onchange="bulkApplyFlt('${page}','status',this.value);this.value=''">
-            <option value="">— change —</option>
-            <option value="open">Open</option>
-            <option value="in_progress">In progress</option>
-            <option value="waiting">Waiting</option>
-            <option value="resolved">Resolved</option>
-          </select>
-          <label style="font-size:12px;color:var(--accent)">Priority:</label>
-          <select onchange="bulkApplyFlt('${page}','priority',this.value);this.value=''">
-            <option value="">— change —</option>
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-          <label style="font-size:12px;color:var(--accent)">Assign to:</label>
-          <select id="flt-bulk-assignee-${page}" onchange="bulkApplyFlt('${page}','assignee',this.value);this.value=''">
-            <option value="">— change —</option>
-            <option value="__unassign__">Unassigned</option>
-            ${profiles.filter(p=>p.role==='admin'||p.role==='super_admin').map(p=>`<option value="${p.id}">${p.full_name}</option>`).join('')}
-          </select>
-          <button class="btn sm" style="margin-left:auto" onclick="bulkClearFlt('${page}')">✕ Clear selection</button>
+          <div class="bulk-sep"></div>
+          <div class="bulk-group">
+            <span class="bulk-label">Status</span>
+            <select onchange="bulkApplyFlt('${page}','status',this.value);this.value=''">
+              <option value="">— set —</option>
+              <option value="open">Open</option>
+              <option value="in_progress">In progress</option>
+              <option value="waiting">Waiting</option>
+              <option value="resolved">Resolved</option>
+            </select>
+          </div>
+          <div class="bulk-sep"></div>
+          <div class="bulk-group">
+            <span class="bulk-label">Priority</span>
+            <select onchange="bulkApplyFlt('${page}','priority',this.value);this.value=''">
+              <option value="">— set —</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+          <div class="bulk-sep"></div>
+          <div class="bulk-group">
+            <span class="bulk-label">Assign</span>
+            <select id="flt-bulk-assignee-${page}" onchange="bulkApplyFlt('${page}','assignee',this.value);this.value=''">
+              <option value="">— set —</option>
+              <option value="__unassign__">Unassigned</option>
+              ${profiles.filter(p=>p.role==='admin'||p.role==='super_admin').map(p=>`<option value="${p.id}">${esc(p.full_name)}</option>`).join('')}
+            </select>
+          </div>
+          <button class="btn sm" style="margin-left:auto;color:var(--text2)" onclick="bulkClearFlt('${page}')">✕ Clear</button>
         </div>
         <table>
           <thead><tr>
@@ -2796,8 +2804,8 @@ async function openTicketDetail(id) {
   const t = tickets.find(x=>x.id===id); if (!t) return;
   const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
   const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
-  document.getElementById('detail-title').textContent = t.subject;
-  document.getElementById('detail-sub').textContent   = `#${t.ticket_number} · ${esc(t.category||'General')} · ${timeAgo(t.updated_at)}`;
+  document.getElementById('detail-title').innerHTML = `<span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text3);margin-right:8px">#\${t.ticket_number}</span>\${esc(t.subject)}`;
+  document.getElementById('detail-sub').textContent   = `\${esc(t.category||'General')} · \${timeAgo(t.updated_at)}`;
   let comments=[];
   if (demoMode) { comments=DEMO_COMMENTS[id]||[]; }
   else { const {data}=await sbClient.from('comments').select('*,author:profiles(id,full_name,role)').eq('ticket_id',id).order('created_at'); comments=data||[]; }

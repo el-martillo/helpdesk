@@ -1201,8 +1201,8 @@ function renderTickets() {
 async function openTicketDetail(id) {
   const t=myTickets.find(x=>x.id===id); if (!t) return;
   const asgn=demoMode?profileById(t.assignee_id):(t.assignee||null);
-  document.getElementById('detail-title').textContent=t.subject;
-  document.getElementById('detail-sub').textContent=`#${t.ticket_number} · ${esc(t.category||'General')}`;
+  document.getElementById('detail-title').innerHTML=`<span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text3);margin-right:8px">#\${t.ticket_number}</span>\${esc(t.subject)}`;
+  document.getElementById('detail-sub').textContent=`\${esc(t.category||'General')} · #\${t.ticket_number}`;
   let comments=[];
   if (demoMode){comments=(DEMO_COMMENTS[id]||[]).filter(c=>!c.is_internal);}
   else {
