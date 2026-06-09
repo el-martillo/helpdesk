@@ -109,8 +109,7 @@ html, body { height: 100%; font-family: var(--font); background: transparent; co
 .nav-submenu.open { display: flex; }
 .nav-submenu .nav-item { font-size: 12px; padding: 5px 9px 5px 20px; }
 .nav-submenu .nav-item.active::before { display: none; }
-.content { flex: 1; overflow-y: auto; padding: 24px; background: #dce8f5; }
-@media (prefers-color-scheme: dark) { .content { background: #0d1b2e; } }
+.content { flex: 1; overflow-y: auto; padding: 24px; background: var(--bg); }
 /* Metallic reports page background */
 @keyframes metalShift {
   0%   { background-position: 0% 0%; }
@@ -128,7 +127,7 @@ html, body { height: 100%; font-family: var(--font); background: transparent; co
   border-radius: var(--radius);
   margin: -24px -24px 0;
   padding: 24px;
-  min-height: calc(100% + 56px);
+  min-height: calc(100vh - 52px);
 }
 @media (prefers-color-scheme: dark) {
   #page-reports {
@@ -148,7 +147,7 @@ html, body { height: 100%; font-family: var(--font); background: transparent; co
   border-radius: var(--radius);
   margin: -24px -24px 0;
   padding: 24px;
-  min-height: calc(100% + 56px);
+  min-height: calc(100vh - 52px);
 }
 @media (prefers-color-scheme: dark) {
   #page-settings {
@@ -172,7 +171,7 @@ th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
   border-radius: var(--radius);
   margin: -24px -24px 0;
   padding: 24px;
-  min-height: calc(100% + 56px);
+  min-height: calc(100vh - 52px);
 }
 @media (prefers-color-scheme: dark) {
   #page-users {
@@ -206,7 +205,7 @@ th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
   border-radius: var(--radius);
   margin: -24px -24px 0;
   padding: 24px;
-  min-height: calc(100% + 56px);
+  min-height: calc(100vh - 52px);
 }
 @media (prefers-color-scheme: dark) {
   #page-directory {
@@ -280,7 +279,7 @@ th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
   border-radius: var(--radius);
   margin: -24px -24px 0;
   padding: 24px;
-  min-height: calc(100% + 56px);
+  min-height: calc(100vh - 52px);
 }
 #page-dashboard::before {
   content: '';
@@ -455,11 +454,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .form-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 
 /* Ticket detail */
-.detail-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-bottom: 16px; }
-.detail-meta-grid > .dmi { padding: 5px 0; }
-.detail-meta-col { display: flex; flex-direction: column; gap: 0; }
-.detail-meta-col:first-child { padding-right: 14px; border-right: 1px solid var(--border); }
-.detail-meta-col:last-child  { padding-left: 14px; }
+.detail-meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.detail-meta-grid > .dmi { padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); }
 .dmi .key { font-size: 11px; color: var(--text3); margin-bottom: 3px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
 .dmi .val { font-size: 13px; font-weight: 500; }
 .desc-box { font-size: 13px; color: var(--text2); line-height: 1.65; padding: 12px 14px; background: var(--bg); border-radius: var(--radius); margin-bottom: 18px; border: 1px solid var(--border); }
@@ -495,7 +491,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .demo-link { font-size: 12px; color: var(--accent); cursor: pointer; text-decoration: underline; background: none; border: none; font-family: var(--font); display: block; text-align: center; margin-top: 12px; }
 
 .page { display: none; }
-.page.active { display: block; min-height: 100%; }
+.page.active { display: block; min-height: calc(100vh - 52px); }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; gap: 12px; }
 .page-header h1 { font-size: 18px; font-weight: 600; }
 .page-header p { font-size: 12px; color: var(--text2); margin-top: 2px; }
@@ -1533,27 +1529,43 @@ textarea.fc { resize: vertical; min-height: 80px; }
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color:#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                 <div style="font-size:13px;font-weight:600">WhatsApp notifications</div>
               </div>
-              <span class="sb s-open" style="font-size:10px" id="wa-status-badge">—</span>
+              <span class="sb s-closed" style="font-size:10px" id="wa-status-badge">—</span>
             </div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Configure which events trigger WhatsApp alerts via the <code style="font-family:var(--mono);background:var(--border);padding:1px 4px;border-radius:3px">whatsapp-notify</code> Edge Function. Recipients must have <code style="font-family:var(--mono);background:var(--border);padding:1px 4px;border-radius:3px">whatsapp_alerts = true</code> set on their profile.
+              Configure which events send WhatsApp alerts and manage recipient numbers for all admins and agents.
             </div>
-            <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px" id="wa-triggers-list">
+
+            <!-- Triggers -->
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px">Triggers</div>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px" id="wa-triggers-list">
               <div style="text-align:center;padding:12px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:20px">
               <button class="btn primary" onclick="saveWaTriggers()">
                 <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                 Save triggers
               </button>
-              <button class="btn" onclick="loadWaTriggers()">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-                Refresh
-              </button>
               <span style="font-size:11px;color:var(--text3)" id="wa-saved-msg"></span>
             </div>
-            <div style="margin-top:14px;padding:12px;background:var(--accent-l);border-radius:var(--radius);font-size:12px;color:var(--accent);line-height:1.6">
-              <strong>To enable a recipient:</strong> set <code style="font-family:var(--mono)">whatsapp_alerts = true</code>, <code style="font-family:var(--mono)">whatsapp_number</code>, and <code style="font-family:var(--mono)">whatsapp_apikey</code> on their profile row in Supabase. Each recipient must activate their CallMeBot key first.
+
+            <!-- Recipients -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3)">Recipients</div>
+              <button class="btn sm" onclick="loadWaTriggers()">
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+                Refresh
+              </button>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px" id="wa-recipients-list">
+              <div style="text-align:center;padding:12px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
+            </div>
+            <button class="btn primary" onclick="saveWaRecipients()" style="margin-bottom:14px">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Save recipients
+            </button>
+
+            <div style="padding:10px 12px;background:var(--accent-l);border-radius:var(--radius);font-size:12px;color:var(--accent);line-height:1.6">
+              Each recipient needs a <strong>CallMeBot API key</strong>. To get one: send <em>"I allow callmebot to send me messages"</em> to <strong>+34 644 44 80 46</strong> on WhatsApp. You'll receive your key within minutes.
             </div>
           </div>
 
@@ -2970,18 +2982,37 @@ async function openTicketDetail(id) {
     ${mergeBannerHtml}
     ${statusBar}
     <div class="detail-meta-grid">
-      <div class="detail-meta-col">
-        <div class="dmi"><div class="key">Client</div><div class="val flex-c"><div class="avatar ${avColor(req?.id)}" style="width:22px;height:22px;font-size:9px">${initials(req?.full_name||'?')}</div>${esc(req?.full_name)||'—'}</div></div>
-        <div class="dmi"><div class="key">Created</div><div class="val">${timeAgo(t.created_at||t.updated_at)}</div></div>
-        ${(req?.company||t.organisation)?`<div class="dmi"><div class="key">Organisation</div><div class="val">${esc(req?.company||t.organisation)}</div></div>`:''}
-        ${(req?.email||t.contact_email)?`<div class="dmi"><div class="key">Email</div><div class="val"><a href="mailto:${esc(req?.email||t.contact_email)}" style="color:var(--accent)">${esc(req?.email||t.contact_email)}</a></div></div>`:''}
-        ${(req?.phone||t.contact_phone)?`<div class="dmi"><div class="key">Telephone</div><div class="val"><a href="tel:${esc(req?.phone||t.contact_phone)}" style="color:var(--accent)">${esc(req?.phone||t.contact_phone)}</a></div></div>`:''}
+      <div class="dmi">
+        <div class="key">Client</div>
+        <div class="val flex-c"><div class="avatar ${avColor(req?.id)}" style="width:22px;height:22px;font-size:9px">${initials(req?.full_name||'?')}</div>${esc(req?.full_name||'—')}</div>
       </div>
-      <div class="detail-meta-col">
-        <div class="dmi"><div class="key">Tech assigned</div><div class="val">${esc(asgn?.full_name)||'Unassigned'}</div></div>
-        <div class="dmi"><div class="key">Category</div><div class="val">${esc(t.category||'General')}</div></div>
-        <div class="dmi"><div class="key">Priority</div><div class="val"><span class="pdot ${t.priority}" style="margin-right:4px"></span>${esc(t.priority)}</div></div>
+      <div class="dmi">
+        <div class="key">Tech assigned</div>
+        <div class="val">${asgn?.full_name?`<span class="flex-c"><div class="avatar ${avColor(asgn?.id||'')}" style="width:22px;height:22px;font-size:9px">${initials(asgn.full_name)}</div>${esc(asgn.full_name)}</span>`:'<span style="color:var(--text3)">Unassigned</span>'}</div>
       </div>
+      <div class="dmi">
+        <div class="key">Category</div>
+        <div class="val"><span class="cat-badge ${({'Billing':'cat-billing','Technical':'cat-technical','Account':'cat-account','General':'cat-general'})[t.category]||'cat-general'}">${esc(t.category||'General')}</span></div>
+      </div>
+      <div class="dmi">
+        <div class="key">Priority</div>
+        <div class="val"><span class="pdot ${t.priority}" style="margin-right:4px"></span><span class="p-${t.priority}">${esc(t.priority)}</span></div>
+      </div>
+      <div class="dmi">
+        <div class="key">Opened</div>
+        <div class="val">${timeAgo(t.created_at||t.updated_at)}</div>
+      </div>
+      <div class="dmi">
+        <div class="key">Last updated</div>
+        <div class="val">${timeAgo(t.updated_at)}</div>
+      </div>
+      <div class="dmi">
+        <div class="key">Ticket ID</div>
+        <div class="val tid">#${t.ticket_number}</div>
+      </div>
+      ${(req?.company||t.organisation)?`<div class="dmi"><div class="key">Organisation</div><div class="val">${esc(req?.company||t.organisation)}</div></div>`:''}
+      ${(req?.email||t.contact_email)?`<div class="dmi"><div class="key">Email</div><div class="val"><a href="mailto:${esc(req?.email||t.contact_email)}" style="color:var(--accent);word-break:break-all">${esc(req?.email||t.contact_email)}</a></div></div>`:''}
+      ${(req?.phone||t.contact_phone)?`<div class="dmi"><div class="key">Telephone</div><div class="val"><a href="tel:${esc(req?.phone||t.contact_phone)}" style="color:var(--accent)">${esc(req?.phone||t.contact_phone)}</a></div></div>`:''}
     </div>
     <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px">Description</div>
     <div class="desc-box">${esc(t.description||'<em style="color:var(--text3)">No description provided.</em>')}</div>
@@ -4453,29 +4484,53 @@ const WA_TRIGGER_DEFS = [
 
 let waEnabledTriggers = [];
 
+let waAdminProfiles = [];
+
 async function loadWaTriggers() {
-  const el = document.getElementById('wa-triggers-list');
   const badge = document.getElementById('wa-status-badge');
-  if (!el) return;
-  if (demoMode) {
-    waEnabledTriggers = ['new_ticket','critical','new_user','new_comment'];
+
+  // Load triggers
+  const trigEl = document.getElementById('wa-triggers-list');
+  if (trigEl) {
+    if (demoMode) {
+      waEnabledTriggers = ['new_ticket','critical','new_user','new_comment'];
+    } else {
+      try {
+        const { data } = await sbClient.from('app_settings').select('value').eq('key','whatsapp_triggers').maybeSingle();
+        waEnabledTriggers = data?.value ? JSON.parse(data.value) : ['new_ticket','critical','new_user','new_comment'];
+      } catch { waEnabledTriggers = ['new_ticket','critical','new_user','new_comment']; }
+    }
     renderWaTriggers();
+  }
+
+  // Load admin/agent recipients
+  const recEl = document.getElementById('wa-recipients-list');
+  if (!recEl) return;
+
+  if (demoMode) {
+    waAdminProfiles = DEMO_PROFILES.filter(p => p.role === 'admin' || p.role === 'super_admin' || p.role === 'agent');
+    renderWaRecipients();
     if (badge) { badge.textContent = 'Demo'; badge.className = 'sb s-waiting'; }
     return;
   }
+
   try {
-    const { data } = await sbClient.from('app_settings').select('value').eq('key','whatsapp_triggers').maybeSingle();
-    waEnabledTriggers = data?.value ? JSON.parse(data.value) : ['new_ticket','critical','new_user','new_comment'];
-  } catch { waEnabledTriggers = ['new_ticket','critical','new_user','new_comment']; }
-  renderWaTriggers();
-  // Check recipient count
-  try {
-    const { count } = await sbClient.from('profiles').select('*', { count: 'exact', head: true }).eq('whatsapp_alerts', true);
+    const { data, error } = await sbClient
+      .from('profiles')
+      .select('id, full_name, email, role, whatsapp_alerts, whatsapp_number, whatsapp_apikey')
+      .in('role', ['admin', 'super_admin', 'agent'])
+      .order('full_name');
+    if (error) throw error;
+    waAdminProfiles = data || [];
+    renderWaRecipients();
+    const enabled = waAdminProfiles.filter(p => p.whatsapp_alerts).length;
     if (badge) {
-      badge.textContent = count ? `${count} recipient${count !== 1 ? 's' : ''}` : 'No recipients';
-      badge.className = count ? 'sb s-resolved' : 'sb s-closed';
+      badge.textContent = enabled ? `${enabled} active` : 'None active';
+      badge.className = enabled ? 'sb s-resolved' : 'sb s-closed';
     }
-  } catch { if (badge) { badge.textContent = 'Unknown'; badge.className = 'sb s-closed'; } }
+  } catch(e) {
+    recEl.innerHTML = `<div style="font-size:12px;color:var(--danger)">Error loading recipients: ${e.message}</div>`;
+  }
 }
 
 function renderWaTriggers() {
@@ -4493,6 +4548,45 @@ function renderWaTriggers() {
   }).join('');
 }
 
+function renderWaRecipients() {
+  const el = document.getElementById('wa-recipients-list');
+  if (!el) return;
+  if (!waAdminProfiles.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">No admins or agents found.</div>';
+    return;
+  }
+  el.innerHTML = waAdminProfiles.map(p => {
+    const roleLabel = { admin: 'Admin', super_admin: 'Super Admin', agent: 'Agent' }[p.role] || p.role;
+    const av = avColor(p.id);
+    const ini = initials(p.full_name || '?');
+    return `<div style="padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)" data-wa-profile-id="${p.id}">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div class="avatar ${av}" style="width:32px;height:32px;font-size:12px;flex-shrink:0">${ini}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500">${esc(p.full_name||'—')}</div>
+          <div style="font-size:11px;color:var(--text3)">${esc(p.email||'')} · ${roleLabel}</div>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;flex-shrink:0">
+          <input type="checkbox" data-wa-recipient="${p.id}" ${p.whatsapp_alerts ? 'checked' : ''}/>
+          Enabled
+        </label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:500">WhatsApp number</div>
+          <input class="fc" type="tel" placeholder="+35012345678" data-wa-number="${p.id}"
+            value="${esc(p.whatsapp_number||'')}" style="font-size:12px"/>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:500">CallMeBot API key</div>
+          <input class="fc" type="text" placeholder="123456" data-wa-apikey="${p.id}"
+            value="${esc(p.whatsapp_apikey||'')}" style="font-size:12px"/>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 async function saveWaTriggers() {
   const checks = document.querySelectorAll('[data-wa-key]');
   const enabled = Array.from(checks).filter(c => c.checked).map(c => c.dataset.waKey);
@@ -4504,6 +4598,25 @@ async function saveWaTriggers() {
   waEnabledTriggers = enabled;
   if (msg) { msg.textContent = 'Saved ✓'; setTimeout(() => msg.textContent = '', 2500); }
   toast('WhatsApp triggers saved');
+}
+
+async function saveWaRecipients() {
+  if (demoMode) { toast('Recipients saved (demo)'); return; }
+  const updates = waAdminProfiles.map(p => {
+    const alertsEl  = document.querySelector(`[data-wa-recipient="${p.id}"]`);
+    const numberEl  = document.querySelector(`[data-wa-number="${p.id}"]`);
+    const apikeyEl  = document.querySelector(`[data-wa-apikey="${p.id}"]`);
+    return {
+      id:                p.id,
+      whatsapp_alerts:   alertsEl  ? alertsEl.checked                : !!p.whatsapp_alerts,
+      whatsapp_number:   numberEl  ? numberEl.value.trim() || null   : p.whatsapp_number,
+      whatsapp_apikey:   apikeyEl  ? apikeyEl.value.trim() || null   : p.whatsapp_apikey,
+    };
+  });
+  const { error } = await sbClient.from('profiles').upsert(updates, { onConflict: 'id' });
+  if (error) { toast('Error: ' + error.message); return; }
+  toast('Recipients saved');
+  loadWaTriggers();
 }
 
 /* ── Orphaned accounts ── */
