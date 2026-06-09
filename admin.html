@@ -476,6 +476,9 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .comment-meta { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
 .reply-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
 .internal-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); cursor: pointer; }
+.wa-toggle input:checked + span { background: var(--success) !important; }
+.wa-toggle input:checked + span::before { transform: translateX(16px); }
+.wa-toggle span::before { content:''; position:absolute; height:14px; width:14px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.2s; }
 
 #beach-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
 .screen { display: none; position: fixed; inset: 0; }
@@ -490,8 +493,9 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .screen-card .desc { font-size: 13px; color: var(--text2); margin-bottom: 22px; line-height: 1.6; }
 .hint { font-size: 11px; color: var(--text3); margin-top: 4px; }
 .demo-link { font-size: 12px; color: var(--accent); cursor: pointer; text-decoration: underline; background: none; border: none; font-family: var(--font); display: block; text-align: center; margin-top: 12px; }
+
 .page { display: none; }
-.page.active { display: block; }
+.page.active { display: block; min-height: 100%; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; gap: 12px; }
 .page-header h1 { font-size: 18px; font-weight: 600; }
 .page-header p { font-size: 12px; color: var(--text2); margin-top: 2px; }
@@ -808,7 +812,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
           </div>
         </div>
       </div>
-      <div class="nav-item" id="nav-settings" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList();loadCategories();loadRateLimits();loadSessionTimeout();loadReportStart();loadOrphanedAccounts();initSettingsDrag()">
+      <div class="nav-item" id="nav-settings" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();renderOrgList();loadCategories();loadRateLimits();loadSessionTimeout();loadReportStart();loadOrphanedAccounts();loadWaTriggers();initSettingsDrag()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </div>
@@ -1521,6 +1525,38 @@ textarea.fc { resize: vertical; min-height: 80px; }
             </div>
           </div>
 
+
+          <!-- WhatsApp notifications section -->
+          <div class="table-card" data-card-id="whatsapp" style="padding:20px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color:#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                <div style="font-size:13px;font-weight:600">WhatsApp notifications</div>
+              </div>
+              <span class="sb s-open" style="font-size:10px" id="wa-status-badge">—</span>
+            </div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+              Configure which events trigger WhatsApp alerts via the <code style="font-family:var(--mono);background:var(--border);padding:1px 4px;border-radius:3px">whatsapp-notify</code> Edge Function. Recipients must have <code style="font-family:var(--mono);background:var(--border);padding:1px 4px;border-radius:3px">whatsapp_alerts = true</code> set on their profile.
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px" id="wa-triggers-list">
+              <div style="text-align:center;padding:12px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button class="btn primary" onclick="saveWaTriggers()">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save triggers
+              </button>
+              <button class="btn" onclick="loadWaTriggers()">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+                Refresh
+              </button>
+              <span style="font-size:11px;color:var(--text3)" id="wa-saved-msg"></span>
+            </div>
+            <div style="margin-top:14px;padding:12px;background:var(--accent-l);border-radius:var(--radius);font-size:12px;color:var(--accent);line-height:1.6">
+              <strong>To enable a recipient:</strong> set <code style="font-family:var(--mono)">whatsapp_alerts = true</code>, <code style="font-family:var(--mono)">whatsapp_number</code>, and <code style="font-family:var(--mono)">whatsapp_apikey</code> on their profile row in Supabase. Each recipient must activate their CallMeBot key first.
+            </div>
+          </div>
+
           <!-- Orphaned accounts section -->
           <div class="table-card" data-card-id="orphaned" style="padding:20px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
@@ -1792,6 +1828,25 @@ textarea.fc { resize: vertical; min-height: 80px; }
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
         Send
       </button>
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:14px 0"></div>
+
+    <!-- WhatsApp -->
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">WhatsApp alerts</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px">
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--text1)">Enable WhatsApp notifications</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Send alerts to this user for enabled triggers</div>
+      </div>
+      <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0">
+        <input type="checkbox" id="eu-wa-alerts" style="opacity:0;width:0;height:0"/>
+        <span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s" id="eu-wa-slider"></span>
+      </label>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label class="fl">WhatsApp number</label><input id="eu-wa-number" class="fc" type="tel" placeholder="+35012345678"/></div>
+      <div class="fg"><label class="fl">CallMeBot API key</label><input id="eu-wa-apikey" class="fc" type="text" placeholder="123456"/></div>
     </div>
 
     <div style="height:1px;background:var(--border);margin:14px 0"></div>
@@ -4172,6 +4227,15 @@ function openEditUser(id) {
   document.getElementById('eu-notes').value   = p.notes      || '';
   populateCompanySelects();
   document.getElementById('eu-company').value = p.company    || '';
+  const waCheck = document.getElementById('eu-wa-alerts');
+  if (waCheck) {
+    waCheck.checked = !!p.whatsapp_alerts;
+    const slider = document.getElementById('eu-wa-slider');
+    if (slider) slider.style.background = p.whatsapp_alerts ? 'var(--success)' : '';
+    waCheck.onchange = () => { if (slider) slider.style.background = waCheck.checked ? 'var(--success)' : 'var(--border2)'; };
+  }
+  document.getElementById('eu-wa-number').value  = p.whatsapp_number  || '';
+  document.getElementById('eu-wa-apikey').value  = p.whatsapp_apikey  || '';
   openModal('modal-edit-user');
 }
 
@@ -4223,9 +4287,12 @@ async function saveUser() {
   const phone   = document.getElementById('eu-phone').value.trim();
   const company = document.getElementById('eu-company').value.trim();
   const role    = document.getElementById('eu-role').value;
-  const notes   = document.getElementById('eu-notes').value.trim();
+  const notes      = document.getElementById('eu-notes').value.trim();
+  const waAlerts   = document.getElementById('eu-wa-alerts')?.checked || false;
+  const waNumber   = document.getElementById('eu-wa-number')?.value.trim() || null;
+  const waApikey   = document.getElementById('eu-wa-apikey')?.value.trim() || null;
   if (!name) { toast('Name is required'); return; }
-  const updates = { full_name: name, role };
+  const updates = { full_name: name, role, whatsapp_alerts: waAlerts, whatsapp_number: waNumber, whatsapp_apikey: waApikey };
   if (email)   updates.email   = email;
   if (phone)   updates.phone   = phone;
   if (company) updates.company = company;
@@ -4373,6 +4440,70 @@ async function saveRateLimits() {
   if (badge) { badge.textContent = 'Saved'; badge.className = 'sb s-resolved'; }
   toast('Rate limits saved');
   setTimeout(() => { if (msg) msg.textContent = ''; }, 4000);
+}
+
+/* ── WhatsApp triggers ── */
+const WA_TRIGGER_DEFS = [
+  { key: 'new_ticket',  label: 'New ticket',              desc: 'Fires when any new ticket is created' },
+  { key: 'critical',    label: 'Critical priority',        desc: 'Fires when a ticket is created or escalated to critical' },
+  { key: 'escalated',   label: 'Priority escalated',       desc: 'Fires when a ticket priority is raised (non-critical)' },
+  { key: 'new_comment', label: 'New client message',       desc: 'Fires when a client adds a public comment' },
+  { key: 'new_user',    label: 'New user registration',    desc: 'Fires when a new client profile is created' },
+];
+
+let waEnabledTriggers = [];
+
+async function loadWaTriggers() {
+  const el = document.getElementById('wa-triggers-list');
+  const badge = document.getElementById('wa-status-badge');
+  if (!el) return;
+  if (demoMode) {
+    waEnabledTriggers = ['new_ticket','critical','new_user','new_comment'];
+    renderWaTriggers();
+    if (badge) { badge.textContent = 'Demo'; badge.className = 'sb s-waiting'; }
+    return;
+  }
+  try {
+    const { data } = await sbClient.from('app_settings').select('value').eq('key','whatsapp_triggers').maybeSingle();
+    waEnabledTriggers = data?.value ? JSON.parse(data.value) : ['new_ticket','critical','new_user','new_comment'];
+  } catch { waEnabledTriggers = ['new_ticket','critical','new_user','new_comment']; }
+  renderWaTriggers();
+  // Check recipient count
+  try {
+    const { count } = await sbClient.from('profiles').select('*', { count: 'exact', head: true }).eq('whatsapp_alerts', true);
+    if (badge) {
+      badge.textContent = count ? `${count} recipient${count !== 1 ? 's' : ''}` : 'No recipients';
+      badge.className = count ? 'sb s-resolved' : 'sb s-closed';
+    }
+  } catch { if (badge) { badge.textContent = 'Unknown'; badge.className = 'sb s-closed'; } }
+}
+
+function renderWaTriggers() {
+  const el = document.getElementById('wa-triggers-list');
+  if (!el) return;
+  el.innerHTML = WA_TRIGGER_DEFS.map(def => {
+    const checked = waEnabledTriggers.includes(def.key);
+    return `<label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer">
+      <input type="checkbox" data-wa-key="${def.key}" ${checked ? 'checked' : ''} style="margin-top:2px;flex-shrink:0"/>
+      <div>
+        <div style="font-size:13px;font-weight:500">${def.label}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${def.desc}</div>
+      </div>
+    </label>`;
+  }).join('');
+}
+
+async function saveWaTriggers() {
+  const checks = document.querySelectorAll('[data-wa-key]');
+  const enabled = Array.from(checks).filter(c => c.checked).map(c => c.dataset.waKey);
+  const msg = document.getElementById('wa-saved-msg');
+  if (demoMode) { waEnabledTriggers = enabled; if (msg) { msg.textContent = 'Saved (demo)'; setTimeout(() => msg.textContent = '', 2500); } return; }
+  const { error } = await sbClient.from('app_settings')
+    .upsert({ key: 'whatsapp_triggers', value: JSON.stringify(enabled) }, { onConflict: 'key' });
+  if (error) { toast('Error: ' + error.message); return; }
+  waEnabledTriggers = enabled;
+  if (msg) { msg.textContent = 'Saved ✓'; setTimeout(() => msg.textContent = '', 2500); }
+  toast('WhatsApp triggers saved');
 }
 
 /* ── Orphaned accounts ── */
