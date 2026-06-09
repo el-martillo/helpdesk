@@ -204,7 +204,10 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .detail-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
 .chip { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); }
 /* detail-meta → styles.css */
-.desc-box { font-size: 13px; color: var(--text2); line-height: 1.65; padding: 12px 14px; background: var(--bg); border-radius: var(--radius); margin-bottom: 18px; border: 1px solid var(--border); }
+.desc-box { font-size: 13px; color: var(--text2); line-height: 1.65; padding: 12px 14px; background: var(--bg); border-radius: var(--radius); margin-bottom: 28px; border: 1px solid var(--border); }
+#modal-ticket-detail .modal { max-height: 90vh; display: flex; flex-direction: column; }
+#modal-ticket-detail .modal-head { flex-shrink: 0; }
+#modal-ticket-detail #detail-body { overflow-y: auto; flex: 1; min-height: 0; padding-right: 4px; }
 .activity { border-top: 1px solid var(--border); padding-top: 16px; }
 .activity-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); margin-bottom: 14px; }
 .comment-item { display: flex; gap: 10px; margin-bottom: 12px; }
@@ -1253,6 +1256,7 @@ async function openTicketDetail(id) {
       if (!urls.length) return '';
       return `<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px">Attachments (${urls.length})</div><div class="attach-detail-grid">${urls.map(u=>`<a href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="attachment"/></a>`).join('')}</div></div>`;
     })()}
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px">Description</div>
     <div class="desc-box">${t.description ? esc(t.description) : '<em style="color:var(--text3)">No description provided.</em>'}</div>
     <div class="activity">
       <div class="activity-label">Conversation (${comments.length})</div>
