@@ -2942,8 +2942,8 @@ async function openTicketDetail(id) {
   const t = tickets.find(x=>x.id===id); if (!t) return;
   const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
   const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
-  document.getElementById('detail-title').textContent = t.subject;
-  document.getElementById('detail-sub').textContent   = `#${t.ticket_number} · ${esc(t.category||'General')} · ${timeAgo(t.updated_at)}`;
+  document.getElementById('detail-title').textContent = `#${t.ticket_number} · ${t.subject}`;
+  document.getElementById('detail-sub').textContent   = `${esc(t.category||'General')} · ${timeAgo(t.updated_at)}`;
   let comments=[];
   if (demoMode) { comments=DEMO_COMMENTS[id]||[]; }
   else { const {data}=await sbClient.from('comments').select('*,author:profiles(id,full_name,role)').eq('ticket_id',id).order('created_at'); comments=data||[]; }
