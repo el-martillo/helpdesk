@@ -924,7 +924,10 @@ async function signUp() {
 
   const {data,error}=await sbClient.auth.signUp({
     email, password: pass,
-    options: { data: { full_name: name, role: 'client', phone: phone||'', company: company||'' } }
+    options: {
+      data: { full_name: name, role: 'client', phone: phone||'', company: company||'' },
+      emailRedirectTo: 'https://el-martillo.github.io/helpdesk/index.html'
+    }
   });
 
   if (error){
