@@ -305,11 +305,13 @@ th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
 .search-clear:hover { color:var(--text1); }
 .search-wrap:focus-within 
 /* Bulk actions */
-.bulk-bar { display:none; align-items:center; gap:10px; padding:8px 16px; background:var(--accent-l); border-bottom:1px solid var(--accent); font-size:13px; flex-wrap:wrap; }
+.bulk-bar { display:none; align-items:center; gap:8px; padding:8px 16px; background:var(--accent-l); border-bottom:1px solid rgba(24,95,165,.2); font-size:12px; }
 .bulk-bar.visible { display:flex; }
-.bulk-bar .bulk-count { font-weight:600; color:var(--accent); white-space:nowrap; }
-.bulk-bar .bulk-sep { color:var(--border2); }
-.bulk-bar select { padding:5px 8px; font-size:12px; border:1px solid var(--border2); border-radius:var(--radius); background:var(--surface); color:var(--text1); font-family:var(--font); cursor:pointer; }
+.bulk-bar .bulk-count { font-weight:700; color:var(--accent); white-space:nowrap; background:var(--surface); border:1px solid var(--accent); border-radius:20px; padding:2px 10px; font-size:11px; }
+.bulk-bar .bulk-group { display:flex; align-items:center; gap:4px; }
+.bulk-bar .bulk-label { font-size:11px; font-weight:600; color:var(--accent); white-space:nowrap; text-transform:uppercase; letter-spacing:.04em; }
+.bulk-bar .bulk-sep { width:1px; height:18px; background:rgba(24,95,165,.2); margin:0 4px; flex-shrink:0; }
+.bulk-bar select { padding:4px 8px; font-size:12px; border:1px solid var(--border2); border-radius:var(--radius); background:var(--surface); color:var(--text1); font-family:var(--font); cursor:pointer; max-width:130px; }
 .cb-cell { width:36px; padding-left:14px !important; padding-right:4px !important; }
 .cb-cell input[type=checkbox] { cursor:pointer; accent-color:var(--accent); width:14px; height:14px; }
 tr.selected-row 
@@ -335,6 +337,7 @@ tbody tr:nth-child(even):hover
   max-height: 90vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   box-shadow:
     0 2px 4px rgba(0,0,0,.04),
     0 8px 16px rgba(0,0,0,.08),
@@ -342,19 +345,19 @@ tbody tr:nth-child(even):hover
     0 48px 80px rgba(0,0,0,.12),
     0 1px 0 rgba(255,255,255,.06) inset,
     0 -1px 0 rgba(0,0,0,.12) inset;
-  transform: perspective(1200px) rotateX(0.6deg);
-  transform-origin: top center;
   border-top: 1px solid rgba(255,255,255,.18);
   border-bottom: 1px solid rgba(0,0,0,.2);
 }
 #modal-ticket-detail .modal-head {
   flex-shrink: 0;
+  padding-bottom: 16px;
 }
 #modal-ticket-detail #detail-body {
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
   min-height: 0;
-  padding-right: 4px;
+  padding-right: 6px;
 }
 @media (prefers-color-scheme: dark) {
   #modal-ticket-detail .modal {
@@ -820,29 +823,37 @@ textarea
           <!-- Bulk action bar -->
           <div class="bulk-bar" id="bulk-bar">
             <span class="bulk-count"><span id="bulk-count-num">0</span> selected</span>
-            <span class="bulk-sep">|</span>
-            <label style="font-size:12px;color:var(--accent)">Status:</label>
-            <select id="bulk-status" onchange="bulkApply('status',this.value);this.value=''">
-              <option value="">— change —</option>
-              <option value="open">Open</option>
-              <option value="in_progress">In progress</option>
-              <option value="waiting">Waiting</option>
-              <option value="resolved">Resolved</option>
-            </select>
-            <label style="font-size:12px;color:var(--accent)">Priority:</label>
-            <select id="bulk-priority" onchange="bulkApply('priority',this.value);this.value=''">
-              <option value="">— change —</option>
-              <option value="critical">Critical</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-            <label style="font-size:12px;color:var(--accent)">Assign to:</label>
-            <select id="bulk-assignee" onchange="bulkApply('assignee',this.value);this.value=''">
-              <option value="">— change —</option>
-              <option value="__unassign__">Unassigned</option>
-            </select>
-            <button class="btn sm" style="margin-left:auto" onclick="bulkClearSelection()">✕ Clear selection</button>
+            <div class="bulk-sep"></div>
+            <div class="bulk-group">
+              <span class="bulk-label">Status</span>
+              <select id="bulk-status" onchange="bulkApply('status',this.value);this.value=''">
+                <option value="">— set —</option>
+                <option value="open">Open</option>
+                <option value="in_progress">In progress</option>
+                <option value="waiting">Waiting</option>
+                <option value="resolved">Resolved</option>
+              </select>
+            </div>
+            <div class="bulk-sep"></div>
+            <div class="bulk-group">
+              <span class="bulk-label">Priority</span>
+              <select id="bulk-priority" onchange="bulkApply('priority',this.value);this.value=''">
+                <option value="">— set —</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+            <div class="bulk-sep"></div>
+            <div class="bulk-group">
+              <span class="bulk-label">Assign</span>
+              <select id="bulk-assignee" onchange="bulkApply('assignee',this.value);this.value=''">
+                <option value="">— set —</option>
+                <option value="__unassign__">Unassigned</option>
+              </select>
+            </div>
+            <button class="btn sm" style="margin-left:auto;color:var(--text2)" onclick="bulkClearSelection()">✕ Clear</button>
           </div>
           <table><thead><tr>
             <th class="cb-cell"><input type="checkbox" id="bulk-select-all" onclick="bulkToggleAll(this)" title="Select all visible"/></th>
@@ -2015,9 +2026,13 @@ function openModal(id) {
   if (!modal) return;
   requestAnimationFrame(() => {
     const vw = window.innerWidth, vh = window.innerHeight;
-    const mw = modal.offsetWidth, mh = modal.offsetHeight;
+    const mw = modal.offsetWidth;
+    // For scrollable modals (max-height), always start near top so content is reachable
+    const isScrollable = modal.scrollHeight > modal.clientHeight ||
+      getComputedStyle(modal).maxHeight !== 'none';
+    const topPct = isScrollable ? 0.05 : 0.1;
     modal.style.left = Math.max(8, (vw - mw) / 2) + 'px';
-    modal.style.top  = Math.max(8, Math.min((vh - mh) / 2, vh * 0.1)) + 'px';
+    modal.style.top  = Math.max(8, vh * topPct) + 'px';
   });
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -6187,8 +6202,10 @@ function initBeachCanvas(canvasId) {
   const streaks = [];
 
   function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
+    const w = window.innerWidth, h = window.innerHeight;
+    if (!w || !h) return;
+    W = canvas.width  = w;
+    H = canvas.height = h;
     hY = H * HORIZON;
     cx = W / 2;
   }
@@ -6221,6 +6238,7 @@ function initBeachCanvas(canvasId) {
   spawnCeilStreak(); spawnCeilStreak();
 
   function drawGrid() {
+    if (!W || !H || !isFinite(W) || !isFinite(H)) return;
     // Background
     const bg = ctx.createLinearGradient(0, 0, 0, H);
     bg.addColorStop(0,         BG_TOP);

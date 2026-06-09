@@ -11,8 +11,8 @@
 <script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit" async defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="styles.css"/>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --bg:       #f5f5f4;
   --surface:  #ffffff;
@@ -69,7 +69,7 @@ html, body { height: 100%; font-family: var(--font); background: transparent; co
 .logo-img { animation: logoFloat 4s ease-in-out infinite; transform-origin: center bottom; }
 .topbar-right { display: flex; align-items: center; gap: 10px; }
 .topbar-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; }
-.user-pill { display: flex; align-items: center; gap: 8px; padding: 5px 10px 5px 5px; border-radius: 20px; background: var(--surface2); border: 1px solid var(--border); }
+.user-pill { display: flex; align-items: center; gap: 8px; padding: 5px 10px 5px 5px; border-radius: 20px; background: var(--surface2); border: 1px solid var(--border); position: relative; overflow: hidden; }
 .admin-link { font-size: 12px; color: var(--text3); text-decoration: none; padding: 4px 8px; border-radius: 6px; transition: all .15s; }
 .admin-link:hover { color: var(--text1); background: var(--bg); }
 
@@ -1212,27 +1212,23 @@ async function openTicketDetail(id) {
     comments=data||[];
   }
   document.getElementById('detail-body').innerHTML=`
-    <div class="detail-chips">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
       <span class="sb s-${t.status}">${sLabel(t.status)}</span>
       <span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}">${esc(t.category||'General')}</span>
-      <span class="chip"><span class="pdot ${t.priority}"></span>${t.priority} priority</span>
-      <span class="chip">
-        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-        ${asgn?esc(asgn.full_name):'Unassigned'}
-      </span>
+      <span style="font-size:12px;color:var(--text2)"><span class="pdot ${t.priority}"></span>${t.priority} priority</span>
     </div>
     <div class="detail-meta-grid">
-      <div class="dmi">
-        <div class="key">Ticket ID</div>
-        <div class="val tid">#${t.ticket_number}</div>
+      <div class="dmi dmi-user">
+        <div class="key">Tech assigned</div>
+        <div class="val">${asgn?.full_name ? `<span class="flex-c"><div class="avatar ${avColor(asgn?.id||'')} " style="width:22px;height:22px;font-size:9px">${initials(asgn.full_name)}</div>${esc(asgn.full_name)}</span>` : '<span style="color:var(--text3)">Unassigned</span>'}</div>
       </div>
       <div class="dmi">
         <div class="key">Category</div>
         <div class="val"><span class="cat-badge ${({'Billing':'cat-billing','Technical':'cat-technical','Account':'cat-account','General':'cat-general'})[t.category]||'cat-general'}">${esc(t.category||'General')}</span></div>
       </div>
       <div class="dmi">
-        <div class="key">Status</div>
-        <div class="val"><span class="sb s-${t.status}">${sLabel(t.status)}</span></div>
+        <div class="key">Priority</div>
+        <div class="val"><span class="pdot ${t.priority}" style="margin-right:4px"></span><span class="p-${t.priority}">${esc(t.priority)}</span></div>
       </div>
       <div class="dmi">
         <div class="key">Opened</div>
@@ -1241,6 +1237,10 @@ async function openTicketDetail(id) {
       <div class="dmi">
         <div class="key">Last updated</div>
         <div class="val">${timeAgo(t.updated_at)}</div>
+      </div>
+      <div class="dmi">
+        <div class="key">Ticket ID</div>
+        <div class="val tid">#${t.ticket_number}</div>
       </div>
       ${t.contact_email?`<div class="dmi dmi-user">
         <div class="key">Email</div>
@@ -1251,7 +1251,7 @@ async function openTicketDetail(id) {
         <div class="val"><a href="tel:${esc(t.contact_phone)}" style="color:var(--accent)">${esc(t.contact_phone)}</a></div>
       </div>`:''}
     </div>
-    ${(() => {
+    ${(()=>{
       const urls = t.attachment_urls ? JSON.parse(t.attachment_urls) : (t.attachment_url ? [t.attachment_url] : []);
       if (!urls.length) return '';
       return `<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px">Attachments (${urls.length})</div><div class="attach-detail-grid">${urls.map(u=>`<a href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="attachment"/></a>`).join('')}</div></div>`;
