@@ -305,13 +305,13 @@ th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
 .search-clear:hover { color:var(--text1); }
 .search-wrap:focus-within 
 /* Bulk actions */
-.bulk-bar { display:none; align-items:center; gap:8px; padding:8px 16px; background:var(--surface); border-bottom:1px solid var(--border); font-size:12px; flex-wrap:wrap; }
+.bulk-bar { display:none; align-items:center; gap:8px; padding:8px 16px; background:var(--surface); border-bottom:1px solid var(--border); font-size:12px; white-space:nowrap; overflow-x:auto; }
 .bulk-bar.visible { display:flex; }
 .bulk-bar .bulk-count { font-weight:600; color:var(--accent); white-space:nowrap; background:var(--accent-l); border:1px solid var(--accent-l); border-radius:20px; padding:2px 10px; font-size:11px; flex-shrink:0; }
-.bulk-bar .bulk-group { display:flex; align-items:center; gap:6px; }
+.bulk-bar .bulk-group { display:flex; align-items:center; gap:6px; flex-shrink:0; }
 .bulk-bar .bulk-label { font-size:10px; font-weight:600; color:var(--text3); white-space:nowrap; text-transform:uppercase; letter-spacing:.06em; }
 .bulk-bar .bulk-sep { width:1px; height:16px; background:var(--border2); margin:0 2px; flex-shrink:0; }
-.bulk-bar select { padding:6px 10px; font-size:12px; border:1px solid var(--border2); border-radius:var(--radius); background:var(--bg); color:var(--text1); font-family:var(--font); cursor:pointer; max-width:150px; }
+.bulk-bar select { padding:6px 10px; font-size:12px; border:1px solid var(--border2); border-radius:var(--radius); background:var(--bg); color:var(--text1); font-family:var(--font); cursor:pointer; flex-shrink:0; }
 .cb-cell { width:36px; padding-left:14px !important; padding-right:4px !important; }
 .cb-cell input[type=checkbox] { cursor:pointer; accent-color:var(--accent); width:14px; height:14px; }
 tr.selected-row 
@@ -334,7 +334,8 @@ tbody tr:nth-child(even):hover
 
 /* Ticket detail modal — enhanced 3D shadow */
 #modal-ticket-detail .modal {
-  max-height: 90vh;
+  max-height: calc(100vh - 80px);
+  height: calc(100vh - 80px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2022,18 +2023,7 @@ function openModal(id) {
   const overlay = document.getElementById(id);
   if (!overlay) return;
   overlay.classList.add('open');
-  const modal = overlay.querySelector('.modal');
-  if (!modal) return;
-  requestAnimationFrame(() => {
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const mw = modal.offsetWidth;
-    // For scrollable modals (max-height), always start near top so content is reachable
-    const isScrollable = modal.scrollHeight > modal.clientHeight ||
-      getComputedStyle(modal).maxHeight !== 'none';
-    const topPct = isScrollable ? 0.05 : 0.1;
-    modal.style.left = Math.max(8, (vw - mw) / 2) + 'px';
-    modal.style.top  = Math.max(8, vh * topPct) + 'px';
-  });
+  overlay.scrollTop = 0;
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function clearSearch(inputId, callback) {
@@ -2052,6 +2042,8 @@ function toggleClear(input) {
 (function initModalDrag() {
   document.querySelectorAll('.overlay').forEach(overlay => {
     overlay.addEventListener('mousedown', e => {
+      // Ticket detail uses flex layout — no drag needed
+      if (overlay.id === 'modal-ticket-detail') return;
       const head = e.target.closest('.modal-head');
       if (!head) return;
       const modal = head.closest('.modal');
@@ -2804,8 +2796,8 @@ async function openTicketDetail(id) {
   const t = tickets.find(x=>x.id===id); if (!t) return;
   const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
   const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
-  document.getElementById('detail-title').innerHTML = `<span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text3);margin-right:8px">#\${t.ticket_number}</span>\${esc(t.subject)}`;
-  document.getElementById('detail-sub').textContent   = `\${esc(t.category||'General')} · \${timeAgo(t.updated_at)}`;
+  document.getElementById('detail-title').innerHTML = `<span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text3);margin-right:8px">#${t.ticket_number}</span>${esc(t.subject)}`;
+  document.getElementById('detail-sub').textContent   = `${esc(t.category||'General')} · ${timeAgo(t.updated_at)}`;
   let comments=[];
   if (demoMode) { comments=DEMO_COMMENTS[id]||[]; }
   else { const {data}=await sbClient.from('comments').select('*,author:profiles(id,full_name,role)').eq('ticket_id',id).order('created_at'); comments=data||[]; }
