@@ -26,6 +26,11 @@
 
 .topbar-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--text2); }
 .topbar-center .badge-admin { background: var(--accent); color: #fff; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+.admin-user-pill { display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 6px; border-radius: 20px; background: var(--surface2); border: 1px solid var(--border); position: relative; overflow: hidden; }
+.admin-user-pill::before { content: ''; position: absolute; inset: -2px; border-radius: 22px; background: conic-gradient(from 0deg, transparent 0%, transparent 30%, var(--accent) 50%, transparent 70%, transparent 100%); opacity: 0; transition: opacity .3s; animation: spinRing 2s linear infinite paused; z-index: 0; }
+.admin-user-pill::after { content: ''; position: absolute; inset: 1px; background: var(--surface2); border-radius: 20px; z-index: 1; }
+.admin-user-pill:hover::before { opacity: 1; animation-play-state: running; }
+.admin-user-pill > * { position: relative; z-index: 2; }
 
 .admin-link { font-size: 12px; color: var(--text3); text-decoration: none; padding: 4px 8px; border-radius: 6px; transition: all .15s; display: inline-flex; align-items: center; gap: 4px; }
 .admin-link:hover { color: var(--text1); background: var(--bg); }
@@ -326,9 +331,41 @@ tbody tr:nth-child(even):hover
 /* Modal */
 
 /* Ticket detail modal — enhanced 3D shadow */
-#modal-ticket-detail 
+#modal-ticket-detail .modal {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    0 2px 4px rgba(0,0,0,.04),
+    0 8px 16px rgba(0,0,0,.08),
+    0 24px 48px rgba(0,0,0,.16),
+    0 48px 80px rgba(0,0,0,.12),
+    0 1px 0 rgba(255,255,255,.06) inset,
+    0 -1px 0 rgba(0,0,0,.12) inset;
+  transform: perspective(1200px) rotateX(0.6deg);
+  transform-origin: top center;
+  border-top: 1px solid rgba(255,255,255,.18);
+  border-bottom: 1px solid rgba(0,0,0,.2);
+}
+#modal-ticket-detail .modal-head {
+  flex-shrink: 0;
+}
+#modal-ticket-detail #detail-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding-right: 4px;
+}
 @media (prefers-color-scheme: dark) {
-  #modal-ticket-detail 
+  #modal-ticket-detail .modal {
+    box-shadow:
+      0 2px 4px rgba(0,0,0,.2),
+      0 8px 16px rgba(0,0,0,.3),
+      0 24px 48px rgba(0,0,0,.4),
+      0 48px 80px rgba(0,0,0,.3),
+      0 1px 0 rgba(255,255,255,.04) inset,
+      0 -1px 0 rgba(0,0,0,.4) inset;
+  }
 }
 
 /* Forms */
@@ -337,7 +374,7 @@ textarea
 
 /* Ticket detail */
 /* detail-meta-grid + dmi-user → styles.css */
-.desc-box { font-size: 13px; color: var(--text2); line-height: 1.65; padding: 12px 14px; background: var(--bg); border-radius: var(--radius); margin-bottom: 18px; border: 1px solid var(--border); }
+.desc-box { font-size: 13px; color: var(--text2); line-height: 1.65; padding: 12px 14px; background: var(--bg); border-radius: var(--radius); margin-bottom: 28px; border: 1px solid var(--border); }
 .activity { border-top: 1px solid var(--border); padding-top: 16px; }
 .activity-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); margin-bottom: 14px; }
 .comment-item { display: flex; gap: 10px; margin-bottom: 14px; }
@@ -486,8 +523,10 @@ textarea
       El Martillo I.T. Ticketing System
     </a>
     <div class="topbar-center">
-      <span class="badge-admin" id="topbar-role-badge">Admin</span>
-      <span id="topbar-user" style="color:var(--text3)"></span>
+      <div class="admin-user-pill" onclick="adminNav(document.querySelector('.nav-item.active')||document.querySelector('.nav-item'), 'all')" style="cursor:default">
+        <span class="badge-admin" id="topbar-role-badge">Admin</span>
+        <span id="topbar-user" style="color:var(--text3)"></span>
+      </div>
     </div>
     <div class="topbar-right">
       <div class="db-indicator"><div class="dot" id="db-dot"></div><span id="db-label">Demo mode</span></div>
