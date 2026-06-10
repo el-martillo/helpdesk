@@ -812,17 +812,6 @@
             <div id="org-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
               <div style="text-align:center;padding:16px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
             </div>
-            <!-- Colour edit panel -->
-            <div id="org-colour-panel" style="display:none;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:14px;margin-bottom:14px">
-              <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px" id="org-colour-label">Colour for: —</div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="org-colour-swatches"></div>
-              <div style="display:flex;gap:8px;align-items:center">
-                <input id="org-custom-colour" type="color" style="width:34px;height:34px;border:1px solid var(--border2);border-radius:var(--radius);cursor:pointer;padding:2px;background:var(--surface)"/>
-                <span style="font-size:12px;color:var(--text2)">Custom colour</span>
-                <button class="btn sm" onclick="applyOrgCustomColour()">Apply</button>
-                <button class="btn sm" onclick="closeOrgColourPanel()" style="margin-left:auto">Done</button>
-              </div>
-            </div>
             <div style="display:flex;gap:8px;align-items:center">
               <input class="fc" id="new-org-input" type="text" placeholder="Add organisation…" style="max-width:260px" onkeydown="if(event.key==='Enter')addOrg()"/>
               <button class="btn primary" onclick="addOrg()">
@@ -1461,63 +1450,33 @@
   <div class="modal" style="max-width:480px">
     <div class="modal-head">
       <div>
-        <div class="modal-title">Manage companies</div>
-        <div class="modal-sub">Rename, recolour or remove companies</div>
+        <div class="modal-title">Company order &amp; breaks</div>
+        <div class="modal-sub">Drag to reorder · set PDF column and page breaks · manage companies in Settings</div>
       </div>
       <button class="close-x" data-tip="Close  Esc" onclick="closeDirCompanies()">✕</button>
     </div>
 
     <!-- Company list -->
-    <div id="dir-co-list" style="display:flex;flex-direction:column;gap:4px;max-height:280px;overflow-y:auto;margin-bottom:14px;padding-right:2px"></div>
+    <div id="dir-co-list" style="display:flex;flex-direction:column;gap:4px;max-height:360px;overflow-y:auto;margin-bottom:14px;padding-right:2px"></div>
 
-    <!-- Edit panel (hidden until a company row is clicked) -->
+    <!-- Breaks panel (hidden until a company row is clicked) -->
     <div id="dir-co-edit-panel" style="display:none;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:14px;margin-bottom:14px">
-      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px" id="dir-co-edit-label">Editing: —</div>
-      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-bottom:10px">
-        <div class="fg" style="margin:0">
-          <label class="fl">Company name</label>
-          <input id="dir-co-edit-name" class="fc" type="text"/>
-        </div>
-        <button class="btn primary" onclick="saveDirCoName()" style="white-space:nowrap;height:34px">Save name</button>
-      </div>
-      <div class="fg" style="margin-bottom:10px">
-        <label class="fl">Accent colour</label>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap" id="dir-co-colour-swatches"></div>
-        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
-          <input id="dir-co-custom-colour" type="color" style="width:34px;height:34px;border:1px solid var(--border2);border-radius:var(--radius);cursor:pointer;padding:2px;background:var(--surface)"/>
-          <span style="font-size:12px;color:var(--text2)">Custom colour</span>
-          <button class="btn sm" onclick="applyDirCoCustomColour()">Apply</button>
-        </div>
-      </div>
-      <div id="dir-co-delete-wrap">
-        <div style="height:1px;background:var(--border);margin-bottom:10px"></div>
-        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">PDF breaks</div>
-        <div style="display:flex;gap:8px;margin-bottom:10px">
-          <button id="dir-co-col-break-btn" onclick="toggleDirCoColumnBreakFromEdit()" style="flex:1;padding:6px 10px;font-size:12px;font-weight:500;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .12s;font-family:var(--font)">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M17 10H3M21 6H3M21 14H3M17 18H3"/></svg>
-            Column break after
-          </button>
-          <button id="dir-co-page-break-btn" onclick="toggleDirCoPageBreakFromEdit()" style="flex:1;padding:6px 10px;font-size:12px;font-weight:500;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .12s;font-family:var(--font)">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M5 8V5h14v3M5 16v3h14v-3M12 5v14"/></svg>
-            Page break after
-          </button>
-        </div>
-        <div style="height:1px;background:var(--border);margin-bottom:10px"></div>
-        <button class="btn danger" style="width:100%" onclick="deleteDirCompany()">
-          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-          Delete company &amp; all its entries
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px" id="dir-co-edit-label">PDF breaks for: —</div>
+      <div style="display:flex;gap:8px">
+        <button id="dir-co-col-break-btn" onclick="toggleDirCoColumnBreakFromEdit()" style="flex:1;padding:6px 10px;font-size:12px;font-weight:500;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .12s;font-family:var(--font)">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M17 10H3M21 6H3M21 14H3M17 18H3"/></svg>
+          Column break after
         </button>
-        <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:5px" id="dir-co-delete-count"></div>
+        <button id="dir-co-page-break-btn" onclick="toggleDirCoPageBreakFromEdit()" style="flex:1;padding:6px 10px;font-size:12px;font-weight:500;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .12s;font-family:var(--font)">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M5 8V5h14v3M5 16v3h14v-3M12 5v14"/></svg>
+          Page break after
+        </button>
       </div>
     </div>
 
-    <!-- Add new company -->
-    <div style="display:flex;gap:8px;align-items:center">
-      <input id="dir-new-co-input" class="fc" type="text" placeholder="New company name…" onkeydown="if(event.key==='Enter')addDirCompany()"/>
-      <button class="btn primary" style="white-space:nowrap" onclick="addDirCompany()">
-        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-        Add
-      </button>
+    <div style="font-size:12px;color:var(--text3);text-align:center">
+      To add, rename or delete companies go to
+      <a href="#" onclick="closeDirCompanies();adminNav(document.getElementById('nav-settings'),'settings');" style="color:var(--accent)">Settings → Organisations</a>
     </div>
   </div>
 </div>
@@ -1601,18 +1560,22 @@ const avColor   = id => AV_COLORS[(id||'').split('').reduce((a,c)=>a+c.charCodeA
 const timeAgo   = iso => { if(!iso) return '—'; const m=Math.floor((Date.now()-new Date(iso))/60000); if(m<1) return 'just now'; if(m<60) return m+'m ago'; const h=Math.floor(m/60); if(h<24) return h+'h ago'; return Math.floor(h/24)+'d ago'; };
 const sLabel    = s => ({open:'Open',in_progress:'In progress',waiting:'Waiting',resolved:'Resolved',merged:'Merged'}[s]||s);
 const CO_BG_DEFAULT = {
-  "El Martillo":"#f0f9e6","Metalrok":"#e8f1fc","ORC / TARIK":"#e0f5f3",
-  "Gib Sun Club":"#fdf4e0","Signtalk":"#f3eafa","EWMS":"#e8f5e9",
-  "Hire-U-Shop":"#fbe9e7","CIAP":"#e8eaf6","S&P":"#fce4ec","FOCUS":"#e3f2fd",
-  "BELILOS":"#e0f2f1","ABC CLEANING":"#efebe9","DOLPHIN":"#e1f5fe",
-  "LOTTERY":"#f1f8e9","THE BULB":"#fff3e0","MISC":"#eceff1"
+  "ABC Cleaning":"#efebe9","Belilos":"#e0f2f1","Britannia":"#e3f2fd",
+  "CIAP":"#e8eaf6","Dolphin Safari":"#e1f5fe","El Martillo":"#f0f9e6",
+  "EWMS":"#e8f5e9","Focus Security":"#e3f2fd","Garage":"#f3e5f5",
+  "Gib Sun Club":"#fdf4e0","Green Resources":"#e8f5e9","Hire-U-Shop":"#fbe9e7",
+  "Interbuild":"#fff8e1","Lottery":"#f1f8e9","Metalrok":"#e8f1fc",
+  "Orc Marine":"#e0f5f3","Recycle.gi":"#e8f5e9","Signtalk":"#f3eafa",
+  "Stitch & Print":"#fce4ec","Tarik":"#e0f5f3"
 };
 const CO_COLORS_DEFAULT = {
-  "El Martillo":"#5a9e1f","Metalrok":"#1565c0","ORC / TARIK":"#00796b",
-  "Gib Sun Club":"#d07000","Signtalk":"#6a1b9a","EWMS":"#2e7d32",
-  "Hire-U-Shop":"#bf360c","CIAP":"#283593","S&P":"#880e4f","FOCUS":"#0d47a1",
-  "BELILOS":"#004d40","ABC CLEANING":"#4e342e","DOLPHIN":"#01579b",
-  "LOTTERY":"#558b2f","THE BULB":"#e65100","MISC":"#37474f"
+  "ABC Cleaning":"#4e342e","Belilos":"#004d40","Britannia":"#0d47a1",
+  "CIAP":"#283593","Dolphin Safari":"#01579b","El Martillo":"#5a9e1f",
+  "EWMS":"#2e7d32","Focus Security":"#0d47a1","Garage":"#6a1b9a",
+  "Gib Sun Club":"#d07000","Green Resources":"#2e7d32","Hire-U-Shop":"#bf360c",
+  "Interbuild":"#f57f17","Lottery":"#558b2f","Metalrok":"#1565c0",
+  "Orc Marine":"#00796b","Recycle.gi":"#33691e","Signtalk":"#6a1b9a",
+  "Stitch & Print":"#880e4f","Tarik":"#00695c"
 };
 let _coColors = null, _coBg = null;
 function hexToTint(hex, alpha) {
@@ -4805,7 +4768,7 @@ function renderOrgList() {
     const col = (dirCoColors && dirCoColors[c]) || (_coColors && _coColors[c]) || '#9e9a94';
     return `
     <div style="display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)" id="org-row-${i}">
-      <div onclick="openOrgColourPanel('${esc(c)}')"
+      <div onclick="openOrgColourPanel('${esc(c)}', this)"
         style="width:14px;height:14px;border-radius:50%;background:${col};flex-shrink:0;cursor:pointer;border:2px solid ${col}44;transition:transform .12s" title="Edit colour"></div>
       <span class="org-label" id="org-label-${i}" style="flex:1;font-size:13px">${esc(c)}</span>
       <input class="fc org-input" id="org-input-${i}" type="text" value="${esc(c)}" style="flex:1;display:none;padding:4px 8px;font-size:13px" onkeydown="if(event.key==='Enter')saveOrgEdit(${i});if(event.key==='Escape')cancelOrgEdit(${i})"/>
@@ -4883,22 +4846,41 @@ async function persistOrgs() {
 
 let _orgColourTarget = null;
 
-function openOrgColourPanel(company) {
+function openOrgColourPanel(company, dotEl) {
+  // Close any existing inline panel first
+  closeOrgColourPanel();
   _orgColourTarget = company;
-  document.getElementById('org-colour-label').textContent = 'Colour for: ' + company;
   const currentCol = (dirCoColors && dirCoColors[company]) || (_coColors && _coColors[company]) || '#185FA5';
-  document.getElementById('org-custom-colour').value = currentCol;
-  // Render swatches
-  const sw = document.getElementById('org-colour-swatches');
-  sw.innerHTML = DIR_CO_PRESET_COLORS.map(c => `<div onclick="selectOrgColour('${c}')"
-    style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;
-           border:3px solid ${c===currentCol?'var(--accent)':'transparent'};
-           box-shadow:0 0 0 1px rgba(0,0,0,.15);transition:all .12s" title="${c}"></div>`).join('');
-  document.getElementById('org-colour-panel').style.display = 'block';
+  // Find the parent row and insert panel after it
+  const row = dotEl ? dotEl.closest('[id^="org-row-"]') : null;
+  const list = document.getElementById('org-list');
+  if (!row || !list) return;
+  const panel = document.createElement('div');
+  panel.id = 'org-colour-panel';
+  panel.style.cssText = 'background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 14px;margin-top:4px;margin-bottom:2px';
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Colour — ${escH(company)}</span>
+      <button class="btn sm" onclick="closeOrgColourPanel()" style="padding:2px 8px">Done</button>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="org-colour-swatches">
+      ${DIR_CO_PRESET_COLORS.map(c => `<div onclick="selectOrgColour('${c}')"
+        style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;
+               border:3px solid ${c===currentCol?'var(--accent)':'transparent'};
+               box-shadow:0 0 0 1px rgba(0,0,0,.15);transition:all .12s" title="${c}"></div>`).join('')}
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input id="org-custom-colour" type="color" value="${currentCol}"
+        style="width:34px;height:34px;border:1px solid var(--border2);border-radius:var(--radius);cursor:pointer;padding:2px;background:var(--surface)"/>
+      <span style="font-size:12px;color:var(--text2)">Custom colour</span>
+      <button class="btn sm" onclick="applyOrgCustomColour()">Apply</button>
+    </div>`;
+  row.insertAdjacentElement('afterend', panel);
 }
 
 function closeOrgColourPanel() {
-  document.getElementById('org-colour-panel').style.display = 'none';
+  const existing = document.getElementById('org-colour-panel');
+  if (existing) existing.remove();
   _orgColourTarget = null;
 }
 
@@ -4911,10 +4893,11 @@ async function selectOrgColour(hex) {
   _coColors[_orgColourTarget] = hex;
   if (!_coBg) _coBg = {};
   _coBg[_orgColourTarget] = hexToTint(hex, 0.08);
-  // Update custom colour input and swatches
-  document.getElementById('org-custom-colour').value = hex;
+  // Update custom colour input and swatches (panel is now inline)
+  const ci = document.getElementById('org-custom-colour');
+  if (ci) ci.value = hex;
   const sw = document.getElementById('org-colour-swatches');
-  sw.querySelectorAll('div').forEach(d => {
+  if (sw) sw.querySelectorAll('div').forEach(d => {
     d.style.borderColor = d.title === hex ? 'var(--accent)' : 'transparent';
   });
   await saveDirCoColors();
@@ -6144,11 +6127,13 @@ let dirEntries = [];
 let dirDeleteId = null;
 
 const DIR_CO_COLORS = {
-  "El Martillo":"#5a9e1f","Metalrok":"#1565c0","ORC / TARIK":"#00796b",
-  "Gib Sun Club":"#d07000","Signtalk":"#6a1b9a","EWMS":"#2e7d32",
-  "Hire-U-Shop":"#bf360c","CIAP":"#283593","S&P":"#880e4f","FOCUS":"#0d47a1",
-  "BELILOS":"#004d40","ABC CLEANING":"#4e342e","DOLPHIN":"#01579b",
-  "LOTTERY":"#558b2f","THE BULB":"#e65100","MISC":"#37474f"
+  "ABC Cleaning":"#4e342e","Belilos":"#004d40","Britannia":"#0d47a1",
+  "CIAP":"#283593","Dolphin Safari":"#01579b","El Martillo":"#5a9e1f",
+  "EWMS":"#2e7d32","Focus Security":"#0d47a1","Garage":"#6a1b9a",
+  "Gib Sun Club":"#d07000","Green Resources":"#2e7d32","Hire-U-Shop":"#bf360c",
+  "Interbuild":"#f57f17","Lottery":"#558b2f","Metalrok":"#1565c0",
+  "Orc Marine":"#00796b","Recycle.gi":"#33691e","Signtalk":"#6a1b9a",
+  "Stitch & Print":"#880e4f","Tarik":"#00695c"
 };
 
 async function loadDirPage() {
@@ -6607,14 +6592,7 @@ async function toggleDirCoPageBreakFromEdit() {
 
 function selectDirCoEdit(co) {
   dirCoEditTarget = co;
-  const count = dirEntries.filter(e => e.company === co).length;
-  const color = dirCoColors[co] || '#888';
-
-  document.getElementById('dir-co-edit-label').textContent = `Editing: ${co}`;
-  document.getElementById('dir-co-edit-name').value = co;
-  document.getElementById('dir-co-custom-colour').value = color;
-  document.getElementById('dir-co-delete-count').textContent =
-    count > 0 ? `⚠ This will also delete ${count} ${count===1?'entry':'entries'}` : 'Company has no entries';
+  document.getElementById('dir-co-edit-label').textContent = `PDF breaks for: ${co}`;
   document.getElementById('dir-co-edit-panel').style.display = 'block';
 
   // Update break button states
@@ -6632,15 +6610,6 @@ function selectDirCoEdit(co) {
     pgBtn.style.color       = isPageBreak ? '#fff' : 'var(--text2)';
     pgBtn.style.borderColor = isPageBreak ? 'var(--warn)' : 'var(--border2)';
   }
-
-  // Render colour swatches
-  const swatches = document.getElementById('dir-co-colour-swatches');
-  swatches.innerHTML = DIR_CO_PRESET_COLORS.map(c => `
-    <div onclick="selectDirCoColor('${c}')"
-      style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;
-             border:3px solid ${c===color?'var(--accent)':'transparent'};
-             box-shadow:0 0 0 1px rgba(0,0,0,.15);transition:all .12s"
-      title="${c}"></div>`).join('');
 
   renderDirCoList(); // re-render to show active highlight
 }
