@@ -391,7 +391,7 @@ tbody tr:nth-child(even):hover td { background: var(--bg); }
 }
 #modal-ticket-detail .modal { max-height: 90vh; display: flex; flex-direction: column; }
 #modal-ticket-detail .modal-head { flex-shrink: 0; }
-#modal-ticket-detail #detail-body { overflow-y: auto; flex: 1; min-height: 0; padding-right: 4px; }
+#modal-ticket-detail #detail-body { overflow-y: auto; flex: 1; min-height: 0; padding-right: 14px; }
 .modal-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 12px; cursor: grab; user-select: none; }
 .modal-head:active { cursor: grabbing; }
 .modal-title { font-size: 15px; font-weight: 600; }
@@ -700,7 +700,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .desc-box { font-size: 13px; color: var(--text2); line-height: 1.65; padding: 12px 14px; background: var(--bg); border-radius: var(--radius); margin-bottom: 28px; border: 1px solid var(--border); }
 #modal-ticket-detail .modal { max-height: 90vh; display: flex; flex-direction: column; }
 #modal-ticket-detail .modal-head { flex-shrink: 0; }
-#modal-ticket-detail #detail-body { overflow-y: auto; flex: 1; min-height: 0; padding-right: 4px; }
+#modal-ticket-detail #detail-body { overflow-y: auto; flex: 1; min-height: 0; padding-right: 14px; }
 .activity { border-top: 1px solid var(--border); padding-top: 16px; }
 .activity-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); margin-bottom: 14px; }
 .comment-item { display: flex; gap: 10px; margin-bottom: 12px; }
@@ -869,8 +869,7 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
 /* ── Filter wrap reset X ── */
 .filter-wrap { display: inline-flex; align-items: center; gap: 0; }
-.filter-wrap .filter-sel { border-radius: var(--radius); }
-.filter-wrap.has-value .filter-sel { border-radius: var(--radius) 0 0 var(--radius); border-right: none; }
+.filter-wrap .filter-sel { border-radius: var(--radius) 0 0 var(--radius); border-right: none; }
 .filter-clear {
   display: none;
   align-items: center; justify-content: center;
