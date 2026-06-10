@@ -2305,13 +2305,13 @@ function adminNav(el, page) {
             <input type="text" id="flt-search-${page}" placeholder="Search tickets…" oninput="renderFilteredPage('${page}');toggleClear(this)"/>
             <button class="search-clear" onclick="clearSearch('flt-search-${page}',()=>renderFilteredPage('${page}'))">✕</button>
           </div>
-          <select class="filter-sel" id="flt-priority-${page}" onchange="renderFilteredPage('${page}')">
+          <div class="filter-wrap" id="fw-flt-priority-${page}"><select class="filter-sel" id="flt-priority-${page}" onchange="renderFilteredPage('${page}');updateFilterWraps()">
             <option value="">All priorities</option>
             <option value="critical">Critical</option>
             <option value="high">High</option>
             <option value="medium">Medium</option>
             <option value="low">Low</option>
-          </select>
+          </select><button class="filter-clear" onclick="document.getElementById('flt-priority-${page}').value='';renderFilteredPage('${page}');updateFilterWraps()" title="Clear filter">✕</button></div>
           <select class="filter-sel" id="flt-pp-${page}" onchange="renderFilteredPage('${page}')" style="font-size:12px">
             <option value="10">10 / page</option>
             <option value="25" selected>25 / page</option>
@@ -2367,6 +2367,7 @@ function adminNav(el, page) {
         </table>
       </div>`;
     renderFilteredPage(page);
+    updateFilterWraps();
   }
   if (page==='reports') renderReports();
 }

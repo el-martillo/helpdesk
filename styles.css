@@ -869,7 +869,8 @@ textarea.fc { resize: vertical; min-height: 80px; }
 
 /* ── Filter wrap reset X ── */
 .filter-wrap { display: inline-flex; align-items: center; gap: 0; }
-.filter-wrap .filter-sel { border-radius: var(--radius) 0 0 var(--radius); border-right: none; }
+.filter-wrap .filter-sel { border-radius: var(--radius); }
+.filter-wrap.has-value .filter-sel { border-radius: var(--radius) 0 0 var(--radius); border-right: none; }
 .filter-clear {
   display: none;
   align-items: center; justify-content: center;
