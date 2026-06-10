@@ -2478,7 +2478,7 @@ async function openTicketDetail(id) {
       ${(req?.phone||t.contact_phone)?`<div class="dmi"><div class="key">Telephone</div><div class="val"><a href="tel:${esc(req?.phone||t.contact_phone)}" style="color:var(--accent)">${esc(req?.phone||t.contact_phone)}</a></div></div>`:''}
     </div>
     <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px">Description</div>
-    <div class="desc-box">${esc(t.description||'<em style="color:var(--text3)">No description provided.</em>')}</div>
+    <div class="desc-box">${t.description ? esc(t.description) : '<em style="color:var(--text3)">No description provided.</em>'}</div>
     ${(()=>{
       const urls=t.attachment_urls?JSON.parse(t.attachment_urls):(t.attachment_url?[t.attachment_url]:[]);
       if(!urls.length) return '';
@@ -2537,11 +2537,8 @@ function renderComments(comments, showInternal=false) {
     const srcTag = c.source_ticket_number
       ? `<span class="source-ticket-tag" title="From merged ticket #${c.source_ticket_number}">#${c.source_ticket_number}</span>`
       : '';
-    const emailTag = c.via_email
-      ? `<span style="display:inline-block;font-size:10px;font-weight:600;background:#E1F5EE;color:#0F6E56;border-radius:4px;padding:1px 5px;margin-right:4px;white-space:nowrap" title="Received via email">✉ via email</span>`
-      : '';
     return `<div class="comment-item"><div class="avatar ${avColor(author?.id)}" style="flex-shrink:0">${initials(author?.full_name||'?')}</div>
-      <div class="comment-bubble ${cls}"><div class="comment-meta">${srcTag}${emailTag}${esc(author?.full_name)||'Unknown'}  ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${esc(c.body)}</div></div>`;
+      <div class="comment-bubble ${cls}"><div class="comment-meta">${srcTag}${esc(author?.full_name)||'Unknown'}  ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${esc(c.body)}</div></div>`;
   }).join('');
 }
 async function addComment(ticketId) {

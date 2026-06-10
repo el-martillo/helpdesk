@@ -1388,10 +1388,15 @@ async function submitTicket() {
   trackUserActivity('ticket_created', 'success', `Subject: ${subject}`);
   closeModal('modal-new-ticket'); clearForm();
   loadVersion(); await loadClientTickets(); toast('Request submitted! We\'ll be in touch soon.');
-  // WhatsApp notifications
-  (function() {
-    const _newest = myTickets[0];
-    const _num = _newest ? '#' + _newest.ticket_number + ' ' : '';
+  // WhatsApp notifications — query DB directly so ticket_id is always correct
+  try {
+    const { data: newT } = await sbClient.from('tickets')
+      .select('id,ticket_number')
+      .eq('requester_id', currentUser.id)
+      .eq('subject', subject)
+      .order('created_at', { ascending: false })
+      .limit(1).single();
+    const _num = newT ? '#' + newT.ticket_number + ' ' : '';
     fireWhatsApp('new_ticket',
       '🎫 New ticket ' + _num + subject +
       '\nPriority: ' + payload.priority + ' | Category: ' + payload.category +
@@ -1401,7 +1406,7 @@ async function submitTicket() {
         '🚨 CRITICAL ticket: ' + _num + subject +
         '\nFrom: ' + email);
     }
-  })();
+  } catch(e) { console.warn('WA new ticket notify failed:', e.message); }
 }
 
 /* ── Auto-restore ── */
@@ -1421,7 +1426,6 @@ const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 let _waCache = null;
 
 async function _loadWaCache() {
-  if (_waCache) return _waCache;
   try {
     const [trigRow, recRows] = await Promise.all([
       sbClient.from('app_settings').select('value').eq('key','whatsapp_triggers').maybeSingle(),
@@ -1435,14 +1439,14 @@ async function _loadWaCache() {
     _waCache = { triggers, recipients };
   } catch(e) {
     console.warn('WA cache load failed:', e.message);
-    _waCache = { triggers: [], recipients: [] };
+    _waCache = { triggers: ['new_ticket','critical','new_user','new_comment'], recipients: [] };
   }
   return _waCache;
 }
 
 async function fireWhatsApp(triggerKey, message) {
   try {
-    _waCache = null; // always reload fresh — triggers/recipients may have changed
+    _waCache = null; // always reload fresh
     const cache = await _loadWaCache();
     if (!cache.triggers.includes(triggerKey)) return;
     if (!cache.recipients.length) return;
