@@ -6477,6 +6477,7 @@ async function openDirCompanies() {
   await loadDirCoOrder();
   await loadDirCoColumnBreak();
   await loadDirCoPageBreak();
+  if (!companiesList.length) await loadCompanies(); // ensure central list is loaded
   document.getElementById('modal-dir-companies').classList.add('open');
   document.getElementById('dir-co-edit-panel').style.display = 'none';
   dirCoEditTarget = null;
@@ -6489,7 +6490,8 @@ function closeDirCompanies() {
 
 function getOrderedCompanies() {
   const fromEntries = [...new Set(dirEntries.map(e => e.company))];
-  const all = [...new Set([...fromEntries, ...dirStandaloneCompanies])];
+  // Also include companies from the central Settings list (companiesList)
+  const all = [...new Set([...fromEntries, ...dirStandaloneCompanies, ...companiesList])];
   // Apply saved order: ordered ones first, then alphabetical remainder
   const ordered = dirCoOrder.filter(c => all.includes(c));
   const remainder = all.filter(c => !ordered.includes(c)).sort();
