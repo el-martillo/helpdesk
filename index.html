@@ -425,34 +425,12 @@
 <script>
 /* ── State ── */
 let sbClient = null, currentUser = null, currentProfile = null;
-let myTickets = [], allDemoTickets = [];
-let demoMode = false, activeFilter = '', perPage = 10;
+let myTickets = [];
+let activeFilter = '', perPage = 10;
 let realtimeChannel = null;
 const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
 
 /* ── Demo data ── */
-const DEMO_PROFILES = [
-  {id:'p1',full_name:'Sarah Johnson',role:'admin',status:'online'},
-  {id:'p2',full_name:'Marcus Reid',role:'admin',status:'online'},
-  {id:'p5',full_name:'Jane Doe',email:'jane@client.com',role:'client',status:'online'},
-  {id:'p6',full_name:'Robert Chen',email:'robert@client.com',role:'client',status:'offline'},
-];
-const DEMO_TICKETS_ALL = [
-  {id:'t1',ticket_number:12,subject:'Cannot export invoices to PDF',description:'When clicking Export PDF the page just spins and nothing downloads. Happens on both Chrome and Firefox.',status:'open',priority:'high',category:'Billing',requester_id:'p5',assignee_id:'p1',updated_at:new Date(Date.now()-2*60000).toISOString(),created_at:new Date(Date.now()-30*60000).toISOString()},
-  {id:'t4',ticket_number:9, subject:'Incorrect billing amount on last invoice',description:'Invoice #INV-2094 shows $520 but should be $480 based on our plan.',status:'waiting',priority:'high',category:'Billing',requester_id:'p5',assignee_id:'p1',updated_at:new Date(Date.now()-3*3600000).toISOString(),created_at:new Date(Date.now()-6*3600000).toISOString()},
-  {id:'t3',ticket_number:10,subject:'Dashboard loads slowly on mobile',description:'The main dashboard takes 8-10 seconds to load on mobile. Desktop is fine.',status:'in_progress',priority:'medium',category:'Technical',requester_id:'p5',assignee_id:'p2',updated_at:new Date(Date.now()-5*3600000).toISOString(),created_at:new Date(Date.now()-8*3600000).toISOString()},
-  {id:'t8',ticket_number:5, subject:'How to bulk import contacts via CSV?',description:'Looking for documentation on importing large contact lists.',status:'resolved',priority:'low',category:'General',requester_id:'p5',assignee_id:'p1',updated_at:new Date(Date.now()-24*3600000).toISOString(),created_at:new Date(Date.now()-2*24*3600000).toISOString()},
-];
-const DEMO_COMMENTS = {
-  't1':[
-    {id:'c1',author_id:'p5',body:'I\'ve tried clearing cache and using incognito mode — still broken.',is_internal:false,created_at:new Date(Date.now()-10*60000).toISOString()},
-    {id:'c2',author_id:'p1',body:'Thanks for reaching out! I\'m looking into this now and will update you shortly.',is_internal:false,created_at:new Date(Date.now()-5*60000).toISOString()},
-  ],
-  't3':[
-    {id:'c3',author_id:'p2',body:'We\'ve reproduced the issue on our end. It appears to be a rendering performance issue with the new chart library on mobile. Working on a fix.',is_internal:false,created_at:new Date(Date.now()-2*3600000).toISOString()},
-  ],
-};
-
 /* ── Helpers ── */
 const esc = s => { const d=document.createElement('div'); d.textContent=String(s??''); return d.innerHTML; };
 const initials = n => n ? n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '?';
@@ -510,7 +488,6 @@ const sourcePill = s => {
   const c = cfg[s] || { icon: '?', label: s||'Unknown', cls: 'sb-source-unknown' };
   return `<span class="sb ${c.cls}" title="Opened via ${c.label}">${c.icon} ${c.label}</span>`;
 };
-const profileById = id => DEMO_PROFILES.find(p=>p.id===id);
 function toast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 async function openModal(id){
   const overlay = document.getElementById(id);
@@ -590,19 +567,6 @@ async function connectSupabase() {
 }
 
 /* ── Demo ── */
-function loadDemo() {
-  demoMode=true;
-  allDemoTickets=[...DEMO_TICKETS_ALL];
-  myTickets=DEMO_TICKETS_ALL.filter(t=>t.requester_id==='p5');
-  currentProfile={id:'p5',full_name:'Jane Doe',role:'client'};
-  document.getElementById('cfg-screen').classList.remove('active');
-  document.getElementById('auth-screen').classList.remove('active');
-  document.getElementById('app').style.display='flex'; stopIdxCanvas();
-  const fu = document.getElementById('footer-user-count');
-  if (fu) fu.textContent = DEMO_PROFILES.length;
-  updateUserHeader();
-  renderTickets();
-}
 
 /* ── Auth ── */
 async function ensureProfile(user, fallbackName) {
@@ -619,7 +583,6 @@ async function ensureProfile(user, fallbackName) {
 }
 
 async function signIn() {
-  if (!sbClient){loadDemo();return;}
   const recaptchaToken = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse(window._siWidgetId) : '';
   if (!recaptchaToken) { document.getElementById('si-err').textContent='Please complete the reCAPTCHA check.'; return; }
   document.getElementById('si-err').textContent='';
@@ -635,17 +598,15 @@ async function signIn() {
   }
   currentUser=data.user;
   currentProfile = await ensureProfile(currentUser);
-  if (!demoMode) {
-    sbClient.from('profiles').select('*', { count:'exact', head:true }).then(({count}) => {
-      const fu = document.getElementById('footer-user-count');
-      if (fu && count !== null) fu.textContent = count;
-    });
-  }
+
+  sbClient.from('profiles').select('*', { count:'exact', head:true }).then(({count}) => {
+    const fu = document.getElementById('footer-user-count');
+    if (fu && count !== null) fu.textContent = count;
+  });
   trackUserActivity('login', 'success', `Signed in`);
   showApp();
 }
 async function signUp() {
-  if (!sbClient){loadDemo();return;}
   const recaptchaToken = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse(window._suWidgetId) : '';
   if (!recaptchaToken) { document.getElementById('su-err').style.color='var(--danger)'; document.getElementById('su-err').textContent='Please complete the reCAPTCHA check.'; return; }
   const rl = await checkRateLimit('sign_up');
@@ -796,7 +757,6 @@ async function fillOrgSelect(sel) {
 async function populateSignupCompany() { await fillOrgSelect(document.getElementById('su-company')); }
 
 function startRealtime() {
-  if (demoMode || !sbClient) return;
   if (realtimeChannel) { sbClient.removeChannel(realtimeChannel); realtimeChannel = null; }
 
   realtimeChannel = sbClient
@@ -897,7 +857,6 @@ function updateUserHeader() {
 
 /* ── Tickets ── */
 async function loadClientTickets() {
-  if (demoMode) { renderTickets(); return; }
   document.getElementById('ticket-list').innerHTML='<div style="text-align:center;padding:32px;color:var(--text3)"><div class="loader"></div></div>';
   const {data,error}=await sbClient.from('tickets')
     .select('*, assignee:profiles!assignee_id(id,full_name)')
@@ -931,7 +890,7 @@ function renderTickets() {
   const visible=list.slice(0, perPage);
   const remaining=list.length - visible.length;
   const cards=visible.map(t => {
-    const asgn=demoMode?profileById(t.assignee_id):(t.assignee||null);
+    const asgn=(t.assignee||null);
     const catColors = {Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'};
     const catClass = catColors[t.category] || 'cat-general';
     const _tcUrls = t.attachment_urls ? JSON.parse(t.attachment_urls) : (t.attachment_url ? [t.attachment_url] : []);
@@ -977,17 +936,14 @@ function centreTicketModal() {
 async function openTicketDetail(id) {
   const t=myTickets.find(x=>x.id===id); if (!t) return;
   await loadCompanyColors();
-  const asgn=demoMode?profileById(t.assignee_id):(t.assignee||null);
+  const asgn=(t.assignee||null);
   document.getElementById('detail-title').innerHTML=`<span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text3);margin-right:8px">#${t.ticket_number}</span>${esc(t.subject)}`;
   document.getElementById('detail-sub').textContent=`${esc(t.category||'General')} · #${t.ticket_number}`;
   let comments=[];
-  if (demoMode){comments=(DEMO_COMMENTS[id]||[]).filter(c=>!c.is_internal);}
-  else {
-    const {data}=await sbClient.from('comments')
-      .select('*,author:profiles(id,full_name,role)')
-      .eq('ticket_id',id).eq('is_internal',false).order('created_at');
-    comments=data||[];
-  }
+  const {data}=await sbClient.from('comments')
+    .select('*,author:profiles(id,full_name,role)')
+    .eq('ticket_id',id).eq('is_internal',false).order('created_at');
+  comments=data||[];
   document.getElementById('detail-body').innerHTML=`
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
       <span class="sb s-${t.status}">${sLabel(t.status)}</span>
@@ -1057,9 +1013,9 @@ async function openTicketDetail(id) {
 function renderComments(comments) {
   if (!comments.length) return '<div style="color:var(--text3);font-size:13px;padding:8px 0">No replies yet. Our team will respond shortly.</div>';
   return comments.map(c=>{
-    const author=demoMode?profileById(c.author_id):(c.author||{});
+    const author=(c.author||{});
     const isAgent=author?.role==='admin'||author?.role==='super_admin';
-    const isMine=demoMode?(c.author_id===currentProfile?.id):(c.author_id===currentUser?.id);
+    const isMine=(c.author_id===currentUser?.id);
     const cls=isAgent?'agent-bubble':'';
     return `<div class="comment-item">
       <div class="avatar ${avColor(author?.id)}" style="flex-shrink:0">${initials(author?.full_name||'?')}</div>
@@ -1074,13 +1030,6 @@ function renderComments(comments) {
 async function addReply(ticketId) {
   const body=document.getElementById('reply-text').value.trim();
   if (!body) return;
-  if (demoMode) {
-    if (!DEMO_COMMENTS[ticketId]) DEMO_COMMENTS[ticketId]=[];
-    const nc={id:'c'+Date.now(),author_id:currentProfile.id,body,is_internal:false,created_at:new Date().toISOString()};
-    DEMO_COMMENTS[ticketId].push(nc);
-    document.getElementById('comments-list').innerHTML=renderComments(DEMO_COMMENTS[ticketId].filter(c=>!c.is_internal));
-    document.getElementById('reply-text').value=''; toast('Reply sent'); return;
-  }
   const {error}=await sbClient.from('comments').insert({ticket_id:ticketId,author_id:currentUser.id,body,is_internal:false});
   if (error){toast('Error: '+error.message);return;}
   document.getElementById('reply-text').value=''; toast('Reply sent'); openTicketDetail(ticketId);
@@ -1091,7 +1040,6 @@ function openImgPreview(urls) {
   if (Array.isArray(urls) && urls.length) window.open(urls[0], '_blank');
 }
 async function reopenTicket(ticketId) {
-  if (demoMode){const t=myTickets.find(x=>x.id===ticketId);if(t){t.status='open';t.updated_at=new Date().toISOString();}renderTickets();closeModal('modal-ticket-detail');toast('Ticket reopened');return;}
   const { error } = await sbClient.from('tickets').update({status:'open'}).eq('id',ticketId);
   if (error) { toast('Error: ' + error.message); return; }
   const clientName  = currentProfile?.full_name || currentUser?.email || 'Client';
@@ -1138,11 +1086,6 @@ async function reopenTicket(ticketId) {
 async function closeTicket(ticketId) {
   if (!confirm('Mark this ticket as resolved? You can reopen it at any time.')) return;
   const clientName = currentProfile?.full_name || currentUser?.email || 'Client';
-  if (demoMode) {
-    const t = myTickets.find(x => x.id === ticketId);
-    if (t) { t.status = 'resolved'; t.updated_at = new Date().toISOString(); }
-    renderTickets(); closeModal('modal-ticket-detail'); toast('Ticket closed'); return;
-  }
   const { error } = await sbClient.from('tickets').update({ status: 'resolved' }).eq('id', ticketId);
   if (error) { toast('Error: ' + error.message); return; }
   const ticketNum = myTickets.find(x => x.id === ticketId)?.ticket_number || ticketId;
@@ -1254,13 +1197,6 @@ async function saveMyProfile() {
   pwMsg.textContent = '';
   msg.style.color='var(--text3)'; msg.textContent='Saving…';
 
-  if (demoMode) {
-    if (currentProfile) { currentProfile.full_name = name; currentProfile.phone = phone; currentProfile.company = company; }
-    updateUserHeader();
-    msg.style.color='var(--success)'; msg.textContent='✓ Profile updated.';
-    return;
-  }
-
   // Update profile
   const updates = { full_name: name };
   if (phone)   updates.phone   = phone;
@@ -1324,7 +1260,6 @@ async function populateCompanyDropdown() { await fillOrgSelect(document.getEleme
 
 /* ── Rate limit check ── */
 async function checkRateLimit(action) {
-  if (demoMode) return true;
   try {
     const res = await fetch(`${SB_URL}/functions/v1/rate-limit`, {
       method: 'POST',
@@ -1421,12 +1356,6 @@ async function submitTicket() {
     document.getElementById('nt-email').value='';
     document.getElementById('nt-phone').value='';
     document.getElementById('nt-company').value='';
-  }
-  if (demoMode) {
-    const nt={id:'t'+Date.now(),ticket_number:100+myTickets.length+1,...payload,requester_id:'p5',assignee_id:null,updated_at:new Date().toISOString(),created_at:new Date().toISOString()};
-    myTickets.unshift(nt); allDemoTickets.unshift(nt);
-    closeModal('modal-new-ticket'); clearForm();
-    renderTickets(); toast('Request submitted! We\'ll be in touch soon.'); return;
   }
   if (pendingFiles.length) {
     const ts = Date.now();
@@ -1579,7 +1508,6 @@ let   _idxIdleTimer       = null;
 let   _idxIdleMinutes     = IDX_TIMEOUT_DEFAULT;
 
 async function loadAndStartIdleTimeout() {
-  if (demoMode || !sbClient) { _startIdxIdleTimer(IDX_TIMEOUT_DEFAULT); return; }
   try {
     const { data } = await sbClient.from('app_settings').select('value').eq('key', IDX_TIMEOUT_KEY).maybeSingle();
     const mins = data?.value ? parseInt(data.value) : IDX_TIMEOUT_DEFAULT;

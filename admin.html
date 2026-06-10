@@ -366,21 +366,21 @@
               <input type="text" id="search-input" placeholder="Search tickets…" oninput="adminPerPage=parseInt(document.getElementById('admin-per-page')?.value||'25');renderTable();toggleClear(this)"/>
               <button class="search-clear" onclick="clearSearch('search-input',()=>{adminPerPage=parseInt(document.getElementById('admin-per-page')?.value||'25');renderTable();})">✕</button>
             </div>
-            <select class="filter-sel" id="filter-status" onchange="adminPerPage=parseInt(document.getElementById('admin-per-page')?.value||'25');renderTable()">
+            <div class="filter-wrap" id="fw-filter-status"><select class="filter-sel" id="filter-status" onchange="adminPerPage=parseInt(document.getElementById('admin-per-page')?.value||'25');renderTable()">
               <option value="">All statuses</option>
               <option value="open">Open</option>
               <option value="in_progress">In progress</option>
               <option value="waiting">Waiting</option>
               <option value="resolved">Resolved</option>
               <option value="merged">Merged</option>
-            </select>
-            <select class="filter-sel" id="filter-priority" onchange="adminPerPage=parseInt(document.getElementById('admin-per-page')?.value||'25');renderTable()">
+            </select><button class="filter-clear" onclick="document.getElementById('filter-status').value='';adminPerPage=parseInt(document.getElementById('admin-per-page')?.value||'25');renderTable();updateFilterWraps()" title="Clear filter">✕</button></div>
+            <div class="filter-wrap" id="fw-filter-priority"><select class="filter-sel" id="filter-priority" onchange="adminPerPage=parseInt(document.getElementById('admin-per-page')?.value||'25');renderTable()">
               <option value="">All priorities</option>
               <option value="critical">Critical</option>
               <option value="high">High</option>
               <option value="medium">Medium</option>
               <option value="low">Low</option>
-            </select>
+            </select><button class="filter-clear" onclick="document.getElementById('filter-priority').value='';adminPerPage=parseInt(document.getElementById('admin-per-page')?.value||'25');renderTable();updateFilterWraps()" title="Clear filter">✕</button></div>
             <select class="filter-sel" id="admin-per-page" onchange="adminPerPage=parseInt(this.value);renderTable()">
               <option value="10">10 per page</option>
               <option value="25" selected>25 per page</option>
@@ -463,12 +463,12 @@
               <input type="text" id="users-search" placeholder="Search users…" oninput="usersPerPage=parseInt(document.getElementById('users-per-page')?.value||'25');renderUsersTable();toggleClear(this)"/>
               <button class="search-clear" onclick="clearSearch('users-search',()=>{usersPerPage=parseInt(document.getElementById('users-per-page')?.value||'25');renderUsersTable();})">✕</button>
             </div>
-            <select class="filter-sel" id="users-role-filter" onchange="usersPerPage=parseInt(document.getElementById('users-per-page')?.value||'25');renderUsersTable()">
+            <div class="filter-wrap" id="fw-users-role-filter"><select class="filter-sel" id="users-role-filter" onchange="usersPerPage=parseInt(document.getElementById('users-per-page')?.value||'25');renderUsersTable()">
               <option value="">All roles</option>
               <option value="super_admin">Super Admin</option>
               <option value="admin">Admin</option>
               <option value="client">Client</option>
-            </select>
+            </select><button class="filter-clear" onclick="document.getElementById('users-role-filter').value='';usersPerPage=parseInt(document.getElementById('users-per-page')?.value||'25');renderUsersTable();updateFilterWraps()" title="Clear filter">✕</button></div>
             <select class="filter-sel" id="users-per-page" onchange="usersPerPage=parseInt(this.value);renderUsersTable()" style="font-size:12px">
               <option value="10">10 / page</option>
               <option value="25" selected>25 / page</option>
@@ -624,7 +624,7 @@
         <div class="page-header">
           <div><h1>System log</h1><p id="syslog-count-sub">Admin &amp; super admin actions across the system</p></div>
           <div style="display:flex;gap:8px">
-            <select class="filter-sel" id="syslog-action-filter" onchange="renderSysLogTable()">
+            <div class="filter-wrap" id="fw-syslog-action-filter"><select class="filter-sel" id="syslog-action-filter" onchange="renderSysLogTable()">
               <option value="">All actions</option>
               <option value="ticket_created">Ticket created</option>
               <option value="ticket_status">Status changed</option>
@@ -645,7 +645,7 @@
                 <option value="directory_company_deleted">Company deleted</option>
                 <option value="directory_company_colour">Company colour changed</option>
               </optgroup>
-            </select>
+            </select><button class="filter-clear" onclick="document.getElementById('syslog-action-filter').value='';renderSysLogTable();updateFilterWraps()" title="Clear filter">✕</button></div>
             <select class="filter-sel" id="syslog-per-page" onchange="syslogPerPage=parseInt(this.value);renderSysLogTable()" style="font-size:12px">
               <option value="25">25 / page</option>
               <option value="50" selected>50 / page</option>
@@ -678,13 +678,13 @@
         <div class="page-header">
           <div><h1>Audit log</h1><p id="auditlog-count-sub">Database-level trigger log for sensitive operations</p></div>
           <div style="display:flex;gap:8px">
-            <select class="filter-sel" id="auditlog-entity-filter" onchange="renderAuditTable()">
+            <div class="filter-wrap" id="fw-auditlog-entity-filter"><select class="filter-sel" id="auditlog-entity-filter" onchange="renderAuditTable()">
               <option value="">All entities</option>
               <option value="ticket">Tickets</option>
               <option value="comment">Comments</option>
               <option value="profile">Profiles</option>
               <option value="app_settings">Settings</option>
-            </select>
+            </select><button class="filter-clear" onclick="document.getElementById('auditlog-entity-filter').value='';renderAuditTable();updateFilterWraps()" title="Clear filter">✕</button></div>
             <select class="filter-sel" id="auditlog-per-page" onchange="auditlogPerPage=parseInt(this.value);renderAuditTable()" style="font-size:12px">
               <option value="25">25 / page</option>
               <option value="50" selected>50 / page</option>
@@ -745,7 +745,6 @@
               <button class="btn" onclick="clearCreds()">Disconnect Supabase</button>
             </div>
           </div>
-
 
           <!-- Reports start ticket -->
           <div class="table-card" data-card-id="reports-start" style="padding:20px">
@@ -942,7 +941,6 @@
             </div>
           </div>
 
-
           <!-- Rate limits section -->
           <div class="table-card" data-card-id="rate-limits" style="padding:20px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
@@ -986,7 +984,6 @@
               <span style="font-size:11px;color:var(--text3)" id="rl-saved-msg"></span>
             </div>
           </div>
-
 
           <!-- WhatsApp notifications section -->
           <div class="table-card" data-card-id="whatsapp" style="padding:20px">
@@ -1441,7 +1438,6 @@
   </div>
 </div>
 
-
 <div id="modal-dir-companies" class="overlay" onclick="if(event.target===this)closeDirCompanies()">
   <div class="modal" style="max-width:480px">
     <div class="modal-head">
@@ -1575,55 +1571,9 @@ let sbClient = null, currentUser = null, currentProfile = null;
 let adminPerPage = 25;
 let tickets = [], profiles = [];
 let sortKey = 'ticket_number', sortDir = 'desc';
-let demoMode = false;
 let mergeSourceId = null, mergeTargetId = null;
 let bulkSelected = new Set();
 const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
-
-/* ── Demo data ── */
-const DEMO_PROFILES = [
-  {id:'p1',full_name:'Sarah Johnson', email:'sarah@support.com', role:'admin', status:'online'},
-  {id:'p2',full_name:'Marcus Reid',   email:'marcus@support.com',role:'admin', status:'online'},
-  {id:'p3',full_name:'Aiko Lim',      email:'aiko@support.com',  role:'admin', status:'away'},
-  {id:'p4',full_name:'Dev Kumar',     email:'dev@support.com',   role:'admin', status:'online'},
-  {id:'p5',full_name:'Jane Doe',      email:'jane@client.com',   role:'client',status:'online',  company:'Acme Ltd'},
-  {id:'p6',full_name:'Robert Chen',   email:'robert@client.com', role:'client',status:'offline', company:'Global Corp'},
-];
-const DEMO_TICKETS = [
-  {id:'t1',ticket_number:12,subject:'Cannot export invoices to PDF',description:'When clicking Export PDF the page just spins. Happens on Chrome and Firefox.',status:'open',priority:'high',category:'Billing',requester_id:'p5',assignee_id:'p1',updated_at:new Date(Date.now()-2*60000).toISOString(),source:'client',created_at:new Date(Date.now()-30*60000).toISOString()},
-  {id:'t2',ticket_number:11,subject:'Two-factor auth not sending SMS codes',description:'2FA codes stopped arriving after yesterday\'s update. Multiple users affected.',status:'in_progress',priority:'critical',category:'Account',requester_id:'p6',assignee_id:'p2',updated_at:new Date(Date.now()-18*60000).toISOString(),source:'email',created_at:new Date(Date.now()-2*3600000).toISOString()},
-  {id:'t3',ticket_number:10,subject:'Dashboard loads slowly on mobile',description:'The main dashboard takes 8-10 seconds on mobile. Desktop is fine.',status:'open',priority:'medium',category:'Technical',requester_id:'p5',assignee_id:null,updated_at:new Date(Date.now()-3600000).toISOString(),source:'admin',created_at:new Date(Date.now()-4*3600000).toISOString()},
-  {id:'t4',ticket_number:9, subject:'Incorrect billing amount on last invoice',description:'Invoice #INV-2094 shows $520 but should be $480.',status:'waiting',priority:'high',category:'Billing',requester_id:'p6',assignee_id:'p1',updated_at:new Date(Date.now()-3*3600000).toISOString(),source:'email',created_at:new Date(Date.now()-6*3600000).toISOString()},
-  {id:'t5',ticket_number:8, subject:'API rate limit errors on /v2/orders',description:'Getting 429 errors far below the documented rate limit.',status:'in_progress',priority:'critical',category:'Technical',requester_id:'p5',assignee_id:'p4',updated_at:new Date(Date.now()-4*3600000).toISOString(),source:'client',created_at:new Date(Date.now()-8*3600000).toISOString()},
-  {id:'t6',ticket_number:7, subject:'User cannot be removed from workspace',description:'Delete user button does nothing. No error shown.',status:'open',priority:'medium',category:'Account',requester_id:'p5',assignee_id:'p3',updated_at:new Date(Date.now()-5*3600000).toISOString(),source:'admin',created_at:new Date(Date.now()-10*3600000).toISOString()},
-  {id:'t7',ticket_number:6, subject:'Email notifications not being received',description:'Notification emails stopped arriving yesterday around 3pm UTC.',status:'in_progress',priority:'high',category:'Technical',requester_id:'p6',assignee_id:'p2',updated_at:new Date(Date.now()-8*3600000).toISOString(),source:'email',created_at:new Date(Date.now()-12*3600000).toISOString()},
-  {id:'t8',ticket_number:5, subject:'How to bulk import contacts via CSV?',description:'Looking for documentation on importing large contact lists.',status:'resolved',priority:'low',category:'General',requester_id:'p5',assignee_id:'p3',updated_at:new Date(Date.now()-24*3600000).toISOString(),source:'client',created_at:new Date(Date.now()-2*24*3600000).toISOString()},
-  {id:'t9',ticket_number:4, subject:'Change subscription plan to Enterprise',description:'Want to upgrade from Pro to Enterprise.',status:'resolved',priority:'medium',category:'Billing',requester_id:'p6',assignee_id:'p1',updated_at:new Date(Date.now()-2*24*3600000).toISOString(),source:'email',created_at:new Date(Date.now()-3*24*3600000).toISOString()},
-  {id:'t10',ticket_number:3,subject:'Single sign-on setup assistance',description:'Need help setting up SAML SSO with Okta.',status:'in_progress',priority:'high',category:'Account',requester_id:'p5',assignee_id:'p4',updated_at:new Date(Date.now()-3*24*3600000).toISOString(),source:'admin',created_at:new Date(Date.now()-4*24*3600000).toISOString()},
-];
-const DEMO_COMMENTS = {
-  't1':[
-    {id:'c1',author_id:'p5',body:'Tried clearing cache and incognito — still broken.',is_internal:false,created_at:new Date(Date.now()-10*60000).toISOString()},
-    {id:'c2',author_id:'p1',body:'Thanks for reaching out! Looking into this now.',is_internal:false,created_at:new Date(Date.now()-5*60000).toISOString()},
-    {id:'c3',author_id:'p1',body:'Internal: Looks like the wkhtmltopdf upgrade issue from last deploy. Escalating to eng.',is_internal:true,created_at:new Date(Date.now()-3*60000).toISOString()},
-  ],
-  't2':[{id:'c4',author_id:'p2',body:'Identified the SMS provider issue. Fix deploying — resolved in ~30 min.',is_internal:false,created_at:new Date(Date.now()-5*60000).toISOString()}],
-};
-
-/* ── Helpers ── */
-const esc = s => { const d=document.createElement('div'); d.textContent=String(s??''); return d.innerHTML; };
-const initials = n => n ? n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '?';
-const avColor  = id => AV_COLORS[(id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0) % AV_COLORS.length];
-const timeAgo  = iso => { if(!iso) return '—'; const m=Math.floor((Date.now()-new Date(iso))/60000); if(m<1) return 'just now'; if(m<60) return m+'m ago'; const h=Math.floor(m/60); if(h<24) return h+'h ago'; return Math.floor(h/24)+'d ago'; };
-const sLabel   = s => ({open:'Open',in_progress:'In progress',waiting:'Waiting',resolved:'Resolved',merged:'Merged'}[s]||s);
-/* ── Company colour helpers (mirrors directory.html) ── */
-const CO_COLORS_DEFAULT = {
-  "El Martillo":"#5a9e1f","Metalrok":"#1565c0","ORC / TARIK":"#00796b",
-  "Gib Sun Club":"#d07000","Signtalk":"#6a1b9a","EWMS":"#2e7d32",
-  "Hire-U-Shop":"#bf360c","CIAP":"#283593","S&P":"#880e4f","FOCUS":"#0d47a1",
-  "BELILOS":"#004d40","ABC CLEANING":"#4e342e","DOLPHIN":"#01579b",
-  "LOTTERY":"#558b2f","THE BULB":"#e65100","MISC":"#37474f"
-};
 const CO_BG_DEFAULT = {
   "El Martillo":"#f0f9e6","Metalrok":"#e8f1fc","ORC / TARIK":"#e0f5f3",
   "Gib Sun Club":"#fdf4e0","Signtalk":"#f3eafa","EWMS":"#e8f5e9",
@@ -1668,7 +1618,6 @@ const sourcePill = s => {
   const c = cfg[s] || { icon: '?', label: s||'Unknown', cls: 'sb-source-unknown' };
   return `<span class="sb ${c.cls}" title="Opened via ${c.label}">${c.icon} ${c.label}</span>`;
 };
-const profileById = id => profiles.find(p=>p.id===id);
 function toast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 function openModal(id) {
   const overlay = document.getElementById(id);
@@ -1785,16 +1734,6 @@ async function connectSupabase() {
     showAuthScreen();
   } catch(e) { alert('Connection failed: '+e.message); }
 }
-function loadDemo() {
-  demoMode = true; tickets=[...DEMO_TICKETS]; profiles=[...DEMO_PROFILES]; allProfiles=[...DEMO_PROFILES];
-  currentProfile = {id:'p4',full_name:'Dev Kumar',role:'admin'};
-  applyRoleUI('admin');
-  document.getElementById('cfg-screen').classList.remove('active');
-  document.getElementById('auth-screen').classList.remove('active');
-  document.getElementById('app').style.display = 'flex'; stopBeachCanvas();
-  document.getElementById('topbar-user').textContent = 'Dev Kumar';
-  loadTickets(); renderAgents(); renderReports(); loadAllProfiles(); loadUserCount(); loadCompanies();
-}
 async function ensureProfile(user) {
   const {data:existing} = await sbClient.from('profiles').select('*').eq('id', user.id).single();
   if (existing) return existing;
@@ -1808,7 +1747,6 @@ async function ensureProfile(user) {
 
 /* ── Rate limit check ── */
 async function checkRateLimit(action) {
-  if (demoMode) return true;
   try {
     const url = typeof SB_URL !== 'undefined' ? SB_URL : '';
     const key = typeof SB_KEY !== 'undefined' ? SB_KEY : '';
@@ -1830,7 +1768,6 @@ async function checkRateLimit(action) {
 }
 
 async function signIn() {
-  if (!sbClient) { loadDemo(); return; }
   const recaptchaToken = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse(_rcWidgetId) : '';
   if (!recaptchaToken) { document.getElementById('auth-err').textContent = 'Please complete the reCAPTCHA check.'; return; }
   document.getElementById('auth-err').textContent = '';
@@ -1912,7 +1849,6 @@ async function _reauthSubmit() {
 /* ── Data ── */
 async function loadTickets() {
   bulkSelected.clear(); bulkUpdateBar();
-  if (demoMode) { renderTable(); updateStats(); updateBadges(); renderDashboard(); return; }
   document.getElementById('admin-tbody').innerHTML='<tr class="loading-row"><td colspan="10"><div class="loader"></div></td></tr>';
   const {data,error} = await sbClient.from('tickets')
     .select('*, requester:profiles!requester_id(id,full_name,email,phone,company), assignee:profiles!assignee_id(id,full_name)')
@@ -1922,12 +1858,6 @@ async function loadTickets() {
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
 }
 async function loadProfiles() {
-  if (demoMode) {
-    profiles = DEMO_PROFILES.filter(p => p.role === 'admin' || p.role === 'super_admin');
-    renderAgents();
-    renderAgentPerfFull();
-    return;
-  }
   const {data} = await sbClient.from('profiles').select('*').in('role',['admin','super_admin']);
   if (data) profiles = data;
   renderAgents();
@@ -1939,10 +1869,10 @@ const PRIORITY_ORDER = {critical:0,high:1,medium:2,low:3};
 function sortTickets(list) {
   return [...list].sort((a, b) => {
     let av, bv;
-    const req_a = demoMode ? profileById(a.requester_id) : (a.requester||{});
-    const req_b = demoMode ? profileById(b.requester_id) : (b.requester||{});
-    const asgn_a = demoMode ? profileById(a.assignee_id) : (a.assignee||{});
-    const asgn_b = demoMode ? profileById(b.assignee_id) : (b.assignee||{});
+    const req_a = (a.requester||{});
+    const req_b = (b.requester||{});
+    const asgn_a = (a.assignee||{});
+    const asgn_b = (b.assignee||{});
     switch(sortKey) {
       case 'ticket_number': av = a.ticket_number||0;          bv = b.ticket_number||0; break;
       case 'subject':       av = (a.subject||'').toLowerCase(); bv = (b.subject||'').toLowerCase(); break;
@@ -1991,8 +1921,8 @@ function renderTable(statusFilter) {
   const visible = list.slice(0, adminPerPage);
   const remaining = list.length - visible.length;
   tbody.innerHTML = visible.map(t => {
-    const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
-    const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
+    const req  = (t.requester||{});
+    const asgn = (t.assignee||{});
     const mergedBadge = (t.merged_ticket_ids?.length)
       ? `<span class="source-ticket-tag" title="Contains ${t.merged_ticket_ids.length} merged ticket(s)">+${t.merged_ticket_ids.length} merged</span> ` : '';
     const isSelected = bulkSelected.has(t.id);
@@ -2025,7 +1955,7 @@ function renderTable(statusFilter) {
     selectAll.indeterminate = checkedCount > 0 && checkedCount < allCbs.length;
   }
 }
-const getReqName = t => { const p = demoMode ? profileById(t.requester_id) : t.requester; return p?.full_name||''; };
+const getReqName = t => { const p = t.requester; return p?.full_name||''; };
 
 function refreshCurrentPage() {
   // Find which page is currently active and re-render it
@@ -2136,16 +2066,6 @@ async function bulkApply(field, value) {
 
   const assigneeId = field === 'assignee' ? (value === '__unassign__' ? null : value) : undefined;
 
-  if (demoMode) {
-    ids.forEach(id => {
-      const t = tickets.find(x => x.id === id); if (!t) return;
-      if (field === 'status')   { t.status = value; t.updated_at = new Date().toISOString(); }
-      if (field === 'priority') { t.priority = value; t.updated_at = new Date().toISOString(); }
-      if (field === 'assignee') { t.assignee_id = assigneeId; }
-    });
-    bulkClearSelection(); loadTickets(); toast(`Updated ${n} ticket${n!==1?'s':''}`); return;
-  }
-
   try {
     const update = {};
     if (field === 'status')   update.status = value;
@@ -2216,15 +2136,6 @@ async function bulkApplyFlt(page, field, value) {
 
   const assigneeId = field === 'assignee' ? (value === '__unassign__' ? null : value) : undefined;
 
-  if (demoMode) {
-    ids.forEach(id => {
-      const t = tickets.find(x => x.id === id); if (!t) return;
-      if (field === 'status')   { t.status = value; t.updated_at = new Date().toISOString(); }
-      if (field === 'priority') { t.priority = value; t.updated_at = new Date().toISOString(); }
-      if (field === 'assignee') { t.assignee_id = assigneeId; }
-    });
-    bulkClearFlt(page); loadTickets(); toast(`Updated ${n} ticket${n!==1?'s':''}`); return;
-  }
   try {
     const update = {};
     if (field === 'status')   update.status = value;
@@ -2279,7 +2190,7 @@ function renderFilteredPage(page) {
     (t.ticket_number + '').includes(q) ||
     t.subject.toLowerCase().includes(q) ||
     getReqName(t).toLowerCase().includes(q) ||
-    (demoMode ? profileById(t.assignee_id)?.full_name : t.assignee?.full_name || '')?.toLowerCase().includes(q)
+    t.assignee?.full_name || ''?.toLowerCase().includes(q)
   );
 
   // Sort
@@ -2288,10 +2199,10 @@ function renderFilteredPage(page) {
     let av, bv;
     if (sk === 'ticket_number') { av = a.ticket_number; bv = b.ticket_number; }
     else if (sk === 'client')   { av = getReqName(a).toLowerCase(); bv = getReqName(b).toLowerCase(); }
-    else if (sk === 'company')  { av = (demoMode?profileById(a.requester_id)?.company:a.requester?.company||'').toLowerCase(); bv = (demoMode?profileById(b.requester_id)?.company:b.requester?.company||'').toLowerCase(); }
+    else if (sk === 'company')  { av = (a.requester?.company||'').toLowerCase(); bv = (b.requester?.company||'').toLowerCase(); }
     else if (sk === 'subject')  { av = a.subject.toLowerCase(); bv = b.subject.toLowerCase(); }
     else if (sk === 'priority') { av = PRIORITY_ORDER[a.priority]??9; bv = PRIORITY_ORDER[b.priority]??9; }
-    else if (sk === 'assignee') { av = (demoMode?profileById(a.assignee_id)?.full_name:a.assignee?.full_name||'').toLowerCase(); bv = (demoMode?profileById(b.assignee_id)?.full_name:b.assignee?.full_name||'').toLowerCase(); }
+    else if (sk === 'assignee') { av = (a.assignee?.full_name||'').toLowerCase(); bv = (b.assignee?.full_name||'').toLowerCase(); }
     else { av = a.updated_at||''; bv = b.updated_at||''; }
     const cmp = typeof av==='number' ? av-bv : String(av).localeCompare(String(bv));
     return sd === 'asc' ? cmp : -cmp;
@@ -2306,8 +2217,8 @@ function renderFilteredPage(page) {
   const THUMB = (t) => { const urls=t.attachment_urls?JSON.parse(t.attachment_urls):(t.attachment_url?[t.attachment_url]:[]); return urls.length?`<div style="position:relative;flex-shrink:0;margin-right:6px"><img src="${urls[0]}" class="attach-thumb-sm" title="${urls.length} attachment${urls.length>1?'s':''}" onclick="event.stopPropagation();openLightbox(urls,0)"/>${urls.length>1?`<span style="position:absolute;bottom:2px;right:2px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 4px;line-height:1">${urls.length}</span>`:''}</div>`:''; };
 
   tbody.innerHTML = visible.map(t => {
-    const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
-    const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
+    const req  = (t.requester||{});
+    const asgn = (t.assignee||{});
     const isSelected = bulkSelected.has(t.id);
     return `<tr onclick="openTicketDetail('${t.id}')" class="${isSelected?'selected-row':''}">
       <td class="cb-cell" onclick="event.stopPropagation()"><input type="checkbox" class="flt-bulk-cb flt-bulk-cb-${page}" data-id="${t.id}" ${isSelected?'checked':''} onchange="bulkToggleOneFlt(this,'${page}','${t.id}')"/></td>
@@ -2453,13 +2364,12 @@ function centreTicketModal() {
 async function openTicketDetail(id) {
   const t = tickets.find(x=>x.id===id); if (!t) return;
   await loadCompanyColors();
-  const req  = demoMode ? profileById(t.requester_id) : (t.requester||{});
-  const asgn = demoMode ? profileById(t.assignee_id)  : (t.assignee||{});
+  const req  = (t.requester||{});
+  const asgn = (t.assignee||{});
   document.getElementById('detail-title').textContent = `#${t.ticket_number} · ${t.subject}`;
   document.getElementById('detail-sub').textContent   = `${esc(t.category||'General')} · ${timeAgo(t.updated_at)}`;
   let comments=[];
-  if (demoMode) { comments=DEMO_COMMENTS[id]||[]; }
-  else { const {data}=await sbClient.from('comments').select('*,author:profiles(id,full_name,role)').eq('ticket_id',id).order('created_at'); comments=data||[]; }
+  const {data}=await sbClient.from('comments').select('*,author:profiles(id,full_name,role)').eq('ticket_id',id).order('created_at'); comments=data||[];
   const agentOpts = profiles.filter(p=>p.role==='admin'||p.role==='super_admin')
     .map(p=>`<option value="${p.id}" ${p.id===t.assignee_id?'selected':''}>${p.full_name}</option>`).join('');
 
@@ -2577,7 +2487,7 @@ async function openTicketDetail(id) {
       if (!reqEmail) return '';
       const history = tickets
         .filter(x => x.id !== t.id && x.status !== 'merged' &&
-          ((demoMode ? profileById(x.requester_id)?.email : x.requester?.email) === reqEmail ||
+          (x.requester?.email === reqEmail ||
            x.contact_email === reqEmail))
         .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
         .slice(0, 5);
@@ -2600,7 +2510,7 @@ async function openTicketDetail(id) {
 function renderComments(comments, showInternal=false) {
   if (!comments.length) return '<div style="color:var(--text3);font-size:13px;padding:8px 0">No comments yet.</div>';
   return comments.filter(c=>showInternal||!c.is_internal).map(c=>{
-    const author=demoMode?profileById(c.author_id):(c.author||{});
+    const author=(c.author||{});
     const isAgent=author?.role==='admin'||author?.role==='super_admin';
     const cls=c.is_internal?'internal-bubble':(isAgent?'agent-bubble':'');
     const srcTag = c.source_ticket_number
@@ -2614,18 +2524,11 @@ async function addComment(ticketId) {
   const body=document.getElementById('reply-text').value.trim();
   const isInternal=document.getElementById('reply-internal').checked;
   if (!body) return;
-  if (demoMode) {
-    if (!DEMO_COMMENTS[ticketId]) DEMO_COMMENTS[ticketId]=[];
-    DEMO_COMMENTS[ticketId].push({id:'c'+Date.now(),author_id:currentProfile.id,body,is_internal:isInternal,created_at:new Date().toISOString()});
-    document.getElementById('comments-list').innerHTML=renderComments(DEMO_COMMENTS[ticketId],true);
-    document.getElementById('reply-text').value=''; toast('Reply added'); return;
-  }
   const {error}=await sbClient.from('comments').insert({ticket_id:ticketId,author_id:currentUser.id,body,is_internal:isInternal});
   if (error){toast('Error: '+error.message);return;}
   document.getElementById('reply-text').value=''; toast('Reply sent'); openTicketDetail(ticketId);
 }
 async function updateStatus(id, status) {
-  if (demoMode) { const t=tickets.find(x=>x.id===id); if(t){t.status=status;t.updated_at=new Date().toISOString();} updateStats();updateBadges();refreshCurrentPage();toast('Status updated');return; }
   await sbClient.from('tickets').update({status}).eq('id',id);
   await loadTickets();
   refreshCurrentPage();
@@ -2653,7 +2556,6 @@ async function updateStatus(id, status) {
   }
 }
 async function updateAssignee(id, assigneeId) {
-  if (demoMode) { const t=tickets.find(x=>x.id===id); if(t) t.assignee_id=assigneeId||null; refreshCurrentPage();toast('Tech assigned updated');return; }
   await sbClient.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id);
   await loadTickets();
   refreshCurrentPage();
@@ -2730,38 +2632,6 @@ async function confirmMerge() {
     catch(e) { return t.attachment_url ? [t.attachment_url] : []; }
   };
 
-  if (demoMode) {
-    const srcComments = (DEMO_COMMENTS[mergeSourceId] || []).map(c => ({
-      ...c, source_ticket_number: src.ticket_number
-    }));
-    if (!DEMO_COMMENTS[mergeTargetId]) DEMO_COMMENTS[mergeTargetId] = [];
-    DEMO_COMMENTS[mergeTargetId].push(...srcComments);
-    DEMO_COMMENTS[mergeTargetId].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
-    DEMO_COMMENTS[mergeTargetId].push({
-      id: 'sys'+Date.now(), author_id: currentProfile.id,
-      body: `⛙ Ticket #${src.ticket_number} ("${src.subject}") was merged into this ticket.`,
-      is_internal: true, created_at: new Date().toISOString(), source_ticket_number: null
-    });
-    // Merge images
-    const srcUrls = getUrls(src);
-    const tgtUrls = getUrls(target);
-    const combinedUrls = [...tgtUrls, ...srcUrls];
-    if (combinedUrls.length) {
-      target.attachment_urls = JSON.stringify(combinedUrls);
-      target.attachment_url  = combinedUrls[0];
-    }
-    src.status = 'merged'; src.merged_into = target.id;
-    if (!target.merged_ticket_ids) target.merged_ticket_ids = [];
-    // Store as object so unmerge can strip the exact URLs back out and restore status
-    target.merged_ticket_ids.push({ id: src.id, urls: srcUrls, prev_status: src.status });
-    target.updated_at = new Date().toISOString();
-    closeModal('modal-merge-ticket');
-    loadTickets();
-    toast(`Ticket #${src.ticket_number} merged into #${target.ticket_number}`);
-    setTimeout(() => openTicketDetail(target.id), 300);
-    return;
-  }
-
   try {
     const { data: srcComments, error: ce } = await sbClient
       .from('comments').select('*').eq('ticket_id', mergeSourceId).order('created_at');
@@ -2834,31 +2704,6 @@ async function unmergeTickets(primaryId) {
     try { return t.attachment_urls ? JSON.parse(t.attachment_urls) : (t.attachment_url ? [t.attachment_url] : []); }
     catch(e) { return t.attachment_url ? [t.attachment_url] : []; }
   };
-
-  if (demoMode) {
-    let primaryUrls = getUrls(primary);
-    for (const entry of mergedEntries) {
-      const src = tickets.find(x => x.id === entry.id); if (!src) continue;
-      const targetComments = DEMO_COMMENTS[primaryId] || [];
-      DEMO_COMMENTS[entry.id] = targetComments
-        .filter(c => c.source_ticket_number === src.ticket_number)
-        .map(c => ({ ...c, source_ticket_number: null }));
-      DEMO_COMMENTS[primaryId] = targetComments.filter(c => c.source_ticket_number !== src.ticket_number);
-      // Strip source's URLs back off the primary
-      if (entry.urls?.length) {
-        primaryUrls = primaryUrls.filter(u => !entry.urls.includes(u));
-      }
-      src.status = entry.prev_status || 'open'; src.merged_into = null;
-    }
-    primary.merged_ticket_ids = [];
-    primary.attachment_urls = primaryUrls.length ? JSON.stringify(primaryUrls) : null;
-    primary.attachment_url  = primaryUrls[0] || null;
-    primary.updated_at = new Date().toISOString();
-    closeModal('modal-ticket-detail'); loadTickets();
-    toast(`Tickets unmerged from #${primary.ticket_number}`);
-    setTimeout(() => openTicketDetail(primaryId), 300);
-    return;
-  }
 
   try {
     // Fetch fresh primary row for current attachment_urls
@@ -3036,11 +2881,6 @@ async function createTicket() {
     const sel=document.getElementById('nt-requester'); if(sel) sel.value='';
     ['nt-email','nt-phone'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.background='';});
   }
-  if (demoMode) {
-    const rid = selectedRequesterId || 'p4';
-    tickets.unshift({id:'t'+Date.now(),ticket_number:tickets.length+1,...payload,requester_id:rid,assignee_id:null,updated_at:new Date().toISOString(),created_at:new Date().toISOString()});
-    refreshCurrentPage();updateStats();updateBadges();closeModal('modal-new-ticket');clearForm();admClearAttachments();toast('Ticket created');return;
-  }
   // Upload attachments if any
   if (admPendingFiles.length) {
     const ts = Date.now();
@@ -3079,9 +2919,7 @@ function renderAgents() {
     return;
   }
   grid.innerHTML = agents.map(p => {
-    const lastSeen = demoMode
-      ? 'recently'
-      : lastSignInMap[p.id] ? 'Active ' + timeAgo(lastSignInMap[p.id]) : 'Never signed in';
+    const lastSeen = lastSignInMap[p.id] ? 'Active ' + timeAgo(lastSignInMap[p.id]) : 'Never signed in';
     return `
     <div class="table-card" style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;transition:box-shadow .15s"
          onclick="openEditUser('${p.id}')"
@@ -3099,7 +2937,6 @@ function renderAgents() {
     </div>`;
   }).join('');
 }
-
 
 /* ── Reports ── */
 /* ── Category pie chart ── */
@@ -3670,15 +3507,6 @@ let lastSignInMap   = {}; // id → ISO timestamp
 async function loadAllProfiles() {
   const tbody = document.getElementById('users-tbody');
   if (tbody) tbody.innerHTML = '<tr class="loading-row"><td colspan="5"><div class="loader"></div></td></tr>';
-  if (demoMode) {
-    allProfiles = [...DEMO_PROFILES];
-    authVerifiedMap = {};
-    DEMO_PROFILES.forEach(p => { authVerifiedMap[p.id] = true; });
-    renderUsersTable();
-    renderAgents();
-    const fuc = document.getElementById('footer-user-count'); if(fuc) fuc.textContent = allProfiles.length;
-    return;
-  }
   if (!sbClient) return;
   const { data, error } = await sbClient.from('profiles').select('*').order('full_name');
   if (error) { toast('Error loading users: ' + error.message); return; }
@@ -3715,7 +3543,6 @@ function renderUsersTable() {
     client:      '<span class="sb s-closed">Client</span>',
   }[r] || r);
   const verifiedBadge = id => {
-    if (demoMode) return '<span class="sb s-resolved">✓ Verified</span>';
     if (!(id in authVerifiedMap)) return '<span style="font-size:12px;color:var(--text3)">—</span>';
     return authVerifiedMap[id]
       ? '<span class="sb s-resolved">✓ Verified</span>'
@@ -3807,7 +3634,6 @@ async function resendAuthEmail() {
   const email = document.getElementById('eu-email').value.trim();
   const btn   = document.getElementById('eu-resend-btn');
   if (!email) { toast('No email address on this profile'); return; }
-  if (demoMode) { toast('Password reset sent (demo)'); return; }
   if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
   const { error } = await sbClient.auth.resetPasswordForEmail(email, {
     redirectTo: 'https://el-martillo.github.io/helpdesk/index.html'
@@ -3823,7 +3649,6 @@ async function sendInviteEmail() {
   const name  = document.getElementById('eu-name').value.trim();
   const btn   = document.getElementById('eu-invite-btn');
   if (!email) { toast('No email address on this profile'); return; }
-  if (demoMode) { toast('Invite sent (demo)'); return; }
   const { data: { session } } = await sbClient.auth.getSession();
   if (!session?.access_token) { toast('Not authenticated'); return; }
   if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
@@ -3861,11 +3686,6 @@ async function saveUser() {
   if (phone)   updates.phone   = phone;
   if (company) updates.company = company;
   if (notes)   updates.notes   = notes;
-  if (demoMode) {
-    const p = allProfiles.find(x => x.id === id);
-    if (p) Object.assign(p, updates);
-    closeModal('modal-edit-user'); renderUsersTable(); toast('User updated'); return;
-  }
   const { error } = await sbClient.from('profiles').update(updates).eq('id', id);
   if (error) { toast('Error: ' + error.message); return; }
   closeModal('modal-edit-user');
@@ -3877,10 +3697,6 @@ async function saveUser() {
 
 async function deleteUser(id) {
   if (!confirm('Permanently delete this user? Their tickets will be reassigned to a Deleted User placeholder. This cannot be undone.')) return;
-  if (demoMode) {
-    allProfiles = allProfiles.filter(x => x.id !== id);
-    closeModal('modal-edit-user'); renderUsersTable(); toast('User deleted'); return;
-  }
   const delP = allProfiles.find(x => x.id === id);
   try {
     await requireReauth(`Permanently delete user "${delP?.full_name || delP?.email || id}"? This cannot be undone.`);
@@ -3927,13 +3743,6 @@ async function addUser() {
     ['au-name','au-email','au-phone','au-company','au-notes'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('au-role').value = 'client';
   }
-  if (demoMode) {
-    const exists = allProfiles.some(p => (p.email||'').toLowerCase() === email.toLowerCase());
-    if (exists) { toast('A user with this email already exists'); return; }
-    allProfiles.push({ ...payload });
-    closeModal('modal-add-user'); clearForm();
-    renderUsersTable(); toast('User added (demo)'); return;
-  }
   // Check for existing profile with this email
   const { data: existing } = await sbClient.from('profiles').select('id').eq('email', email).maybeSingle();
   if (existing) { toast('A user with this email already exists'); return; }
@@ -3957,7 +3766,6 @@ async function loadRateLimits() {
     sign_up:       { max:  5, windowSeconds: 3600 },
     admin_sign_in: { max: 10, windowSeconds: 3600 },
   };
-  if (demoMode) { applyRateLimitFields(defaults); if (badge) { badge.textContent = 'Demo mode'; badge.className = 'sb s-closed'; } return; }
   try {
     const { data, error } = await sbClient.from('app_settings').select('value').eq('key', RL_KEY).maybeSingle();
     const limits = (!error && data?.value) ? JSON.parse(data.value) : defaults;
@@ -3990,13 +3798,6 @@ async function saveRateLimits() {
     if (isNaN(winVal) || winVal < 1) { toast(`Invalid window for ${action}`); return; }
     limits[action] = { max: maxVal, windowSeconds: winVal * 60 };
   }
-  if (demoMode) {
-    if (msg)   msg.textContent = '✓ Saved (demo only)';
-    if (badge) { badge.textContent = 'Saved'; badge.className = 'sb s-resolved'; }
-    toast('Rate limits saved (demo)');
-    setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
-    return;
-  }
   const { error } = await sbClient.from('app_settings')
     .upsert({ key: RL_KEY, value: JSON.stringify(limits) }, { onConflict: 'key' });
   if (error) { toast('Error saving: ' + error.message); if (badge) { badge.textContent = 'Save failed'; badge.className = 'sb s-closed'; } return; }
@@ -4024,28 +3825,17 @@ async function loadWaTriggers() {
 
   // Load triggers
   const trigEl = document.getElementById('wa-triggers-list');
+  try {
+    const { data } = await sbClient.from('app_settings').select('value').eq('key','whatsapp_triggers').maybeSingle();
+    waEnabledTriggers = data?.value ? JSON.parse(data.value) : ['new_ticket','critical','new_user','new_comment'];
+  } catch { waEnabledTriggers = ['new_ticket','critical','new_user','new_comment']; }
   if (trigEl) {
-    if (demoMode) {
-      waEnabledTriggers = ['new_ticket','critical','new_user','new_comment'];
-    } else {
-      try {
-        const { data } = await sbClient.from('app_settings').select('value').eq('key','whatsapp_triggers').maybeSingle();
-        waEnabledTriggers = data?.value ? JSON.parse(data.value) : ['new_ticket','critical','new_user','new_comment'];
-      } catch { waEnabledTriggers = ['new_ticket','critical','new_user','new_comment']; }
-    }
     renderWaTriggers();
   }
 
   // Load admin/agent recipients
   const recEl = document.getElementById('wa-recipients-list');
   if (!recEl) return;
-
-  if (demoMode) {
-    waAdminProfiles = DEMO_PROFILES.filter(p => p.role === 'admin' || p.role === 'super_admin' || p.role === 'agent');
-    renderWaRecipients();
-    if (badge) { badge.textContent = 'Demo'; badge.className = 'sb s-waiting'; }
-    return;
-  }
 
   try {
     const { data, error } = await sbClient
@@ -4124,7 +3914,6 @@ async function saveWaTriggers() {
   const checks = document.querySelectorAll('[data-wa-key]');
   const enabled = Array.from(checks).filter(c => c.checked).map(c => c.dataset.waKey);
   const msg = document.getElementById('wa-saved-msg');
-  if (demoMode) { waEnabledTriggers = enabled; if (msg) { msg.textContent = 'Saved (demo)'; setTimeout(() => msg.textContent = '', 2500); } return; }
   const { error } = await sbClient.from('app_settings')
     .upsert({ key: 'whatsapp_triggers', value: JSON.stringify(enabled) }, { onConflict: 'key' });
   if (error) { toast('Error: ' + error.message); return; }
@@ -4134,7 +3923,6 @@ async function saveWaTriggers() {
 }
 
 async function saveWaRecipients() {
-  if (demoMode) { toast('Recipients saved (demo)'); return; }
   const updates = waAdminProfiles.map(p => {
     const alertsEl  = document.querySelector(`[data-wa-recipient="${p.id}"]`);
     const numberEl  = document.querySelector(`[data-wa-number="${p.id}"]`);
@@ -4156,11 +3944,6 @@ async function saveWaRecipients() {
 async function loadOrphanedAccounts() {
   const el = document.getElementById('orphaned-list');
   if (!el) return;
-
-  if (demoMode) {
-    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:4px 0">Not available in demo mode.</div>';
-    return;
-  }
 
   el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:4px 0"><div class="loader" style="display:inline-block;margin-right:8px"></div>Scanning…</div>';
 
@@ -4251,7 +4034,6 @@ async function deleteOrphanedAccount(userId, email, btn) {
 const SETTINGS_ORDER_KEY = 'settings_card_order';
 
 async function saveSettingsOrder() {
-  if (demoMode || !sbClient) return;
   const grid = document.getElementById('settings-grid');
   if (!grid) return;
   const order = [...grid.children].map(el => el.dataset.cardId).filter(Boolean);
@@ -4262,7 +4044,6 @@ async function saveSettingsOrder() {
 }
 
 async function restoreSettingsOrder() {
-  if (demoMode || !sbClient) return;
   const grid = document.getElementById('settings-grid');
   if (!grid) return;
   try {
@@ -4340,16 +4121,6 @@ function initSettingsDrag() {
 
 /* ── Backup ── */
 async function loadBackupStats() {
-  if (demoMode) {
-    document.getElementById('bk-tickets').textContent   = tickets.length;
-    document.getElementById('bk-comments').textContent  = '—';
-    document.getElementById('bk-profiles').textContent  = profiles.length;
-    document.getElementById('bk-settings').textContent  = '✓';
-    document.getElementById('bk-syslog').textContent    = '—';
-    document.getElementById('bk-activity').textContent  = '—';
-    document.getElementById('bk-directory').textContent = '—';
-    return;
-  }
   const [t, c, p, sl, ua, de] = await Promise.all([
     sbClient.from('tickets').select('*',          {count:'exact', head:true}),
     sbClient.from('comments').select('*',         {count:'exact', head:true}),
@@ -4368,11 +4139,10 @@ async function loadBackupStats() {
 }
 
 async function runBackup() {
-  if (!demoMode) {
-    try {
-      await requireReauth('Download a full database backup including all profiles, tickets, and comments.');
-    } catch(e) { return; }
-  }
+
+  try {
+    await requireReauth('Download a full database backup including all profiles, tickets, and comments.');
+  } catch(e) { return; }
   const btn = document.getElementById('btn-backup');
   const progress = document.getElementById('backup-progress');
   const msg = document.getElementById('backup-progress-msg');
@@ -4382,18 +4152,6 @@ async function runBackup() {
   const setMsg = m => { msg.textContent = m; };
 
   try {
-    if (demoMode) {
-      setMsg('Building demo backup…');
-      await new Promise(r => setTimeout(r, 600));
-      const backup = {
-        exported_at: new Date().toISOString(),
-        project: 'demo',
-        tables: { tickets, profiles, comments: [] }
-      };
-      downloadJSON(backup);
-      toast('Demo backup downloaded');
-      return;
-    }
 
     setMsg('Fetching tickets…');
     const { data: ticketData, error: te } = await sbClient.from('tickets').select('*').order('created_at');
@@ -4470,16 +4228,12 @@ async function runCSVExport() {
 
   try {
     let rows;
-    if (demoMode) {
-      rows = tickets;
-    } else {
-      const { data, error } = await sbClient
-        .from('tickets')
-        .select('*, requester:profiles!requester_id(full_name,email,company), assignee:profiles!assignee_id(full_name)')
-        .order('ticket_number', { ascending: false });
-      if (error) throw error;
-      rows = data || [];
-    }
+    const { data, error } = await sbClient
+      .from('tickets')
+      .select('*, requester:profiles!requester_id(full_name,email,company), assignee:profiles!assignee_id(full_name)')
+      .order('ticket_number', { ascending: false });
+    if (error) throw error;
+    rows = data || [];
 
     const headers = [
       ['ticket_number',   'Ticket #'],
@@ -4498,8 +4252,8 @@ async function runCSVExport() {
     ];
 
     const flat = rows.map(t => {
-      const req  = demoMode ? profiles.find(p => p.id === t.requester_id) : (t.requester || {});
-      const asgn = demoMode ? profiles.find(p => p.id === t.assignee_id)  : (t.assignee  || {});
+      const req  = (t.requester || {});
+      const asgn = (t.assignee  || {});
       return {
         ticket_number:   t.ticket_number,
         created_at:      t.created_at,
@@ -4528,7 +4282,6 @@ async function runCSVExport() {
     btn.innerHTML = `<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export tickets (CSV)`;
   }
 }
-
 
 function downloadCSV(rows, headers, filename) {
   // rows: array of objects, headers: [[colKey, displayLabel], ...]
@@ -4606,7 +4359,7 @@ function renderDashboard() {
   const tbody = document.getElementById('dash-recent-tbody');
   if (!tbody) return;
   tbody.innerHTML = recent.map(t => {
-    const req = demoMode ? profileById(t.requester_id) : (t.requester||{});
+    const req = (t.requester||{});
     return `<tr onclick="openTicketDetail('${t.id}')">
       <td><span class="tid">#${t.ticket_number}</span></td>
       <td style="font-size:12px">${esc(req?.full_name)||'—'}</td>
@@ -4695,13 +4448,6 @@ async function loadBBCNews() {
 
 /* ── User count ── */
 async function loadUserCount() {
-  if (demoMode) {
-    const fuc = document.getElementById('footer-user-count');
-    if (fuc) fuc.textContent = profiles.length;
-    const muc = document.getElementById('mob-user-count');
-    if (muc) muc.textContent = profiles.length;
-    return;
-  }
   if (!sbClient) return;
   const { count } = await sbClient.from('profiles').select('*', { count: 'exact', head: true });
   const fuc = document.getElementById('footer-user-count');
@@ -4718,7 +4464,7 @@ function renderTicketCompanies() {
   // Build a map of company → { total, open } from the filtered tickets array
   const map = {};
   reportTickets().forEach(t => {
-    const req = demoMode ? profileById(t.requester_id) : (t.requester || {});
+    const req = (t.requester || {});
     const co  = req?.company?.trim();
     if (!co) return;
     if (!map[co]) map[co] = { total: 0, open: 0 };
@@ -4795,7 +4541,7 @@ async function addSingleCompanyToOrgs(company) {
 async function importTicketCompaniesToOrgs() {
   const ticketCompanies = [...new Set(
     tickets.map(t => {
-      const req = demoMode ? profileById(t.requester_id) : (t.requester || {});
+      const req = (t.requester || {});
       return req?.company?.trim();
     }).filter(Boolean)
   )];
@@ -4816,12 +4562,6 @@ async function importTicketCompaniesToOrgs() {
 let companiesList = [];
 
 async function loadCompanies() {
-  if (demoMode) {
-    companiesList = [...new Set(DEMO_PROFILES.map(p => p.company).filter(Boolean))].sort();
-    renderOrgList();
-    populateCompanySelects();
-    return;
-  }
   if (!sbClient) return;
   try {
     const { data, error } = await sbClient.from('app_settings').select('value').eq('key','organisations').single();
@@ -4914,7 +4654,6 @@ async function removeOrg(i) {
 }
 
 async function persistOrgs() {
-  if (demoMode) return;
   const { error } = await sbClient.from('app_settings')
     .upsert({ key: 'organisations', value: JSON.stringify(companiesList) }, { onConflict: 'key' });
   if (error) toast('Error saving organisations: ' + error.message);
@@ -4928,12 +4667,6 @@ const CAT_DEFAULTS = ['Technical','Billing','Account','General'];
 
 async function loadCategories() {
   categoriesList = [];
-  if (demoMode) {
-    categoriesList = [...CAT_DEFAULTS];
-    renderCategoryList();
-    ntPopulateCategoryDropdown();
-    return;
-  }
   if (!sbClient) return;
   try {
     const { data } = await sbClient.from('app_settings').select('value').eq('key', CAT_KEY).maybeSingle();
@@ -5017,7 +4750,6 @@ async function removeCategory(i) {
 }
 
 async function persistCategories() {
-  if (demoMode) { toast('Categories saved (demo)'); return; }
   const { error } = await sbClient.from('app_settings')
     .upsert({ key: CAT_KEY, value: JSON.stringify(categoriesList) }, { onConflict: 'key' });
   if (error) toast('Error saving categories: ' + error.message);
@@ -5040,7 +4772,6 @@ function populateCompanySelects() {
 let sysLog = [];
 
 async function logSystemEvent(action, details) {
-  if (demoMode) return;
   if (!sbClient || !currentProfile) return;
   try {
     await sbClient.from('system_log').insert({
@@ -5056,17 +4787,6 @@ async function logSystemEvent(action, details) {
 async function loadSysLog() {
   const tbody = document.getElementById('syslog-tbody');
   if (tbody) tbody.innerHTML = '<tr class="loading-row"><td colspan="4"><div class="loader"></div></td></tr>';
-  if (demoMode) {
-    sysLog = [
-      {id:'s1', actor_name:'Dev Kumar',   actor_role:'admin',       action:'ticket_status',  details:'Ticket #11 → resolved',         created_at: new Date(Date.now()-5*60000).toISOString()},
-      {id:'s2', actor_name:'Sarah Johnson',actor_role:'admin',     action:'ticket_assigned',details:'Ticket #12 assigned to Sarah',   created_at: new Date(Date.now()-15*60000).toISOString()},
-      {id:'s3', actor_name:'Dev Kumar',   actor_role:'admin',       action:'user_created',   details:'User: jane@client.com',          created_at: new Date(Date.now()-2*3600000).toISOString()},
-      {id:'s4', actor_name:'Dev Kumar',   actor_role:'admin',       action:'version_updated',details:'Version set to v1.2.0',          created_at: new Date(Date.now()-5*3600000).toISOString()},
-      {id:'s5', actor_name:'Dev Kumar',   actor_role:'super_admin', action:'user_deleted',   details:'User: old@client.com',           created_at: new Date(Date.now()-24*3600000).toISOString()},
-      {id:'s6', actor_name:'Dev Kumar',   actor_role:'admin',       action:'backup_created', details:'Backup: 24 tickets, 6 profiles', created_at: new Date(Date.now()-2*24*3600000).toISOString()},
-    ];
-    renderSysLogTable(); return;
-  }
   if (!sbClient) return;
   const { data, error } = await sbClient
     .from('system_log')
@@ -5187,18 +4907,6 @@ let activityLog = [];
 async function loadActivityLog() {
   const tbody = document.getElementById('activity-tbody');
   if (tbody) tbody.innerHTML = '<tr class="loading-row"><td colspan="6"><div class="loader"></div></td></tr>';
-  if (demoMode) {
-    activityLog = [
-      {id:'a1', user_name:'Jane Doe',   user_email:'jane@client.com',  action:'login',          status:'success', details:'Signed in',                    created_at: new Date(Date.now()-5*60000).toISOString()},
-      {id:'a2', user_name:'Dev Kumar',  user_email:'dev@support.com',  action:'login',          status:'success', details:'Signed in',                    created_at: new Date(Date.now()-12*60000).toISOString()},
-      {id:'a3', user_name:'Jane Doe',   user_email:'jane@client.com',  action:'signup_attempt', status:'success', details:'Account created',               created_at: new Date(Date.now()-2*3600000).toISOString()},
-      {id:'a4', user_name:'Unknown',    user_email:'bad@example.com',  action:'login',          status:'failed',  details:'Invalid login credentials',    created_at: new Date(Date.now()-4*3600000).toISOString()},
-      {id:'a5', user_name:'Robert Chen',user_email:'robert@client.com',action:'logout',         status:'success', details:'',                             created_at: new Date(Date.now()-6*3600000).toISOString()},
-      {id:'a6', user_name:'Unknown',    user_email:'jane@client.com',  action:'signup_attempt', status:'blocked', details:'Email already registered',      created_at: new Date(Date.now()-24*3600000).toISOString()},
-    ];
-    renderActivityTable();
-    return;
-  }
   if (!sbClient) return;
   const { data, error } = await sbClient
     .from('user_activity')
@@ -5268,12 +4976,6 @@ function renderActivityTable() {
 
 /* ── Log downloads ── */
 async function loadLogStats() {
-  if (demoMode) {
-    document.getElementById('log-activity').textContent = '6';
-    document.getElementById('log-syslog').textContent   = '6';
-    document.getElementById('log-audit').textContent    = '5';
-    return;
-  }
   if (!sbClient) return;
   const [a, s, au] = await Promise.all([
     sbClient.from('user_activity').select('*', { count: 'exact', head: true }),
@@ -5286,7 +4988,6 @@ async function loadLogStats() {
 }
 
 async function downloadActivityLog() {
-  if (demoMode) { toast('Activity log download not available in demo mode'); return; }
   toast('Fetching activity log…');
   const { data, error } = await sbClient.from('user_activity').select('*').order('created_at', { ascending: false });
   if (error) { toast('Error: ' + error.message); return; }
@@ -5304,7 +5005,6 @@ async function downloadActivityLog() {
 }
 
 async function downloadSysLog() {
-  if (demoMode) { toast('System log download not available in demo mode'); return; }
   toast('Fetching system log…');
   const { data, error } = await sbClient.from('system_log').select('*').order('created_at', { ascending: false });
   if (error) { toast('Error: ' + error.message); return; }
@@ -5329,19 +5029,6 @@ async function loadAuditLog() {
   const tbody = document.getElementById('auditlog-tbody');
   if (!tbody) return;
   tbody.innerHTML = '<tr class="loading-row"><td colspan="5"><div class="loader"></div></td></tr>';
-
-  if (demoMode) {
-    auditLogData = [
-      { id:'a1', created_at: new Date(Date.now()-2*60000).toISOString(),   actor_id:'p4', entity_type:'ticket',  entity_id:'t1', details:'status changed: open → in_progress' },
-      { id:'a2', created_at: new Date(Date.now()-18*60000).toISOString(),  actor_id:'p2', entity_type:'ticket',  entity_id:'t2', details:'assignee updated' },
-      { id:'a3', created_at: new Date(Date.now()-3600000).toISOString(),   actor_id:'p4', entity_type:'profile', entity_id:'p5', details:'role updated: client → admin' },
-      { id:'a4', created_at: new Date(Date.now()-2*3600000).toISOString(), actor_id:'p1', entity_type:'comment', entity_id:'c1', details:'comment created' },
-      { id:'a5', created_at: new Date(Date.now()-5*3600000).toISOString(), actor_id:'p4', entity_type:'ticket',  entity_id:'t3', details:'ticket deleted' },
-    ];
-    renderAuditTable();
-    document.getElementById('auditlog-count-sub').textContent = auditLogData.length + ' audit entries';
-    return;
-  }
 
   const { data, error } = await sbClient
     .from('audit_log')
@@ -5521,7 +5208,6 @@ function renderAuditTable() {
 }
 
 async function downloadAuditLog() {
-  if (demoMode) { toast('Audit log download not available in demo mode'); return; }
   toast('Fetching audit log…');
   const { data, error } = await sbClient.from('audit_log').select('*').order('created_at', { ascending: false });
   if (error) { toast('Error: ' + error.message); return; }
@@ -5547,7 +5233,6 @@ async function downloadAuditLog() {
 let realtimeChannel = null;
 
 function startRealtime() {
-  if (demoMode || !sbClient) return;
   if (realtimeChannel) { sbClient.removeChannel(realtimeChannel); realtimeChannel = null; }
 
   realtimeChannel = sbClient
@@ -5602,7 +5287,6 @@ function applyVersion(v) {
   if (inputEl) inputEl.value = v || '1.0.0';
 }
 async function loadVersion() {
-  if (demoMode) { applyVersion('1.0.0'); return; }
   if (!sbClient) return;
   try {
     const { data, error } = await sbClient
@@ -5616,7 +5300,6 @@ async function loadVersion() {
 async function saveVersion() {
   const v = (document.getElementById('settings-version').value || '').trim();
   if (!v) { toast('Please enter a version string'); return; }
-  if (demoMode) { applyVersion(v); toast('Version updated to v' + v + ' (demo)'); return; }
   const { error } = await sbClient
     .from('app_settings')
     .upsert({ key: 'app_version', value: v }, { onConflict: 'key' });
@@ -5679,7 +5362,6 @@ let   reportStartTicket = 1; // tickets with number < this are excluded from rep
 
 async function loadReportStart() {
   const el = document.getElementById('settings-report-start');
-  if (demoMode) { if (el) el.value = 1; return; }
   try {
     const { data } = await sbClient.from('app_settings').select('value').eq('key', REPORT_START_KEY).maybeSingle();
     const val = data?.value ? parseInt(data.value) : 1;
@@ -5693,13 +5375,6 @@ async function saveReportStart() {
   const msg = document.getElementById('report-start-saved');
   const val = parseInt(el?.value);
   if (isNaN(val) || val < 1) { toast('Enter a valid ticket number (minimum 1)'); return; }
-  if (demoMode) {
-    reportStartTicket = val;
-    if (msg) msg.textContent = '✓ Saved (demo only)';
-    toast('Reports baseline saved (demo)');
-    setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
-    return;
-  }
   const { error } = await sbClient.from('app_settings')
     .upsert({ key: REPORT_START_KEY, value: String(val) }, { onConflict: 'key' });
   if (error) { toast('Error: ' + error.message); return; }
@@ -5720,7 +5395,6 @@ let   _idleMinutes   = TIMEOUT_DEFAULT;
 
 async function loadSessionTimeout() {
   const el = document.getElementById('settings-timeout');
-  if (demoMode) { if (el) el.value = TIMEOUT_DEFAULT; return; }
   try {
     const { data } = await sbClient.from('app_settings').select('value').eq('key', TIMEOUT_KEY).maybeSingle();
     const mins = data?.value ? parseInt(data.value) : TIMEOUT_DEFAULT;
@@ -5734,14 +5408,6 @@ async function saveSessionTimeout() {
   const msg = document.getElementById('timeout-saved-msg');
   const mins = parseInt(el?.value);
   if (isNaN(mins) || mins < 1 || mins > 1440) { toast('Enter a value between 1 and 1440 minutes'); return; }
-  if (demoMode) {
-    _idleMinutes = mins;
-    restartIdleTimer();
-    if (msg) msg.textContent = '✓ Saved (demo only)';
-    toast('Session timeout saved (demo)');
-    setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
-    return;
-  }
   const { error } = await sbClient.from('app_settings')
     .upsert({ key: TIMEOUT_KEY, value: String(mins) }, { onConflict: 'key' });
   if (error) { toast('Error saving: ' + error.message); return; }
@@ -6165,6 +5831,17 @@ function stopBeachCanvas() {
   if (canvas) canvas.style.display = 'none';
 }
 
+
+/* ── Filter wrap reset X ── */
+function updateFilterWraps() {
+  document.querySelectorAll('.filter-wrap').forEach(fw => {
+    const sel = fw.querySelector('select');
+    if (sel) fw.classList.toggle('has-value', sel.value !== '');
+  });
+}
+document.addEventListener('change', e => {
+  if (e.target.closest('.filter-wrap')) updateFilterWraps();
+});
 document.addEventListener('DOMContentLoaded', () => { initSupabase(); initKeyboardShortcuts(); startBeachCanvas(); });
 
 /* ── Directory admin ──────────────────────────────────────── */
@@ -6857,7 +6534,6 @@ function getDirCompanyValue() {
     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>
   </a>
 </div>
-
 
 <!-- Lightbox -->
 <div id="lb-overlay" onclick="lbClose(event)">
