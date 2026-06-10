@@ -1617,8 +1617,16 @@ async function loadCompanyColors() {
 }
 function coStyle(company) {
   if (!company || !_coColors) return '';
-  const col = _coColors[company];
-  const bg  = _coBg[company];
+  // Exact match first
+  let col = _coColors[company];
+  let bg  = _coBg[company];
+  // Case-insensitive fallback
+  if (!col) {
+    const lower = company.toLowerCase();
+    const key = Object.keys(_coColors).find(k => k.toLowerCase() === lower)
+             || Object.keys(_coColors).find(k => lower.includes(k.toLowerCase()) || k.toLowerCase().includes(lower));
+    if (key) { col = _coColors[key]; bg = _coBg[key]; }
+  }
   if (!col) return '';
   return `background:${bg};border-color:${col}40;`;
 }
@@ -2465,7 +2473,7 @@ async function openTicketDetail(id) {
         <div class="key">Last updated</div>
         <div class="val">${timeAgo(t.updated_at)}</div>
       </div>
-      ${(req?.company||t.organisation)?(()=>{const co=req?.company||t.organisation;const s=coStyle(co);return `<div class="dmi" style="${s}"><div class="key">Organisation</div><div class="val" style="font-weight:600;color:${(_coColors&&_coColors[co])||'inherit'}">${esc(co)}</div></div>`;})():''}
+      ${(req?.company||t.organisation)?(()=>{const co=req?.company||t.organisation;const s=coStyle(co);return `<div class="dmi" style="${s}"><div class="key">Organisation</div><div class="val" style="font-weight:600;color:${(()=>{if(!_coColors)return 'inherit';const lower=co.toLowerCase();const k=Object.keys(_coColors).find(k=>k===co)||Object.keys(_coColors).find(k=>k.toLowerCase()===lower)||Object.keys(_coColors).find(k=>lower.includes(k.toLowerCase())||k.toLowerCase().includes(lower));return k?_coColors[k]:'inherit';})()}">${esc(co)}</div></div>`;})():''}
       ${(req?.email||t.contact_email)?`<div class="dmi"><div class="key">Email</div><div class="val"><a href="mailto:${esc(req?.email||t.contact_email)}" style="color:var(--accent);word-break:break-all">${esc(req?.email||t.contact_email)}</a></div></div>`:''}
       ${(req?.phone||t.contact_phone)?`<div class="dmi"><div class="key">Telephone</div><div class="val"><a href="tel:${esc(req?.phone||t.contact_phone)}" style="color:var(--accent)">${esc(req?.phone||t.contact_phone)}</a></div></div>`:''}
     </div>
