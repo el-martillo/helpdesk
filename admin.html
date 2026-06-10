@@ -12,15 +12,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="styles.css"/>
-<style>
-/* Fix: dropdown filter options were clipped by overflow:hidden on .table-card */
-.table-card { overflow: visible !important; }
-.table-card > .table-toolbar { border-radius: var(--radius-l, 12px) var(--radius-l, 12px) 0 0; }
-.table-toolbar { overflow: visible !important; }
-table { border-collapse: collapse; }
-tbody tr:last-child td:first-child { border-radius: 0 0 0 var(--radius-l, 12px); }
-tbody tr:last-child td:last-child  { border-radius: 0 0 var(--radius-l, 12px) 0; }
-</style>
 </head>
 <body>
 <canvas id="beach-canvas"></canvas>
@@ -2593,17 +2584,14 @@ async function updateStatus(id, status) {
       }
     } catch(e) { console.warn('Notification failed:', e.message); }
   }
-  // WA alert for critical tickets on any active status change
+  // WA alert on any status change, all priorities
   try {
-    const _t = tickets.find(x=>x.id===id);
-    if (_t && _t.priority==='critical' && status!=='resolved') {
-      await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
-        method:'POST',
-        headers:{'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
-        body:JSON.stringify({ticket_id:id,new_status:'critical',changed_by:currentProfile?.full_name||'Admin'})
-      });
-    }
-  } catch(e) { console.warn('WA critical notify failed:',e.message); }
+    await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
+      method:'POST',
+      headers:{'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
+      body:JSON.stringify({ticket_id:id,new_status:status,changed_by:currentProfile?.full_name||'Admin'})
+    });
+  } catch(e) { console.warn('WA status notify failed:',e.message); }
 }
 async function updateAssignee(id, assigneeId) {
   await sbClient.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id);
