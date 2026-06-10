@@ -2097,6 +2097,26 @@ async function bulkApply(field, value) {
     bulkClearSelection();
     await loadTickets();
     toast(`Updated ${n} ticket${n!==1?'s':''}`);
+    // WA escalated/critical notifications for priority bulk-apply
+    if (field === 'priority') {
+      const PRANK = { low: 0, medium: 1, high: 2, critical: 3 };
+      try {
+        for (const id of ids) {
+          const t = tickets.find(x => x.id === id);
+          if (!t) continue;
+          const oldRank = PRANK[t.priority] ?? 0;
+          const newRank = PRANK[value]      ?? 0;
+          if (newRank > oldRank) {
+            const trigger = value === 'critical' ? 'critical' : 'escalated';
+            await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ticket_id: id, new_status: trigger, changed_by: currentProfile?.full_name || 'Admin' })
+            });
+          }
+        }
+      } catch(e) { console.warn('WA escalated notify failed:', e.message); }
+    }
   } catch(e) {
     toast('Bulk update failed: ' + (e.message || JSON.stringify(e)));
   }
@@ -2305,13 +2325,13 @@ function adminNav(el, page) {
             <input type="text" id="flt-search-${page}" placeholder="Search tickets…" oninput="renderFilteredPage('${page}');toggleClear(this)"/>
             <button class="search-clear" onclick="clearSearch('flt-search-${page}',()=>renderFilteredPage('${page}'))">✕</button>
           </div>
-          <div class="filter-wrap" id="fw-flt-priority-${page}"><select class="filter-sel" id="flt-priority-${page}" onchange="renderFilteredPage('${page}');updateFilterWraps()">
+          <select class="filter-sel" id="flt-priority-${page}" onchange="renderFilteredPage('${page}')">
             <option value="">All priorities</option>
             <option value="critical">Critical</option>
             <option value="high">High</option>
             <option value="medium">Medium</option>
             <option value="low">Low</option>
-          </select><button class="filter-clear" onclick="document.getElementById('flt-priority-${page}').value='';renderFilteredPage('${page}');updateFilterWraps()" title="Clear filter">✕</button></div>
+          </select>
           <select class="filter-sel" id="flt-pp-${page}" onchange="renderFilteredPage('${page}')" style="font-size:12px">
             <option value="10">10 / page</option>
             <option value="25" selected>25 / page</option>
@@ -2367,7 +2387,6 @@ function adminNav(el, page) {
         </table>
       </div>`;
     renderFilteredPage(page);
-    updateFilterWraps();
   }
   if (page==='reports') renderReports();
 }
@@ -2941,6 +2960,24 @@ async function createTicket() {
   if (error){toast('Error: '+error.message);return;}
   closeModal('modal-new-ticket');clearForm();admClearAttachments();await loadTickets();refreshCurrentPage();toast('Ticket created');
   logSystemEvent('ticket_created',`"${payload.subject}" | Priority: ${payload.priority} | Category: ${payload.category} | Contact: ${payload.contact_email}`);
+  // WA notifications for new ticket
+  try {
+    const newT = tickets.find(x => x.requester_id === rid && x.subject === payload.subject);
+    const tid  = newT?.id || null;
+    const who  = currentProfile?.full_name || 'Admin';
+    await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticket_id: tid, new_status: 'new_ticket', changed_by: who })
+    });
+    if (payload.priority === 'critical') {
+      await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticket_id: tid, new_status: 'critical', changed_by: who })
+      });
+    }
+  } catch(e) { console.warn('WA new ticket notify failed:', e.message); }
 }
 
 /* ── Agents ── */
@@ -3790,6 +3827,14 @@ async function addUser() {
   closeModal('modal-add-user'); clearForm();
   loadAllProfiles(); loadCompanies(); toast('User profile created. To grant login access, invite them via Supabase Auth.');
   logSystemEvent('user_created',`${payload.full_name} (${payload.email}) | Role: ${payload.role}${payload.company?' | Org: '+payload.company:''}`);
+  // WA notification for new user
+  try {
+    await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ new_status: 'new_user', changed_by: currentProfile?.full_name || 'Admin', user_name: payload.full_name, user_email: payload.email })
+    });
+  } catch(e) { console.warn('WA new user notify failed:', e.message); }
 }
 
 /* ── Rate Limits ── */

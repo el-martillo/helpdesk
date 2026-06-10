@@ -1427,10 +1427,10 @@ async function _loadWaCache() {
       sbClient.from('app_settings').select('value').eq('key','whatsapp_triggers').maybeSingle(),
       sbClient.from('profiles')
         .select('whatsapp_alerts, whatsapp_number, whatsapp_apikey')
-        .in('role', ['admin','super_admin'])
+        .in('role', ['admin','super_admin','agent'])
         .eq('whatsapp_alerts', true),
     ]);
-    const triggers   = trigRow.data?.value ? JSON.parse(trigRow.data.value) : [];
+    const triggers   = trigRow.data?.value ? JSON.parse(trigRow.data.value) : ['new_ticket','critical','new_user','new_comment'];
     const recipients = (recRows.data || []).filter(p => p.whatsapp_number && p.whatsapp_apikey);
     _waCache = { triggers, recipients };
   } catch(e) {
@@ -1442,6 +1442,7 @@ async function _loadWaCache() {
 
 async function fireWhatsApp(triggerKey, message) {
   try {
+    _waCache = null; // always reload fresh — triggers/recipients may have changed
     const cache = await _loadWaCache();
     if (!cache.triggers.includes(triggerKey)) return;
     if (!cache.recipients.length) return;
