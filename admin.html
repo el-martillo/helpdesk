@@ -1574,6 +1574,13 @@ let sortKey = 'ticket_number', sortDir = 'desc';
 let mergeSourceId = null, mergeTargetId = null;
 let bulkSelected = new Set();
 const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
+
+/* ── Helpers ── */
+const esc       = s => { const d=document.createElement('div'); d.textContent=String(s??''); return d.innerHTML; };
+const initials  = n => n ? n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '?';
+const avColor   = id => AV_COLORS[(id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0) % AV_COLORS.length];
+const timeAgo   = iso => { if(!iso) return '—'; const m=Math.floor((Date.now()-new Date(iso))/60000); if(m<1) return 'just now'; if(m<60) return m+'m ago'; const h=Math.floor(m/60); if(h<24) return h+'h ago'; return Math.floor(h/24)+'d ago'; };
+const sLabel    = s => ({open:'Open',in_progress:'In progress',waiting:'Waiting',resolved:'Resolved',merged:'Merged'}[s]||s);
 const CO_BG_DEFAULT = {
   "El Martillo":"#f0f9e6","Metalrok":"#e8f1fc","ORC / TARIK":"#e0f5f3",
   "Gib Sun Club":"#fdf4e0","Signtalk":"#f3eafa","EWMS":"#e8f5e9",
@@ -1857,13 +1864,10 @@ async function _reauthSubmit() {
 async function loadTickets() {
   bulkSelected.clear(); bulkUpdateBar();
   document.getElementById('admin-tbody').innerHTML='<tr class="loading-row"><td colspan="10"><div class="loader"></div></td></tr>';
-  console.log('[loadTickets] fetching, sbClient=', !!sbClient);
   const {data,error} = await sbClient.from('tickets')
     .select('*, requester:profiles!requester_id(id,full_name,email,phone,company), assignee:profiles!assignee_id(id,full_name)')
     .order('updated_at',{ascending:false});
-  console.log('[loadTickets] data=', data?.length, 'error=', error?.message);
-  if (error) { toast('Error: '+error.message); return; }
-  tickets = data||[]; renderTable(); updateStats(); updateBadges(); renderDashboard(); if(document.getElementById('page-reports')?.classList.contains('active')) renderTicketCompanies();
+  if (error) { toast('Error: '+error.message); return; }  tickets = data||[]; renderTable(); updateStats(); updateBadges(); renderDashboard(); if(document.getElementById('page-reports')?.classList.contains('active')) renderTicketCompanies();
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
 }
 async function loadProfiles() {
