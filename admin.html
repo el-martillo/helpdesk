@@ -2498,10 +2498,6 @@ async function openTicketDetail(id) {
         <div class="key">Last updated</div>
         <div class="val">${timeAgo(t.updated_at)}</div>
       </div>
-      <div class="dmi">
-        <div class="key">Ticket ID</div>
-        <div class="val tid">#${t.ticket_number}</div>
-      </div>
       ${(req?.company||t.organisation)?`<div class="dmi"><div class="key">Organisation</div><div class="val">${esc(req?.company||t.organisation)}</div></div>`:''}
       ${(req?.email||t.contact_email)?`<div class="dmi"><div class="key">Email</div><div class="val"><a href="mailto:${esc(req?.email||t.contact_email)}" style="color:var(--accent);word-break:break-all">${esc(req?.email||t.contact_email)}</a></div></div>`:''}
       ${(req?.phone||t.contact_phone)?`<div class="dmi"><div class="key">Telephone</div><div class="val"><a href="tel:${esc(req?.phone||t.contact_phone)}" style="color:var(--accent)">${esc(req?.phone||t.contact_phone)}</a></div></div>`:''}
@@ -2984,7 +2980,8 @@ async function createTicket() {
     category:document.getElementById('nt-category').value,
     contact_email:email,
     contact_phone:document.getElementById('nt-phone').value.trim(),
-    status:'open'
+    status:'open',
+    source:'admin'
   };
   function clearForm(){
     document.getElementById('nt-subject').value='';

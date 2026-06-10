@@ -926,10 +926,6 @@ async function openTicketDetail(id) {
         <div class="key">Last updated</div>
         <div class="val">${timeAgo(t.updated_at)}</div>
       </div>
-      <div class="dmi">
-        <div class="key">Ticket ID</div>
-        <div class="val tid">#${t.ticket_number}</div>
-      </div>
       ${t.contact_email?`<div class="dmi dmi-user">
         <div class="key">Email</div>
         <div class="val"><a href="mailto:${esc(t.contact_email)}" style="color:var(--accent);word-break:break-all">${esc(t.contact_email)}</a></div>
@@ -1325,6 +1321,7 @@ async function submitTicket() {
     contact_email:email,
     contact_phone:document.getElementById('nt-phone').value.trim(),
     status:'open',
+    source:'client',
   };
   if (company) payload.company = company;
   function clearForm(){
@@ -1790,6 +1787,7 @@ async function submitBugReport() {
     category:      'Technical',
     contact_email: reporterEmail,
     requester_id:  currentUser?.id || null,
+    source:        'client',
   };
 
   // Upload screenshots if any
