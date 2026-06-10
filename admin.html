@@ -3672,6 +3672,7 @@ async function loadAllProfiles() {
       if (r.last_sign_in_at) lastSignInMap[r.user_id] = r.last_sign_in_at;
     });
   } catch(e) { console.warn('Could not load verified status:', e.message); }
+  await loadCompanyColors();
   renderUsersTable();
   renderAgents();
   const sub = document.getElementById('users-count-sub'); if(sub) sub.textContent = allProfiles.length + ' registered profiles';
@@ -5371,11 +5372,20 @@ function renderAuditTable() {
         }
       } else if (r.entity_type === 'profile') {
         const p = (allProfiles||[]).find(x => x.id === r.entity_id);
-        entityLabel = p
-          ? `<div class="flex-c" style="gap:5px"><div class="avatar ${avColor(p.id)}" style="width:18px;height:18px;font-size:8px;flex-shrink:0">${initials(p.full_name)}</div><span style="font-size:12px">${esc(p.full_name)}</span></div>`
-          : `<span class="tid" title="${esc(r.entity_id)}">${r.entity_id.slice(0,8)}…</span>`;
+        if (p) {
+          entityLabel = `<div class="flex-c" style="gap:5px"><div class="avatar ${avColor(p.id)}" style="width:18px;height:18px;font-size:8px;flex-shrink:0">${initials(p.full_name)}</div><span style="font-size:12px">${esc(p.full_name)}</span></div>`;
+        } else {
+          // Try to get name from details JSON (covers deleted users)
+          try {
+            const d = typeof r.details === 'string' ? JSON.parse(r.details) : r.details;
+            const name = d?.new?.full_name || d?.old?.full_name;
+            const email = d?.new?.email || d?.old?.email;
+            entityLabel = name
+              ? `<span style="font-size:12px">${esc(name)}${email ? ` <span style="color:var(--text3);font-size:11px">(${esc(email)})</span>` : ''}</span>`
+              : `<span class="tid" title="${esc(r.entity_id)}">${r.entity_id.slice(0,8)}…</span>`;
+          } catch { entityLabel = `<span class="tid" title="${esc(r.entity_id)}">${r.entity_id.slice(0,8)}…</span>`; }
+        }
       } else if (r.entity_type === 'comment') {
-        // Try to find the ticket this comment belongs to via details JSON
         try {
           const d = typeof r.details === 'string' ? JSON.parse(r.details) : r.details;
           const ticketId = d?.new?.ticket_id || d?.old?.ticket_id;
@@ -5384,8 +5394,24 @@ function renderAuditTable() {
             ? `<span style="font-size:12px;color:var(--text2)">on <span class="tid">#${t.ticket_number}</span></span>`
             : `<span class="tid" title="${esc(r.entity_id)}">${r.entity_id.slice(0,8)}…</span>`;
         } catch { entityLabel = `<span class="tid" title="${esc(r.entity_id)}">${r.entity_id.slice(0,8)}…</span>`; }
+      } else if (r.entity_type === 'app_settings') {
+        // Show the settings key instead of the UUID
+        try {
+          const d = typeof r.details === 'string' ? JSON.parse(r.details) : r.details;
+          const key = d?.new?.key || d?.old?.key;
+          entityLabel = key
+            ? `<span style="font-size:12px;font-family:var(--mono);color:var(--text2)">${esc(key)}</span>`
+            : `<span style="font-size:12px;color:var(--text2)">settings</span>`;
+        } catch { entityLabel = `<span style="font-size:12px;color:var(--text2)">settings</span>`; }
       } else {
-        entityLabel = `<span class="tid" title="${esc(r.entity_id)}">${r.entity_id.slice(0,8)}…</span>`;
+        // Generic fallback — try details JSON for any useful identifier
+        try {
+          const d = typeof r.details === 'string' ? JSON.parse(r.details) : r.details;
+          const label = d?.new?.name || d?.new?.key || d?.old?.name || d?.old?.key;
+          entityLabel = label
+            ? `<span style="font-size:12px;color:var(--text2)">${esc(label)}</span>`
+            : `<span class="tid" title="${esc(r.entity_id)}">${r.entity_id.slice(0,8)}…</span>`;
+        } catch { entityLabel = `<span class="tid" title="${esc(r.entity_id)}">${r.entity_id.slice(0,8)}…</span>`; }
       }
     }
 
