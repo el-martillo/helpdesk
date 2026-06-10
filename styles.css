@@ -868,14 +868,16 @@ textarea.fc { resize: vertical; min-height: 80px; }
 @media (max-width: 768px) { .scroll-top-btn { display: none !important; } }
 
 /* ── Filter wrap reset X ── */
-.filter-wrap { position: relative; display: inline-flex; align-items: center; }
-.filter-wrap .filter-sel { padding-right: 28px; }
+.filter-wrap { display: inline-flex; align-items: center; gap: 0; }
+.filter-wrap .filter-sel { border-radius: var(--radius) 0 0 var(--radius); border-right: none; }
 .filter-clear {
-  position: absolute; right: 4px;
-  background: none; border: none; cursor: pointer;
-  color: var(--text3); font-size: 11px; line-height: 1;
-  padding: 2px 3px; border-radius: 3px;
   display: none;
+  align-items: center; justify-content: center;
+  height: 100%; padding: 0 7px;
+  background: var(--bg); border: 1px solid var(--border2);
+  border-left: none; border-radius: 0 var(--radius) var(--radius) 0;
+  cursor: pointer; color: var(--text3); font-size: 11px; line-height: 1;
+  font-family: var(--font);
 }
-.filter-clear:hover { color: var(--text1); background: var(--border); }
-.filter-wrap.has-value .filter-clear { display: block; }
+.filter-clear:hover { color: var(--danger); background: var(--danger-l); border-color: var(--danger-l); }
+.filter-wrap.has-value .filter-clear { display: inline-flex; }
