@@ -2104,6 +2104,7 @@ async function bulkApply(field, value) {
     if (error) throw error;
     bulkClearSelection();
     await loadTickets();
+    refreshCurrentPage();
     toast(`Updated ${n} ticket${n!==1?'s':''}`);
     // WA escalated/critical notifications for priority bulk-apply
     if (field === 'priority') {
@@ -2194,6 +2195,7 @@ async function bulkApplyFlt(page, field, value) {
     if (error) throw error;
     bulkClearFlt(page);
     await loadTickets();
+    renderFilteredPage(page);
     toast(`Updated ${n} ticket${n!==1?'s':''}`);
   } catch(e) {
     toast('Bulk update failed: ' + (e.message || JSON.stringify(e)));
@@ -2457,17 +2459,25 @@ async function openTicketDetail(id) {
     : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
         <span class="sb s-${t.status}">${sLabel(t.status)}</span>
         ${sourcePill(t.source)}
-        <span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}">${esc(t.category||'General')}</span>
-        <span style="font-size:12px;color:var(--text2)"><span class="pdot ${t.priority}"></span>${t.priority} priority</span>
+        <select class="filter-sel" id="detail-cat-sel" onchange="updateCategory('${t.id}',this.value)">${categoriesList.map(c=>`<option value="${c}" ${c===t.category?'selected':''}>${c}</option>`).join('')}</select>
+        <select class="filter-sel" id="detail-pri-sel" onchange="updatePriority('${t.id}',this.value)">
+          <option value="low" ${t.priority==='low'?'selected':''}>Low</option>
+          <option value="medium" ${t.priority==='medium'?'selected':''}>Medium</option>
+          <option value="high" ${t.priority==='high'?'selected':''}>High</option>
+          <option value="critical" ${t.priority==='critical'?'selected':''}>Critical</option>
+        </select>
         <select class="filter-sel" style="margin-left:auto" onchange="updateStatus('${t.id}',this.value)">
           <option value="open" ${t.status==='open'?'selected':''}>Open</option>
           <option value="in_progress" ${t.status==='in_progress'?'selected':''}>In progress</option>
           <option value="waiting" ${t.status==='waiting'?'selected':''}>Waiting</option>
           <option value="resolved" ${t.status==='resolved'?'selected':''}>Resolved</option>
         </select>
-        <select class="filter-sel" onchange="updateAssignee('${t.id}',this.value)">
-          <option value="">Unassigned</option>${agentOpts}
-        </select>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:12px;font-weight:500;color:var(--text2);white-space:nowrap">Agent:</span>
+          <select class="filter-sel" onchange="updateAssignee('${t.id}',this.value)">
+              <option value="">Unassigned</option>${agentOpts}
+          </select>
+        </div>
         <button class="btn sm" onclick="openMergeModal('${t.id}')" title="Merge into another ticket">
           <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 6l4-4 4 4M12 2v13M8 18l4 4 4-4M12 22v-4"/></svg>
           Merge
@@ -2484,15 +2494,15 @@ async function openTicketDetail(id) {
       </div>
       <div class="dmi dmi-user">
         <div class="key">Tech assigned</div>
-        <div class="val">${asgn?.full_name?`<span class="flex-c"><div class="avatar ${avColor(asgn?.id||'')}" style="width:22px;height:22px;font-size:9px">${initials(asgn.full_name)}</div>${esc(asgn.full_name)}</span>`:'<span style="color:var(--text3)">Unassigned</span>'}</div>
+        <div class="val" id="detail-assignee-val">${asgn?.full_name?`<span class="flex-c"><div class="avatar ${avColor(asgn?.id||'')}" style="width:22px;height:22px;font-size:9px">${initials(asgn.full_name)}</div>${esc(asgn.full_name)}</span>`:'<span style="color:var(--text3)">Unassigned</span>'}</div>
       </div>
       <div class="dmi">
         <div class="key">Category</div>
-        <div class="val"><span class="cat-badge ${({'Billing':'cat-billing','Technical':'cat-technical','Account':'cat-account','General':'cat-general'})[t.category]||'cat-general'}">${esc(t.category||'General')}</span></div>
+        <div class="val" id="detail-cat-val"><span class="cat-badge ${({'Billing':'cat-billing','Technical':'cat-technical','Account':'cat-account','General':'cat-general'})[t.category]||'cat-general'}">${esc(t.category||'General')}</span></div>
       </div>
       <div class="dmi">
         <div class="key">Priority</div>
-        <div class="val"><span class="pdot ${t.priority}" style="margin-right:4px"></span><span class="p-${t.priority}">${esc(t.priority)}</span></div>
+        <div class="val" id="detail-pri-val"><span class="pdot ${t.priority}" style="margin-right:4px"></span><span class="p-${t.priority}">${esc(t.priority)}</span></div>
       </div>
       <div class="dmi">
         <div class="key">Opened</div>
@@ -2631,10 +2641,57 @@ async function updateStatus(id, status) {
 }
 async function updateAssignee(id, assigneeId) {
   await sbClient.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id);
+  // Update the meta grid in the open modal immediately
+  const valEl = document.getElementById('detail-assignee-val');
+  if (valEl) {
+    const ag = profiles.find(p => p.id === assigneeId);
+    valEl.innerHTML = ag
+      ? `<span class="flex-c"><div class="avatar ${avColor(ag.id)}" style="width:22px;height:22px;font-size:9px">${initials(ag.full_name)}</div>${escH(ag.full_name)}</span>`
+      : '<span style="color:var(--text3)">Unassigned</span>';
+  }
   await loadTickets();
   refreshCurrentPage();
   toast('Tech assigned updated');
   const ta=tickets.find(x=>x.id===id); const ag=profiles.find(p=>p.id===assigneeId); const prevAg=profiles.find(p=>p.id===ta?.assignee_id); logSystemEvent('ticket_assigned',`#${ta?.ticket_number||id} "${ta?.subject||''}" | From: ${prevAg?.full_name||'Unassigned'} → To: ${ag?.full_name||'Unassigned'} | Status: ${ta?.status||'?'}`);
+}
+
+async function updatePriority(id, priority) {
+  await sbClient.from('tickets').update({ priority }).eq('id', id);
+  const t = tickets.find(x => x.id === id);
+  if (t) t.priority = priority;
+  // Update meta grid
+  const priVal = document.getElementById('detail-pri-val');
+  if (priVal) priVal.innerHTML = `<span class="pdot ${priority}" style="margin-right:4px"></span><span class="p-${priority}">${priority}</span>`;
+  // Update status bar select
+  const priSel = document.getElementById('detail-pri-sel');
+  if (priSel) priSel.value = priority;
+  await loadTickets(); refreshCurrentPage();
+  toast('Priority updated');
+  logSystemEvent('ticket_updated', `#${t?.ticket_number||id} priority → ${priority}`);
+  // WA notification
+  try {
+    await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticket_id: id, new_status: priority === 'critical' ? 'critical' : 'escalated', changed_by: currentProfile?.full_name || 'Admin' })
+    });
+  } catch(e) { console.warn('WA priority notify failed:', e.message); }
+}
+
+async function updateCategory(id, category) {
+  await sbClient.from('tickets').update({ category }).eq('id', id);
+  const t = tickets.find(x => x.id === id);
+  if (t) t.category = category;
+  // Update meta grid
+  const catVal = document.getElementById('detail-cat-val');
+  const catCls = { Billing:'cat-billing', Technical:'cat-technical', Account:'cat-account', General:'cat-general' }[category] || 'cat-general';
+  if (catVal) catVal.innerHTML = `<span class="cat-badge ${catCls}">${escH(category)}</span>`;
+  // Update status bar select
+  const catSel = document.getElementById('detail-cat-sel');
+  if (catSel) catSel.value = category;
+  await loadTickets(); refreshCurrentPage();
+  toast('Category updated');
+  logSystemEvent('ticket_updated', `#${t?.ticket_number||id} category → ${category}`);
 }
 
 /* ── Merge tickets ── */
