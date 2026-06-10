@@ -713,6 +713,9 @@ async function signUp() {
   errEl.textContent='';
   trackUserActivity('signup_attempt', 'success', `Account created: ${name}`);
   toast('Account created! Welcome, '+name);
+  fireWhatsApp('new_user',
+    '👥 New client: ' + name + ' (' + email + ')' +
+    (company ? ' | ' + company : ''));
   showApp();
 }
 
@@ -1385,6 +1388,20 @@ async function submitTicket() {
   trackUserActivity('ticket_created', 'success', `Subject: ${subject}`);
   closeModal('modal-new-ticket'); clearForm();
   loadVersion(); await loadClientTickets(); toast('Request submitted! We\'ll be in touch soon.');
+  // WhatsApp notifications
+  (function() {
+    const _newest = myTickets[0];
+    const _num = _newest ? '#' + _newest.ticket_number + ' ' : '';
+    fireWhatsApp('new_ticket',
+      '🎫 New ticket ' + _num + subject +
+      '\nPriority: ' + payload.priority + ' | Category: ' + payload.category +
+      '\nFrom: ' + email);
+    if (payload.priority === 'critical') {
+      fireWhatsApp('critical',
+        '🚨 CRITICAL ticket: ' + _num + subject +
+        '\nFrom: ' + email);
+    }
+  })();
 }
 
 /* ── Auto-restore ── */
@@ -1399,6 +1416,44 @@ async function submitTicket() {
    ──────────────────────────────────────────────────────────────────────────── */
 const SB_URL = 'https://gtcrmqbmlvtlyiwnshma.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
+
+/* -- WhatsApp fire engine (reads triggers + recipients from Supabase) -- */
+let _waCache = null;
+
+async function _loadWaCache() {
+  if (_waCache) return _waCache;
+  try {
+    const [trigRow, recRows] = await Promise.all([
+      sbClient.from('app_settings').select('value').eq('key','whatsapp_triggers').maybeSingle(),
+      sbClient.from('profiles')
+        .select('whatsapp_alerts, whatsapp_number, whatsapp_apikey')
+        .in('role', ['admin','super_admin'])
+        .eq('whatsapp_alerts', true),
+    ]);
+    const triggers   = trigRow.data?.value ? JSON.parse(trigRow.data.value) : [];
+    const recipients = (recRows.data || []).filter(p => p.whatsapp_number && p.whatsapp_apikey);
+    _waCache = { triggers, recipients };
+  } catch(e) {
+    console.warn('WA cache load failed:', e.message);
+    _waCache = { triggers: [], recipients: [] };
+  }
+  return _waCache;
+}
+
+async function fireWhatsApp(triggerKey, message) {
+  try {
+    const cache = await _loadWaCache();
+    if (!cache.triggers.includes(triggerKey)) return;
+    if (!cache.recipients.length) return;
+    const encoded = encodeURIComponent(message);
+    await Promise.all(cache.recipients.map(r => {
+      const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(r.whatsapp_number)}&text=${encoded}&apikey=${encodeURIComponent(r.whatsapp_apikey)}`;
+      return fetch(url).catch(() => {});
+    }));
+  } catch(e) {
+    console.warn('fireWhatsApp error:', e.message);
+  }
+}
 
 async function initSupabase() {
   if (!window.supabase) { console.error('Supabase SDK not loaded'); return; }
