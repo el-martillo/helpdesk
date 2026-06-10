@@ -1857,9 +1857,11 @@ async function _reauthSubmit() {
 async function loadTickets() {
   bulkSelected.clear(); bulkUpdateBar();
   document.getElementById('admin-tbody').innerHTML='<tr class="loading-row"><td colspan="10"><div class="loader"></div></td></tr>';
+  console.log('[loadTickets] fetching, sbClient=', !!sbClient);
   const {data,error} = await sbClient.from('tickets')
     .select('*, requester:profiles!requester_id(id,full_name,email,phone,company), assignee:profiles!assignee_id(id,full_name)')
     .order('updated_at',{ascending:false});
+  console.log('[loadTickets] data=', data?.length, 'error=', error?.message);
   if (error) { toast('Error: '+error.message); return; }
   tickets = data||[]; renderTable(); updateStats(); updateBadges(); renderDashboard(); if(document.getElementById('page-reports')?.classList.contains('active')) renderTicketCompanies();
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
