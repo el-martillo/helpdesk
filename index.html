@@ -2219,9 +2219,12 @@ async function sendChat() {
     var data = await response.json();
     console.log('Chat proxy response:', response.status, JSON.stringify(data).slice(0,300));
     if (!response.ok) {
-      var errMsg = (data && (data.error || data.message)) || ('HTTP ' + response.status);
+      var errRaw = (data && (data.error || data.message));
+      var errMsg = (typeof errRaw === 'string') ? errRaw
+                 : (errRaw ? JSON.stringify(errRaw) : ('HTTP ' + response.status));
+      console.error('Chat proxy error detail:', JSON.stringify(data));
       removeTyping();
-      appendBotMsg('Assistant unavailable: ' + errMsg + '. Please raise a ticket or call +350 200 50630.', true);
+      appendBotMsg('Assistant unavailable (' + errMsg + '). Please raise a ticket or call +350 200 50630.', true);
       document.getElementById('chat-send').disabled = false;
       document.getElementById('chat-input').focus();
       return;
