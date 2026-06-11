@@ -987,9 +987,28 @@ textarea.fc { resize: vertical; min-height: 80px; }
   .body { flex-direction: column; }
   .content { padding: 14px !important; }
 
-  /* Ticket table: hide less important columns, enable horizontal scroll */
-  .table-card { overflow-x: auto !important; }
-  .table-card table { min-width: 480px; }
+  /* Table card: horizontal scroll for both toolbar and table */
+  .table-card {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-card::-webkit-scrollbar { height: 4px; }
+  .table-card::-webkit-scrollbar-track { background: var(--bg); }
+  .table-card::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* Toolbar: sticky left so it scrolls with card but never wraps */
+  .table-toolbar {
+    flex-wrap: nowrap !important;
+    gap: 6px !important;
+    padding: 10px 12px !important;
+    min-width: max-content;
+  }
+  .table-toolbar > * { flex-shrink: 0; }
+  .table-toolbar .search-wrap { min-width: 140px; max-width: 160px; }
+
+  /* Table min width so it doesn't collapse */
+  .table-card > table { min-width: 480px; }
 
   /* Hide: Organisation, Assignee, Updated on small screens */
   table th:nth-child(3),
