@@ -751,6 +751,11 @@
             <div class="fg"><label class="fl">Company name</label><input class="fc" value="El Martillo I.T." type="text"/></div>
             <div class="fg"><label class="fl">Support email</label><input class="fc" value="helpdesk@el-martillo.com" type="email"/></div>
             <div class="fg">
+              <label class="fl">WhatsApp support number <span style="color:var(--text3);font-weight:400">(shown on client portal)</span></label>
+              <input class="fc" id="settings-wa-number" type="tel" placeholder="+350 54000000"/>
+              <div class="hint">Include country code. Leave blank to hide the WhatsApp button.</div>
+            </div>
+            <div class="fg">
               <label class="fl">SLA response target</label>
               <select class="fc"><option>4 hours</option><option>8 hours</option><option>24 hours</option></select>
             </div>
@@ -759,7 +764,7 @@
               <input class="fc" id="settings-url" readonly style="font-family:var(--mono);font-size:12px"/>
             </div>
             <div style="display:flex;gap:8px;margin-top:8px">
-              <button class="btn primary" onclick="toast('Settings saved')">Save settings</button>
+              <button class="btn primary" onclick="saveGeneralSettings()">Save settings</button>
               <button class="btn" onclick="clearCreds()">Disconnect Supabase</button>
             </div>
           </div>
@@ -1713,40 +1718,45 @@ function toggleClear(input) {
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
   });
 
-  // Screen card drag + centering
-  /* centreScreenCard is global — defined below IIFE */
-  document.querySelectorAll('.screen').forEach(screen => {
-    // Centre on show
-    const observer = new MutationObserver(() => {
-      if (screen.style.display !== 'none' && screen.classList.contains('active') ||
-          screen.style.display === 'flex' || screen.style.display === 'block') {
-        centreScreenCard(screen);
-      }
+  // Screen card drag + centering — same approach as index.html
+  function centreAdminCard(screen) {
+    const card = screen.querySelector('.screen-card');
+    if (!card) return;
+    requestAnimationFrame(() => {
+      const vh = window.innerHeight;
+      const cardH = card.offsetHeight;
+      const topMargin = cardH < vh ? Math.max(24, (vh - cardH) / 2) : 24;
+      card.style.position = '';
+      card.style.left = '';
+      card.style.top  = '';
+      card.style.margin = '';
+      card.style.marginTop = topMargin + 'px';
     });
-    observer.observe(screen, { attributes: true, attributeFilter: ['class','style'] });
-    // Drag via handle
+  }
+  document.querySelectorAll('.screen').forEach(screen => {
+    new MutationObserver(() => {
+      if (screen.classList.contains('active')) centreAdminCard(screen);
+    }).observe(screen, { attributes: true, attributeFilter: ['class'] });
     screen.addEventListener('mousedown', e => {
       const handle = e.target.closest('.screen-drag-handle');
       if (!handle) return;
       const card = handle.closest('.screen-card');
       if (!card) return;
       e.preventDefault();
-      const cardRect = card.getBoundingClientRect();
-      const offsetX = e.clientX - cardRect.left;
-      const offsetY = e.clientY - cardRect.top;
+      const startX = e.clientX - card.getBoundingClientRect().left;
+      const startY = e.clientY - card.offsetTop;
       handle.style.cursor = 'grabbing';
       function onMove(e) {
         const vw = window.innerWidth, vh = window.innerHeight;
-        const w = card.offsetWidth, h = card.offsetHeight;
-        const pad = 8;
-        card.style.left = Math.max(pad, Math.min(vw - w - pad, e.clientX - offsetX)) + 'px';
-        card.style.top  = Math.max(pad, Math.min(vh - h - pad, e.clientY - offsetY)) + 'px';
+        card.style.position = 'absolute';
+        card.style.margin = '0';
+        card.style.left = Math.max(0, Math.min(vw - card.offsetWidth,  e.clientX - startX)) + 'px';
+        card.style.top  = Math.max(0, Math.min(vh - card.offsetHeight, e.clientY - startY)) + 'px';
       }
       function onUp() {
         handle.style.cursor = '';
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup',   onUp);
-        // Save position keyed by screen id
         const sid = card.closest('.screen')?.id;
         if (sid) localStorage.setItem('card_pos_' + sid, JSON.stringify({ left: card.style.left, top: card.style.top }));
       }
@@ -1754,40 +1764,22 @@ function toggleClear(input) {
       document.addEventListener('mouseup',   onUp);
     });
   });
-  // Restore saved position or centre on load
-  function restoreOrCentreCard(screen) {
-    const card = screen.querySelector('.screen-card');
-    if (!card) return;
-    const saved = localStorage.getItem('card_pos_' + screen.id);
-    if (saved) {
-      try {
-        const pos = JSON.parse(saved);
-        // Clamp to current viewport in case window was resized
-        requestAnimationFrame(() => {
-          const vw = window.innerWidth, vh = window.innerHeight;
-          const l = Math.max(0, Math.min(vw - card.offsetWidth,  parseFloat(pos.left)));
-          const t = Math.max(0, Math.min(vh - card.offsetHeight, parseFloat(pos.top)));
-          card.style.left = l + 'px';
-          card.style.top  = t + 'px';
-        });
-        return;
-      } catch(e) {}
-    }
-    centreScreenCard(screen);
-  }
   const auth = document.getElementById('auth-screen');
-  if (auth) restoreOrCentreCard(auth);
+  if (auth) centreAdminCard(auth);
 })();
 
 function centreScreenCard(screen) {
   const card = screen.querySelector('.screen-card');
   if (!card) return;
   requestAnimationFrame(() => {
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const w = card.offsetWidth  || card.getBoundingClientRect().width;
-    const h = card.offsetHeight || card.getBoundingClientRect().height;
-    card.style.left = Math.max(8, (vw - w) / 2) + 'px';
-    card.style.top  = Math.max(8, (vh - h) / 2) + 'px';
+    const vh = window.innerHeight;
+    const cardH = card.offsetHeight;
+    card.style.position = '';
+    card.style.left = '';
+    card.style.top  = '';
+    card.style.margin = '';
+    card.style.marginTop = Math.max(24, (vh - cardH) / 2) + 'px';
+    localStorage.removeItem('card_pos_' + screen.id);
   });
 }
 
@@ -1865,7 +1857,7 @@ async function signIn() {
   const mobNm = document.getElementById('mob-name-admin');
   if (mobAv) { mobAv.textContent = initials(_mn); mobAv.className = 'avatar ' + avColor(prof?.id||''); }
   if (mobNm) mobNm.textContent = _mn;
-  loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart(); loadCategories(); loadCannedResponses();
+  loadTickets(); loadProfiles(); loadGeneralSettings(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart(); loadCategories(); loadCannedResponses();
 }
 async function signOut() { if(realtimeChannel && sbClient) sbClient.removeChannel(realtimeChannel); if(sbClient) await sbClient.auth.signOut(); location.reload(); }
 function clearCreds() { localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key'); location.reload(); }
@@ -1917,6 +1909,22 @@ async function _reauthSubmit() {
 }
 
 /* ── Data ── */
+/* ── General settings save/load ── */
+async function saveGeneralSettings() {
+  const wa = document.getElementById('settings-wa-number')?.value.trim() || '';
+  if (!sbClient) { toast('Not connected'); return; }
+  const { error } = await sbClient.from('app_settings')
+    .upsert({ key: 'support_whatsapp', value: wa }, { onConflict: 'key' });
+  if (error) { toast('Error: ' + error.message); return; }
+  toast('Settings saved');
+}
+async function loadGeneralSettings() {
+  if (!sbClient) return;
+  const { data } = await sbClient.from('app_settings').select('value').eq('key','support_whatsapp').maybeSingle();
+  const el = document.getElementById('settings-wa-number');
+  if (el && data?.value) el.value = data.value;
+}
+
 /* ── Unread tracking ── */
 function seenKey(id) { return 'seen_' + id; }
 function getSeenAt(id) { return localStorage.getItem(seenKey(id)) || ''; }
