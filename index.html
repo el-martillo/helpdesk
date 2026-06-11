@@ -2180,12 +2180,10 @@ async function sendChat() {
   chatHistory.push({ role: 'user', content: text });
   showTyping();
   try {
-    var response = await fetch('https://api.anthropic.com/v1/messages', {
+    var response = await fetch(SB_URL + '/functions/v1/chat-proxy', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 400,
         system: CHAT_SYSTEM,
         messages: chatHistory
       })
