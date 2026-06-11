@@ -888,6 +888,25 @@
             </div>
           </div>
 
+          <!-- Canned responses -->
+          <div class="table-card" data-card-id="canned" style="padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Canned responses</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+              Predefined reply templates available when responding to tickets. Drag to reorder.
+            </div>
+            <div id="canned-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+              <div style="text-align:center;padding:16px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
+            </div>
+            <div style="height:1px;background:var(--border);margin-bottom:14px"></div>
+            <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">Add new</div>
+            <div class="fg"><input class="fc" id="new-canned-title" type="text" placeholder="Title e.g. Acknowledge receipt"/></div>
+            <div class="fg"><textarea class="fc" id="new-canned-body" placeholder="Response body…" style="min-height:70px;resize:none"></textarea></div>
+            <button class="btn primary" onclick="addCanned()">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+              Add response
+            </button>
+          </div>
+
           <!-- Backup section -->
           <div class="table-card" data-card-id="backup" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Database backup</div>
@@ -2559,10 +2578,21 @@ async function openTicketDetail(id) {
         <textarea id="reply-text" class="fc" placeholder="Write a reply or internal note…" style="min-height:70px;resize:none"></textarea>
         <div class="reply-actions" style="margin-top:6px">
           <label class="internal-toggle"><input type="checkbox" id="reply-internal"/> Internal note only</label>
-          <button class="btn primary sm" onclick="addComment('${t.id}')">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            Send reply
-          </button>
+          <div style="display:flex;gap:6px;align-items:center">
+            <div style="position:relative">
+              <button class="btn sm" onclick="toggleCannedDropdown()" title="Canned responses">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Canned
+              </button>
+              <div id="canned-dropdown" style="display:none;position:absolute;bottom:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.15);min-width:320px;max-width:420px;max-height:280px;overflow-y:auto;z-index:300">
+                <div id="canned-dropdown-list"></div>
+              </div>
+            </div>
+            <button class="btn primary sm" onclick="addComment('${t.id}')">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Send reply
+            </button>
+          </div>
         </div>
       </div>`}
     </div>
