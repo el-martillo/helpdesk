@@ -1917,6 +1917,19 @@ async function _reauthSubmit() {
 }
 
 /* ── Data ── */
+/* ── Unread tracking ── */
+function seenKey(id) { return 'seen_' + id; }
+function getSeenAt(id) { return localStorage.getItem(seenKey(id)) || ''; }
+function markSeen(id, updatedAt) { localStorage.setItem(seenKey(id), updatedAt); }
+function isUnread(t) {
+  const seen = getSeenAt(t.id);
+  if (!seen) return false;
+  return t.updated_at > seen;
+}
+function unreadBadge() {
+  return '<span class="unread-badge" title="New activity">1</span>';
+}
+
 async function loadTickets() {
   bulkSelected.clear(); bulkUpdateBar();
   document.getElementById('admin-tbody').innerHTML='<tr class="loading-row"><td colspan="10"><div class="loader"></div></td></tr>';
