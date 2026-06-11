@@ -1596,12 +1596,12 @@ function closeMobileMenu() {
 async function loadVersion() {
   if (!sbClient) return;
   try {
-    const { data, error } = await sbClient
+    const { data } = await sbClient
       .from('app_settings')
       .select('value')
       .eq('key', 'app_version')
-      .single();
-    const v = (error || !data) ? '1.0.0' : data.value;
+      .maybeSingle();
+    const v = data?.value || '1.0.0';
     const el = document.getElementById('footer-version');
     if (el) el.textContent = 'v' + v;
   } catch(e) {}
