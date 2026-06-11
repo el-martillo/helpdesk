@@ -1,0 +1,27 @@
+{
+  "name": "El Martillo I.T. Helpdesk",
+  "short_name": "Helpdesk",
+  "description": "Submit and track support tickets with El Martillo I.T.",
+  "start_url": "/helpdesk/index.html",
+  "scope": "/helpdesk/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a1628",
+  "theme_color": "#185FA5",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "en-GB"
+}
