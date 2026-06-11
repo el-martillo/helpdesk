@@ -1206,7 +1206,7 @@ td .unread-badge { margin-left: 5px; vertical-align: middle; }
 .chat-typing span:nth-child(2) { animation-delay: .15s; }
 .chat-typing span:nth-child(3) { animation-delay: .3s; }
 @keyframes chatBounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
-.chat-quick-replies { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 12px 0; }
+.chat-quick-replies { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px 4px; }
 .chat-qr {
   font-size: 12px; padding: 5px 10px; border-radius: 14px;
   border: 1px solid var(--accent); background: var(--accent-l); color: var(--accent);
