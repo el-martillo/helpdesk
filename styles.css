@@ -1096,25 +1096,30 @@ td .unread-badge { margin-left: 5px; vertical-align: middle; }
 
 /* ── Detail collapsible ── */
 .detail-collapsible { margin-bottom: 16px; }
-.detail-toggle {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 12px; font-weight: 600; color: var(--text2);
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 5px 10px;
-  cursor: pointer; font-family: var(--font);
-  transition: all .15s; margin-bottom: 0; width: 100%;
-  text-transform: uppercase; letter-spacing: .06em;
+
+/* Desktop: always show grid, hide toggle button */
+.detail-toggle { display: none; }
+.detail-collapsible .detail-meta-grid { display: grid; margin-bottom: 0; }
+
+/* Mobile: show toggle, hide grid until open */
+@media (max-width: 768px) {
+  .detail-toggle {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; color: var(--text2);
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 5px 10px;
+    cursor: pointer; font-family: var(--font);
+    transition: all .15s; margin-bottom: 0; width: 100%;
+    text-transform: uppercase; letter-spacing: .06em;
+  }
+  .detail-toggle:hover { background: var(--accent-l); color: var(--accent); border-color: var(--accent); }
+  .detail-toggle svg { transition: transform .2s; flex-shrink: 0; }
+  .detail-collapsible .detail-meta-grid {
+    display: none;
+    margin-top: 8px;
+    margin-bottom: 0;
+  }
+  .detail-collapsible.open .detail-meta-grid { display: grid; }
+  .detail-collapsible.open .detail-toggle svg { transform: rotate(180deg); }
+  .detail-collapsible.open .detail-toggle { border-radius: var(--radius) var(--radius) 0 0; border-bottom-color: transparent; }
 }
-.detail-toggle:hover { background: var(--accent-l); color: var(--accent); border-color: var(--accent); }
-.detail-toggle svg {
-  transition: transform .2s;
-  flex-shrink: 0;
-}
-.detail-collapsible .detail-meta-grid {
-  display: none;
-  margin-top: 8px;
-  margin-bottom: 0;
-}
-.detail-collapsible.open .detail-meta-grid { display: grid; }
-.detail-collapsible.open .detail-toggle svg { transform: rotate(180deg); }
-.detail-collapsible.open .detail-toggle { border-radius: var(--radius) var(--radius) 0 0; border-bottom-color: transparent; }
