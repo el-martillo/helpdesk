@@ -986,7 +986,12 @@ async function openTicketDetail(id) {
       <span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}">${esc(t.category||'General')}</span>
       <span style="font-size:12px;color:var(--text2)"><span class="pdot ${t.priority}"></span>${t.priority} priority</span>
     </div>
-    <div class="detail-meta-grid">
+    <div class="detail-collapsible">
+      <button class="detail-toggle" onclick="this.closest('.detail-collapsible').classList.toggle('open')">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        Details
+      </button>
+      <div class="detail-meta-grid">
       <div class="dmi dmi-user">
         <div class="key">Tech assigned</div>
         <div class="val">${asgn?.full_name ? `<span class="flex-c"><div class="avatar ${avColor(asgn?.id||'')} " style="width:22px;height:22px;font-size:9px">${initials(asgn.full_name)}</div>${esc(asgn.full_name)}</span>` : '<span style="color:var(--text3)">Unassigned</span>'}</div>
@@ -1016,6 +1021,7 @@ async function openTicketDetail(id) {
         <div class="key">Telephone</div>
         <div class="val"><a href="tel:${esc(t.contact_phone)}" style="color:var(--accent)">${esc(t.contact_phone)}</a></div>
       </div>`:''}
+    </div>
     </div>
     ${(()=>{
       const urls = t.attachment_urls ? JSON.parse(t.attachment_urls) : (t.attachment_url ? [t.attachment_url] : []);
