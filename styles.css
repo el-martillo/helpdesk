@@ -1125,38 +1125,6 @@ td .unread-badge { margin-left: 5px; vertical-align: middle; }
 }
 
 /* ── Chatbot & WhatsApp FAB (index.html) ── */
-/* WhatsApp FAB */
-#wa-fab {
-  position: fixed; bottom: 118px; right: 14px; z-index: 398;
-  text-decoration: none;
-  transform: translateY(8px);
-  opacity: 0; pointer-events: none;
-  transition: transform .25s ease, opacity .25s ease;
-}
-#wa-fab.visible { opacity: 1; transform: translateY(0); pointer-events: all; }
-#wa-fab-inner {
-  display: flex; align-items: center; gap: 8px;
-  background: #25D366; color: #fff;
-  padding: 9px 14px 9px 12px;
-  border-radius: 24px;
-  font-size: 13px; font-weight: 600; font-family: var(--font);
-  box-shadow: 0 4px 14px rgba(37,211,102,.45);
-  white-space: nowrap;
-  transition: box-shadow .2s, transform .2s;
-}
-#wa-fab:hover #wa-fab-inner {
-  box-shadow: 0 6px 20px rgba(37,211,102,.6);
-  transform: scale(1.03);
-}
-/* Nudge chat fab up to make room */
-#wa-fab.visible ~ * #chat-fab,
-body:has(#wa-fab.visible) #chat-fab { bottom: 170px; }
-
-@media (max-width: 600px) {
-  #wa-fab { bottom: 110px; right: 10px; }
-  #wa-fab-inner { font-size: 12px; padding: 8px 12px 8px 10px; }
-}
-
 #chat-fab {
   position: fixed; bottom: 60px; right: 20px; z-index: 400;
   width: 52px; height: 52px; border-radius: 50%;
