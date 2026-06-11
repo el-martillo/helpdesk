@@ -882,3 +882,146 @@ textarea.fc { resize: vertical; min-height: 80px; }
 }
 .filter-clear:hover { color: var(--danger); background: var(--danger-l); border-color: var(--danger-l); }
 .filter-wrap.has-value .filter-clear { display: inline-flex; }
+
+/* ── Mobile fixes: tickets + modals ── */
+@media (max-width: 600px) {
+
+  /* Ticket cards: stack vertically on very small screens */
+  .ticket-card {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+  }
+  .ticket-card-left {
+    width: 100%;
+    min-width: 0;
+  }
+  .ticket-card-right {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .ticket-card h4 {
+    white-space: normal;
+    word-break: break-word;
+  }
+  .ticket-card-thumb {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Modals: full-width, slide up from bottom, reduced padding */
+  .overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+  .modal, .modal.wide {
+    max-width: 100% !important;
+    width: 100% !important;
+    border-radius: var(--radius-l) var(--radius-l) 0 0 !important;
+    padding: 20px 16px 28px !important;
+    margin: 0 !important;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+
+  /* detail-meta-grid: 2 cols on small, 1 col on very small */
+  .detail-meta-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px;
+  }
+
+  /* form-row: always single column in modals */
+  .modal .form-row,
+  .form-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Ticket detail: description box word wrap */
+  .desc-box {
+    word-break: break-word;
+  }
+
+  /* Comment bubbles: don't overflow */
+  .comment-bubble {
+    max-width: 100%;
+    word-break: break-word;
+  }
+
+  /* Attachment grid in detail: 3 cols max */
+  .attach-detail-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  /* Filter toolbar: scroll horizontally */
+  .table-toolbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+    padding: 10px 12px;
+  }
+  .table-toolbar::-webkit-scrollbar { display: none; }
+
+  /* Chat FAB: clear of footer */
+  #chat-fab  { bottom: 54px; right: 14px; }
+  #chat-panel { bottom: 116px; right: 14px; }
+}
+
+@media (max-width: 380px) {
+  .detail-meta-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .modal, .modal.wide {
+    padding: 16px 12px 24px !important;
+  }
+}
+
+/* ── Admin: mobile table + sidebar ── */
+@media (max-width: 768px) {
+
+  /* Hide sidebar, show only content */
+  .sidebar { display: none !important; }
+  .body { flex-direction: column; }
+  .content { padding: 14px !important; }
+
+  /* Ticket table: hide less important columns, enable horizontal scroll */
+  .table-card { overflow-x: auto !important; }
+  .table-card table { min-width: 480px; }
+
+  /* Hide: Organisation, Assignee, Updated on small screens */
+  table th:nth-child(3),
+  table td:nth-child(3),
+  table th:nth-child(6),
+  table td:nth-child(6),
+  table th:nth-child(7),
+  table td:nth-child(7) { display: none; }
+
+  /* Stats grid: 2 cols */
+  .stats-grid { grid-template-columns: 1fr 1fr !important; }
+
+  /* Page header: stack */
+  .page-header { flex-direction: column; align-items: flex-start !important; gap: 10px; }
+
+  /* Modals: bottom sheet */
+  .overlay { padding: 0 !important; align-items: flex-end !important; }
+  .modal, .modal.wide {
+    max-width: 100% !important;
+    width: 100% !important;
+    border-radius: var(--radius-l) var(--radius-l) 0 0 !important;
+    padding: 20px 16px 28px !important;
+    margin: 0 !important;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+  .form-row { grid-template-columns: 1fr !important; }
+  .detail-meta-grid { grid-template-columns: 1fr 1fr !important; }
+}
+
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: 1fr 1fr !important; gap: 8px; }
+  .stat-card .value { font-size: 22px; }
+  .detail-meta-grid { grid-template-columns: 1fr !important; }
+}
