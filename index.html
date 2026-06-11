@@ -2217,6 +2217,15 @@ async function sendChat() {
       })
     });
     var data = await response.json();
+    console.log('Chat proxy response:', response.status, JSON.stringify(data).slice(0,300));
+    if (!response.ok) {
+      var errMsg = (data && (data.error || data.message)) || ('HTTP ' + response.status);
+      removeTyping();
+      appendBotMsg('Assistant unavailable: ' + errMsg + '. Please raise a ticket or call +350 200 50630.', true);
+      document.getElementById('chat-send').disabled = false;
+      document.getElementById('chat-input').focus();
+      return;
+    }
     var reply = (data && data.content && data.content[0] && data.content[0].text) || "Sorry, I couldn't get a response. Please try again or raise a ticket.";
     removeTyping();
     chatHistory.push({ role: 'assistant', content: reply });
