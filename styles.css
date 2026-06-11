@@ -1024,16 +1024,37 @@ textarea.fc { resize: vertical; min-height: 80px; }
   /* Page header: stack */
   .page-header { flex-direction: column; align-items: flex-start !important; gap: 10px; }
 
-  /* Modals: bottom sheet */
+  /* Modals: full-height bottom sheet */
   .overlay { padding: 0 !important; align-items: flex-end !important; }
   .modal, .modal.wide {
     max-width: 100% !important;
     width: 100% !important;
     border-radius: var(--radius-l) var(--radius-l) 0 0 !important;
-    padding: 20px 16px 28px !important;
+    padding: 16px 14px 24px !important;
     margin: 0 !important;
+    height: 92vh;
     max-height: 92vh;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Let detail-body grow and scroll inside the modal */
+  #detail-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+  /* Activity/comments area fills remaining space */
+  .activity {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+  #comments-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
   }
   .form-row { grid-template-columns: 1fr !important; }
   .detail-meta-grid { grid-template-columns: 1fr 1fr !important; }
@@ -1043,4 +1064,12 @@ textarea.fc { resize: vertical; min-height: 80px; }
   .stats-grid { grid-template-columns: 1fr 1fr !important; gap: 8px; }
   .stat-card .value { font-size: 22px; }
   .detail-meta-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Description as first conversation entry */
+.desc-entry {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
