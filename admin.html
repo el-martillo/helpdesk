@@ -1739,17 +1739,16 @@ function toggleClear(input) {
       const card = handle.closest('.screen-card');
       if (!card) return;
       e.preventDefault();
-      const startX = e.clientX - card.offsetLeft;
-      const startY = e.clientY - card.offsetTop;
+      const cardRect = card.getBoundingClientRect();
+      const offsetX = e.clientX - cardRect.left;
+      const offsetY = e.clientY - cardRect.top;
       handle.style.cursor = 'grabbing';
       function onMove(e) {
         const vw = window.innerWidth, vh = window.innerHeight;
-        const rect = card.getBoundingClientRect();
-        const w = rect.width  || card.offsetWidth;
-        const h = rect.height || card.offsetHeight;
+        const w = card.offsetWidth, h = card.offsetHeight;
         const pad = 8;
-        card.style.left = Math.max(pad, Math.min(vw - w - pad, e.clientX - startX)) + 'px';
-        card.style.top  = Math.max(pad, Math.min(vh - h - pad, e.clientY - startY)) + 'px';
+        card.style.left = Math.max(pad, Math.min(vw - w - pad, e.clientX - offsetX)) + 'px';
+        card.style.top  = Math.max(pad, Math.min(vh - h - pad, e.clientY - offsetY)) + 'px';
       }
       function onUp() {
         handle.style.cursor = '';
