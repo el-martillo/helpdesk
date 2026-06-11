@@ -742,7 +742,13 @@
 
       <!-- Settings -->
       <div class="page" id="page-settings">
-        <div class="page-header"><div><h1>Settings</h1><p>System configuration</p></div></div>
+        <div class="page-header">
+          <div><h1>Settings</h1><p>System configuration</p></div>
+          <div class="search-wrap" style="max-width:240px">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="settings-search" placeholder="Search settings…" oninput="filterSettingsCards(this.value)"/>
+          </div>
+        </div>
         <div class="settings-grid" id="settings-grid">
 
           <!-- General settings -->
@@ -823,6 +829,26 @@
               <input class="fc" id="settings-version" type="text" placeholder="e.g. 1.0.0" style="max-width:220px"/>
             </div>
             <button class="btn primary" onclick="saveVersion()">Save version</button>
+          </div>
+
+          <!-- Next ticket number -->
+          <div class="table-card" data-card-id="ticket-seq" style="padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Next ticket number</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+              Set the next ticket number to be assigned. Use this to reset or continue a sequence after a migration or data import.
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+              <div class="fg" style="margin-bottom:0">
+                <label class="fl">Next ticket #</label>
+                <input class="fc" id="settings-ticket-seq" type="number" min="1" step="1" placeholder="e.g. 4" style="max-width:140px"/>
+              </div>
+              <button class="btn primary" onclick="saveTicketSeq()">Apply</button>
+              <button class="btn" onclick="loadTicketSeq()">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+                Check current
+              </button>
+            </div>
+            <div id="ticket-seq-status" style="margin-top:10px;font-size:12px;color:var(--text3)"></div>
           </div>
 
           <!-- Organisations section -->
@@ -1909,6 +1935,61 @@ async function _reauthSubmit() {
 }
 
 /* ── Data ── */
+/* ── Settings search ── */
+function filterSettingsCards(q) {
+  const term = q.trim().toLowerCase();
+  const cards = document.querySelectorAll('#settings-grid [data-card-id]');
+  let anyVisible = false;
+  cards.forEach(card => {
+    const text = card.textContent.toLowerCase();
+    const show = !term || text.includes(term);
+    card.style.display = show ? '' : 'none';
+    if (show) anyVisible = true;
+  });
+  // Show/hide empty state
+  let empty = document.getElementById('settings-search-empty');
+  if (!anyVisible) {
+    if (!empty) {
+      empty = document.createElement('div');
+      empty.id = 'settings-search-empty';
+      empty.style.cssText = 'grid-column:1/-1;text-align:center;padding:40px;color:var(--text3);font-size:13px';
+      empty.textContent = 'No settings found for "' + q + '"';
+      document.getElementById('settings-grid').appendChild(empty);
+    } else {
+      empty.textContent = 'No settings found for "' + q + '"';
+      empty.style.display = '';
+    }
+  } else if (empty) {
+    empty.style.display = 'none';
+  }
+}
+
+/* ── Ticket sequence ── */
+async function loadTicketSeq() {
+  const status = document.getElementById('ticket-seq-status');
+  const input  = document.getElementById('settings-ticket-seq');
+  if (!sbClient) return;
+  status.textContent = 'Checking…';
+  const { data, error } = await sbClient.rpc('get_next_ticket_number');
+  if (error) { status.textContent = 'Error: ' + error.message; return; }
+  const next = data;
+  if (input) input.placeholder = 'Current next: ' + next;
+  status.textContent = 'Current next ticket number: #' + next;
+}
+async function saveTicketSeq() {
+  const input  = document.getElementById('settings-ticket-seq');
+  const status = document.getElementById('ticket-seq-status');
+  const val    = parseInt(input?.value);
+  if (!val || val < 1) { toast('Enter a valid ticket number'); return; }
+  if (!confirm('Set next ticket number to #' + val + '? This cannot be undone.')) return;
+  status.textContent = 'Applying…';
+  const { error } = await sbClient.rpc('set_next_ticket_number', { next_val: val });
+  if (error) { status.textContent = 'Error: ' + error.message; toast('Error: ' + error.message); return; }
+  input.value = '';
+  status.textContent = 'Done — next ticket will be #' + val;
+  toast('Ticket sequence updated');
+}
+
 /* ── General settings save/load ── */
 async function saveGeneralSettings() {
   const wa = document.getElementById('settings-wa-number')?.value.trim() || '';
@@ -2378,6 +2459,9 @@ function adminNav(el, page) {
   }
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   el.classList.add('active');
+  // Clear settings search when navigating away
+  const ss = document.getElementById('settings-search');
+  if (ss && ss.value) { ss.value = ''; filterSettingsCards(''); }
   // Auto-open the logs group when navigating to a log page
   if (['activity','syslog','auditlog'].includes(page)) openNavGroup('logs');
   if (['reports'].includes(page)) openNavGroup('reports');
