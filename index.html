@@ -877,6 +877,19 @@ function updateUserHeader() {
 }
 
 /* ── Tickets ── */
+/* ── Unread tracking ── */
+function seenKey(id) { return 'seen_' + id; }
+function getSeenAt(id) { return localStorage.getItem(seenKey(id)) || ''; }
+function markSeen(id, updatedAt) { localStorage.setItem(seenKey(id), updatedAt); }
+function isUnread(t) {
+  const seen = getSeenAt(t.id);
+  if (!seen) return false; // never opened = not "new to you" yet
+  return t.updated_at > seen;
+}
+function unreadBadge() {
+  return '<span class="unread-badge" title="New activity">1</span>';
+}
+
 async function loadClientTickets() {
   document.getElementById('ticket-list').innerHTML='<div style="text-align:center;padding:32px;color:var(--text3)"><div class="loader"></div></div>';
   const {data,error}=await sbClient.from('tickets')
@@ -927,6 +940,7 @@ function renderTickets() {
       <div class="ticket-card-right">
         <span class="sb s-${t.status}">${sLabel(t.status)}</span>
         <span style="font-size:11px;color:var(--text3)"><span class="pdot ${t.priority}"></span>${t.priority}</span>
+        ${isUnread(t) ? unreadBadge() : ''}
       </div>
     </div>`;
   }).join('');
@@ -1035,6 +1049,7 @@ async function openTicketDetail(id) {
         </div>
       </div>`:'<div style="font-size:12px;color:var(--text3);margin-top:12px;text-align:center">This ticket is '+sLabel(t.status).toLowerCase()+'. <button class="btn sm" style="margin-left:8px" onclick="reopenTicket(\''+t.id+'\')">Reopen</button></div>'}
     </div>`;
+  markSeen(id, t.updated_at);
   openModal('modal-ticket-detail');
 }
 
