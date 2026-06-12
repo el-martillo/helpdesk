@@ -137,23 +137,23 @@ th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
     animation: metalShift 13s ease-in-out infinite;
   }
 }
-.settings-grid { display:flex; flex-direction:column; gap:14px; max-width:900px; margin:0 auto; }
-@media (max-width: 600px) { .settings-grid { gap:10px; } .content { padding: 16px; } }
+.settings-grid { display:flex; flex-direction:column; max-width:900px; margin:0 auto; }
+.stab-panel { display:none; }
+.stab-panel.active { display:flex; flex-direction:column; gap:14px; }
+@media (max-width: 600px) { .stab-panel.active { gap:10px; } .content { padding: 16px; } }
 /* Drag handle on settings cards */
-.settings-grid > .table-card { position: relative; width:100%; border:1px solid var(--border2); }
+.settings-grid .table-card { position: relative; width:100%; border:1px solid var(--border2); }
 
 /* Settings tab bar */
-.stab-bar { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:20px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-l); padding:6px; max-width:900px; margin-left:auto; margin-right:auto; }
+.stab-bar { display:flex; gap:4px; flex-wrap:wrap; justify-content:center; margin-bottom:20px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-l); padding:6px; max-width:900px; margin-left:auto; margin-right:auto; }
 .stab { background:none; border:none; border-radius:var(--radius); padding:7px 14px; font-size:13px; font-weight:500; color:var(--text2); cursor:pointer; font-family:var(--font); transition:all .15s; }
 .stab:hover { color:var(--text1); background:var(--bg); }
 .stab.stab-active { color:var(--accent); background:var(--accent-l); font-weight:600; }
-.stab-panel { display:none; }
-.stab-panel.active { display:block; }
 .settings-card-drag { position: absolute; top: 8px; right: 10px; cursor: grab; opacity: 0; transition: opacity .15s; color: var(--text3); padding: 2px; }
-.settings-grid > .table-card:hover .settings-card-drag { opacity: 1; }
+.settings-grid .table-card:hover .settings-card-drag { opacity: 1; }
 .settings-card-drag:active { cursor: grabbing; }
-.settings-grid > .table-card.drag-over { outline: 2px dashed var(--accent); outline-offset: 3px; }
-.settings-grid > .table-card.dragging { opacity: 0.4; }
+.settings-grid .table-card.drag-over { outline: 2px dashed var(--accent); outline-offset: 3px; }
+.settings-grid .table-card.dragging { opacity: 0.4; }
 .reports-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .reports-grid > .full-width { grid-column: 1 / -1; }
 @media (max-width: 900px) { .reports-grid { grid-template-columns: repeat(2, 1fr); } }

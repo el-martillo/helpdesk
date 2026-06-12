@@ -810,567 +810,7 @@
 
         <div class="settings-grid" id="settings-grid">
 
-          <div class="stab-panel active" id="stab-all">
-          <!-- General settings -->
-          <div class="table-card" data-card-id="general" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:14px">General</div>
-            <div class="fg"><label class="fl">Company name</label><input class="fc" value="El Martillo I.T." type="text"/></div>
-            <div class="fg"><label class="fl">Support email</label><input class="fc" value="helpdesk@el-martillo.com" type="email"/></div>
-            <div class="fg">
-              <label class="fl">WhatsApp support number <span style="color:var(--text3);font-weight:400">(shown on client portal)</span></label>
-              <input class="fc" id="settings-wa-number" type="tel" placeholder="+350 54000000"/>
-              <div class="hint">Include country code. Leave blank to hide the WhatsApp button.</div>
-            </div>
-            <div class="fg">
-              <label class="fl">SLA response target</label>
-              <select class="fc"><option>4 hours</option><option>8 hours</option><option>24 hours</option></select>
-            </div>
-            <div class="fg">
-              <label class="fl">Connected Supabase project</label>
-              <input class="fc" id="settings-url" readonly style="font-family:var(--mono);font-size:12px"/>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:8px">
-              <button class="btn primary" onclick="saveGeneralSettings()">Save settings</button>
-              <button class="btn" onclick="clearCreds()">Disconnect Supabase</button>
-            </div>
-          </div>
-
-          <!-- Organisations section -->
-          <div class="table-card" data-card-id="organisations" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Organisations</div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Manage the list of organisations and their accent colours. Used in dropdowns, directory, and user profiles across the system.
-            </div>
-            <div id="org-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
-              <div style="text-align:center;padding:16px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <input class="fc" id="new-org-input" type="text" placeholder="Add organisation…" style="max-width:260px" onkeydown="if(event.key==='Enter')addOrg()"/>
-              <button class="btn primary" onclick="addOrg()">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-                Add
-              </button>
-            </div>
-          </div>
-
-          <!-- Email signature -->
-          <div class="table-card" data-card-id="email-signature" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Email signature</div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
-              Appended to all outbound Resend emails. Supports basic HTML. The El Martillo logo is automatically included above this signature.
-            </div>
-
-            <div class="fg">
-              <label class="fl">Signature HTML</label>
-              <textarea id="sig-html" class="fc" style="min-height:110px;font-family:var(--mono);font-size:12px;resize:vertical" placeholder="e.g. &lt;p&gt;El Martillo I.T. | +350 200 50630 | helpdesk@el-martillo.com&lt;/p&gt;" oninput="updateSigPreview(this.value)"></textarea>
-            </div>
-
-            <div style="margin-bottom:14px">
-              <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">Live preview</div>
-              <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
-                <!-- Simulated email header -->
-                <div style="background:var(--surface2);padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">
-                  <div><strong style="color:var(--text2)">From:</strong> El Martillo I.T. &lt;helpdesk@el-martillo.com&gt;</div>
-                  <div style="margin-top:2px"><strong style="color:var(--text2)">Subject:</strong> [Ticket #42] Your request has been resolved</div>
-                </div>
-                <div style="padding:16px;background:var(--surface)">
-                  <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">Hi Jane,<br><br>Your ticket has been resolved. Please reply if you need further assistance.</p>
-                  <!-- Signature preview area -->
-                  <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
-                    <table style="border-collapse:collapse;width:100%">
-                      <tr>
-                        <td style="vertical-align:middle;padding-right:10px;width:1%">
-                          <img src="logo.png" alt="El Martillo I.T." height="26" style="height:26px;width:auto;display:block;"/>
-                        </td>
-                        <td style="vertical-align:middle">
-                          <div id="sig-preview" style="font-size:12px;color:var(--text2);line-height:1.7"></div>
-                        </td>
-                      </tr>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:8px;align-items:center">
-              <button class="btn primary" onclick="saveEmailSignature()">Save signature</button>
-              <button class="btn" onclick="loadEmailSignature()">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-                Reload
-              </button>
-              <button class="btn" onclick="document.getElementById('sig-html').value='';document.getElementById('sig-preview').innerHTML=''">Clear</button>
-            </div>
-
-            <div style="height:1px;background:var(--border);margin:18px 0"></div>
-
-            <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px">Send test email</div>
-            <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6">Sends a sample resolved-ticket email using the current saved signature to the address below.</div>
-            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-              <div class="fg" style="margin-bottom:0;flex:1;min-width:200px">
-                <label class="fl">Recipient email</label>
-                <input id="sig-test-email" class="fc" type="email" placeholder="you@example.com"/>
-              </div>
-              <button class="btn" id="sig-test-btn" onclick="sendTestSignatureEmail()" style="flex-shrink:0">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                Send test
-              </button>
-            </div>
-            <div id="sig-test-status" style="font-size:12px;margin-top:8px;display:none"></div>
-          </div>
-
-          <!-- Email templates -->
-          <div class="table-card" data-card-id="email-templates" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Email templates</div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
-              Customise the subject line and body text for each outbound email type. Use <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{name}}</code>, <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{ticket_number}}</code>, <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{subject}}</code>, <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{agent}}</code> as placeholders.
-            </div>
-
-            <div class="fg">
-              <label class="fl">Email type</label>
-              <select class="fc" id="tpl-select" onchange="loadTemplateIntoEditor()" style="max-width:320px">
-                <option value="resolved">✅ Ticket resolved → client</option>
-                <option value="reopened">🔄 Ticket reopened by client → helpdesk</option>
-                <option value="client_reopened">🔄 Ticket reopened confirmation → client</option>
-                <option value="closed_helpdesk">✅ Ticket closed by client → helpdesk</option>
-              </select>
-            </div>
-
-            <div class="fg">
-              <label class="fl">Subject line</label>
-              <input id="tpl-subject" class="fc" type="text" oninput="updateTemplatePreview()"/>
-            </div>
-
-            <div class="fg">
-              <label class="fl">Body text <span style="font-weight:400;color:var(--text3)">(HTML allowed, keep it short)</span></label>
-              <textarea id="tpl-body" class="fc" style="min-height:100px;font-family:var(--mono);font-size:12px;resize:vertical" oninput="updateTemplatePreview()"></textarea>
-            </div>
-
-            <!-- Live preview -->
-            <div style="margin-bottom:14px">
-              <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">Live preview</div>
-              <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
-                <div style="background:var(--surface2);padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">
-                  <div><strong style="color:var(--text2)">Subject:</strong> <span id="tpl-preview-subject" style="color:var(--text1)"></span></div>
-                  <div style="margin-top:2px"><strong style="color:var(--text2)">To:</strong> <span id="tpl-preview-to"></span></div>
-                </div>
-                <div style="padding:16px;background:var(--surface)">
-                  <div id="tpl-preview-body" style="font-size:13px;color:var(--text2);line-height:1.7"></div>
-                  <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
-                    <table style="border-collapse:collapse">
-                      <tr>
-                        <td style="vertical-align:middle;padding-right:8px">
-                          <img src="logo.png" alt="" style="height:22px;width:auto;display:block;"/>
-                        </td>
-                        <td style="font-size:11px;color:var(--text3);vertical-align:middle">
-                          <span id="tpl-preview-sig">— signature —</span>
-                        </td>
-                      </tr>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <button class="btn primary" onclick="saveEmailTemplate()">Save template</button>
-              <button class="btn" onclick="resetEmailTemplate()">Reset to default</button>
-              <button class="btn" onclick="loadTemplateIntoEditor()">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-                Reload
-              </button>
-              <span id="tpl-save-status" style="font-size:12px;color:var(--success);display:none"></span>
-            </div>
-
-            <div style="height:1px;background:var(--border);margin:18px 0"></div>
-
-            <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px">Send test email</div>
-            <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6">Sends a test email using the currently selected template (saved version) to the address below.</div>
-            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-              <div class="fg" style="margin-bottom:0;flex:1;min-width:200px">
-                <label class="fl">Recipient email</label>
-                <input id="tpl-test-email" class="fc" type="email" placeholder="you@example.com"/>
-              </div>
-              <button class="btn" id="tpl-test-btn" onclick="sendTestTemplateEmail()" style="flex-shrink:0">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                Send test
-              </button>
-            </div>
-            <div id="tpl-test-status" style="font-size:12px;margin-top:8px;display:none"></div>
-          </div>
-
-          <!-- Reports start ticket -->
-          <div class="table-card" data-card-id="reports-start" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Reports baseline</div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Set the starting ticket number for all reports. Tickets with a lower number will be excluded from charts and statistics. Useful for ignoring test or legacy tickets.
-            </div>
-            <div class="fg" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-              <div style="display:flex;align-items:center;gap:8px">
-                <span style="font-size:13px;color:var(--text2)"># From ticket</span>
-                <input id="settings-report-start" class="fc" type="number" min="1"
-                  style="width:100px;text-align:center" value="1" placeholder="1"/>
-              </div>
-              <span style="font-size:11px;color:var(--text3)">Default: 1 (all tickets included)</span>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
-              <button class="btn primary" onclick="saveReportStart()">Save</button>
-              <span style="font-size:11px;color:var(--text3)" id="report-start-saved"></span>
-            </div>
-          </div>
-
-          <!-- Session timeout section -->
-          <div class="table-card" data-card-id="session" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Session timeout</div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Automatically sign out inactive users after this many minutes. Applies to both the admin panel and the client portal. Changes take effect on the next login.
-            </div>
-            <div class="fg" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-              <div style="display:flex;align-items:center;gap:8px">
-                <input id="settings-timeout" class="fc" type="number" min="1" max="1440"
-                  style="width:90px;text-align:center" value="30" placeholder="30"/>
-                <span style="font-size:13px;color:var(--text2)">minutes</span>
-              </div>
-              <span style="font-size:11px;color:var(--text3)">(1 – 1440 · default 30)</span>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
-              <button class="btn primary" onclick="saveSessionTimeout()">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                Save
-              </button>
-              <span id="timeout-saved-msg" style="font-size:11px;color:var(--text3)"></span>
-            </div>
-          </div>
-
-          <!-- Version section -->
-          <div class="table-card" data-card-id="version" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Application version</div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Set the version number displayed in the footer across all pages.
-            </div>
-            <div class="fg">
-              <label class="fl">Version string</label>
-              <input class="fc" id="settings-version" type="text" placeholder="e.g. 1.0.0" style="max-width:220px"/>
-            </div>
-            <button class="btn primary" onclick="saveVersion()">Save version</button>
-          </div>
-
-          <!-- Next ticket number -->
-          <div class="table-card" data-card-id="ticket-seq" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Next ticket number</div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Set the next ticket number to be assigned. Use this to reset or continue a sequence after a migration or data import.
-            </div>
-            <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
-              <div class="fg" style="margin-bottom:0">
-                <label class="fl">Next ticket #</label>
-                <input class="fc" id="settings-ticket-seq" type="number" min="1" step="1" placeholder="e.g. 4" style="max-width:140px"/>
-              </div>
-              <button class="btn primary" onclick="saveTicketSeq()">Apply</button>
-              <button class="btn" onclick="loadTicketSeq()">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-                Check current
-              </button>
-            </div>
-            <div id="ticket-seq-status" style="margin-top:10px;font-size:12px;color:var(--text3)"></div>
-          </div>
-
-          <!-- Categories section -->
-          <div class="table-card" data-card-id="categories" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Ticket categories</div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Manage categories available when submitting tickets on both the client portal and admin panel. Changes are saved to the database immediately.
-            </div>
-            <div id="cat-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
-              <div style="text-align:center;padding:16px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <input class="fc" id="new-cat-input" type="text" placeholder="Add category…" style="max-width:260px" onkeydown="if(event.key==='Enter')addCategory()"/>
-              <button class="btn primary" onclick="addCategory()">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-                Add
-              </button>
-            </div>
-          </div>
-
-          <!-- Canned responses -->
-          <div class="table-card" data-card-id="canned" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Canned responses</div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Predefined reply templates available when responding to tickets. Drag to reorder.
-            </div>
-            <div id="canned-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
-              <div style="text-align:center;padding:16px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
-            </div>
-            <div style="height:1px;background:var(--border);margin-bottom:14px"></div>
-            <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">Add new</div>
-            <div class="fg"><input class="fc" id="new-canned-title" type="text" placeholder="Title e.g. Acknowledge receipt"/></div>
-            <div class="fg"><textarea class="fc" id="new-canned-body" placeholder="Response body…" style="min-height:70px;resize:none"></textarea></div>
-            <button class="btn primary" onclick="addCanned()">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-              Add response
-            </button>
-          </div>
-
-          <!-- Backup section -->
-          <div class="table-card" data-card-id="backup" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Database backup</div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Export all tickets, profiles, and comments as a JSON file. The backup is generated directly from your Supabase database and downloaded to your browser.
-            </div>
-
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px" id="backup-stats">
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-                <div style="font-size:22px;font-weight:600;color:var(--accent)" id="bk-tickets">—</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">Tickets</div>
-              </div>
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-                <div style="font-size:22px;font-weight:600;color:var(--purple)" id="bk-comments">—</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">Comments</div>
-              </div>
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-                <div style="font-size:22px;font-weight:600;color:var(--success)" id="bk-profiles">—</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">Profiles</div>
-              </div>
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-                <div style="font-size:22px;font-weight:600;color:var(--warn)" id="bk-settings">—</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">Settings</div>
-              </div>
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-                <div style="font-size:22px;font-weight:600;color:var(--text2)" id="bk-syslog">—</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">System log</div>
-              </div>
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-                <div style="font-size:22px;font-weight:600;color:var(--text2)" id="bk-activity">—</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">Activity log</div>
-              </div>
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-                <div style="font-size:22px;font-weight:600;color:var(--text2)" id="bk-directory">—</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">Directory</div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <button class="btn primary" id="btn-backup" onclick="runBackup()">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Download backup (JSON)
-              </button>
-              <button class="btn" id="btn-csv-export" onclick="runCSVExport()">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Export tickets (CSV)
-              </button>
-              <button class="btn" onclick="loadBackupStats()">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-                Refresh counts
-              </button>
-              <span style="font-size:11px;color:var(--text3)" id="backup-last"></span>
-            </div>
-
-            <div style="margin-top:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--text2);line-height:1.6">
-              <strong>CSV export</strong> includes: ticket number, subject, status, priority, category, requester name &amp; email, assigned tech, organisation, created date, and last updated. Dates are formatted for Excel. One row per ticket.
-            </div>
-
-            <div style="margin-top:14px;padding:12px;background:var(--warn-l);border-radius:var(--radius);font-size:12px;color:var(--warn);line-height:1.6;display:none" id="backup-progress">
-              <div style="display:flex;align-items:center;gap:8px"><div class="loader" style="border-top-color:var(--warn)"></div> <span id="backup-progress-msg">Fetching data…</span></div>
-            </div>
-          </div>
-
-          <!-- Ticket deletion section -->
-          <div class="table-card" data-card-id="ticket-delete" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Delete tickets</div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Permanently delete a single ticket or a range of tickets by ticket number. Associated comments and attachments are also removed. This action cannot be undone.
-            </div>
-
-            <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px">
-              <div class="fg" style="margin-bottom:0">
-                <label class="fl">Mode</label>
-                <select class="fc" id="del-ticket-mode" onchange="onDelModeChange()" style="max-width:160px">
-                  <option value="single">Single ticket</option>
-                  <option value="range">Range of tickets</option>
-                </select>
-              </div>
-              <div class="fg" style="margin-bottom:0">
-                <label class="fl" id="del-from-label">Ticket #</label>
-                <input class="fc" id="del-ticket-from" type="number" min="1" step="1" placeholder="e.g. 42" style="max-width:120px" oninput="clearDelPreview()"/>
-              </div>
-              <div class="fg" id="del-to-wrap" style="margin-bottom:0;display:none">
-                <label class="fl">To #</label>
-                <input class="fc" id="del-ticket-to" type="number" min="1" step="1" placeholder="e.g. 50" style="max-width:120px" oninput="clearDelPreview()"/>
-              </div>
-              <button class="btn" onclick="previewTicketDelete()">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                Preview
-              </button>
-            </div>
-
-            <div id="del-ticket-preview" style="display:none;margin-bottom:12px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
-              <div style="padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)" id="del-preview-heading">Tickets to delete</div>
-              <div id="del-preview-list" style="max-height:220px;overflow-y:auto"></div>
-            </div>
-
-            <div id="del-ticket-status" style="font-size:12px;color:var(--text3);margin-bottom:10px;display:none"></div>
-
-            <button class="btn danger" id="btn-del-tickets" onclick="runTicketDelete()" disabled>
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-              Delete tickets
-            </button>
-          </div>
-
-          <!-- Logs download section -->
-          <div class="table-card" data-card-id="logs" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Download logs</div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Export activity, system, and audit logs as CSV files for auditing or offline analysis.
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px" id="log-stats">
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-                <div style="font-size:22px;font-weight:600;color:var(--accent)" id="log-activity">—</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">Activity events</div>
-              </div>
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-                <div style="font-size:22px;font-weight:600;color:var(--purple)" id="log-syslog">—</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">System events</div>
-              </div>
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-                <div style="font-size:22px;font-weight:600;color:var(--success)" id="log-audit">—</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">Audit entries</div>
-              </div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <button class="btn primary" onclick="downloadActivityLog()">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Activity log (CSV)
-              </button>
-              <button class="btn primary" onclick="downloadSysLog()">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                System log (CSV)
-              </button>
-              <button class="btn primary" onclick="downloadAuditLog()">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Audit log (CSV)
-              </button>
-              <button class="btn" onclick="loadLogStats()">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-                Refresh counts
-              </button>
-            </div>
-          </div>
-
-          <!-- Rate limits section -->
-          <div class="table-card" data-card-id="rate-limits" style="padding:20px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-              <div style="font-size:13px;font-weight:600">Rate limiting</div>
-              <span class="sb s-open" style="font-size:10px" id="rl-status-badge">—</span>
-            </div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:18px;line-height:1.6">
-              Maximum requests per IP per hour, enforced by the Edge Function. Saved to <code style="font-family:var(--mono);background:var(--border);padding:1px 4px;border-radius:3px">app_settings</code>.
-            </div>
-            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
-              <div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
-                <div><div style="font-size:13px;font-weight:500">Ticket submission</div><div style="font-size:11px;color:var(--text3);margin-top:2px">Logged-in clients submitting tickets</div></div>
-                <div style="display:flex;align-items:center;gap:6px"><input id="rl-ticket_submit-max" type="number" min="1" max="1000" class="fc" style="width:68px;text-align:center" value="10"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">/ hour</span></div>
-                <div style="display:flex;align-items:center;gap:6px"><input id="rl-ticket_submit-window" type="number" min="1" max="1440" class="fc" style="width:68px;text-align:center" value="60"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">min window</span></div>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
-                <div><div style="font-size:13px;font-weight:500">Sign in</div><div style="font-size:11px;color:var(--text3);margin-top:2px">Login attempts on the client portal</div></div>
-                <div style="display:flex;align-items:center;gap:6px"><input id="rl-sign_in-max" type="number" min="1" max="1000" class="fc" style="width:68px;text-align:center" value="15"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">/ hour</span></div>
-                <div style="display:flex;align-items:center;gap:6px"><input id="rl-sign_in-window" type="number" min="1" max="1440" class="fc" style="width:68px;text-align:center" value="60"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">min window</span></div>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
-                <div><div style="font-size:13px;font-weight:500">Sign up</div><div style="font-size:11px;color:var(--text3);margin-top:2px">New account registrations</div></div>
-                <div style="display:flex;align-items:center;gap:6px"><input id="rl-sign_up-max" type="number" min="1" max="1000" class="fc" style="width:68px;text-align:center" value="5"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">/ hour</span></div>
-                <div style="display:flex;align-items:center;gap:6px"><input id="rl-sign_up-window" type="number" min="1" max="1440" class="fc" style="width:68px;text-align:center" value="60"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">min window</span></div>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
-                <div><div style="font-size:13px;font-weight:500">Admin sign in</div><div style="font-size:11px;color:var(--text3);margin-top:2px">Login attempts on this admin panel</div></div>
-                <div style="display:flex;align-items:center;gap:6px"><input id="rl-admin_sign_in-max" type="number" min="1" max="1000" class="fc" style="width:68px;text-align:center" value="10"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">/ hour</span></div>
-                <div style="display:flex;align-items:center;gap:6px"><input id="rl-admin_sign_in-window" type="number" min="1" max="1440" class="fc" style="width:68px;text-align:center" value="60"/><span style="font-size:12px;color:var(--text3);white-space:nowrap">min window</span></div>
-              </div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <button class="btn primary" onclick="saveRateLimits()">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                Save rate limits
-              </button>
-              <button class="btn" onclick="loadRateLimits()">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-                Refresh
-              </button>
-              <span style="font-size:11px;color:var(--text3)" id="rl-saved-msg"></span>
-            </div>
-          </div>
-
-          <!-- WhatsApp notifications section -->
-          <div class="table-card" data-card-id="whatsapp" style="padding:20px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-              <div style="display:flex;align-items:center;gap:8px">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color:#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                <div style="font-size:13px;font-weight:600">WhatsApp notifications</div>
-              </div>
-              <span class="sb s-closed" style="font-size:10px" id="wa-status-badge">—</span>
-            </div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Configure which events send WhatsApp alerts and manage recipient numbers for all admins and agents.
-            </div>
-
-            <!-- Triggers -->
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px">Triggers</div>
-            <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px" id="wa-triggers-list">
-              <div style="text-align:center;padding:12px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:20px">
-              <button class="btn primary" onclick="saveWaTriggers()">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                Save triggers
-              </button>
-              <span style="font-size:11px;color:var(--text3)" id="wa-saved-msg"></span>
-            </div>
-
-            <!-- Recipients -->
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3)">Recipients</div>
-              <button class="btn sm" onclick="loadWaTriggers()">
-                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-                Refresh
-              </button>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px" id="wa-recipients-list">
-              <div style="text-align:center;padding:12px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
-              <button class="btn primary" onclick="saveWaRecipients()">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                Save recipients
-              </button>
-              <button class="btn" id="btn-wa-test" onclick="testWhatsApp()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="color:#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                Send test message
-              </button>
-              <span style="font-size:11px;color:var(--text3)" id="wa-test-msg"></span>
-            </div>
-
-            <div style="padding:10px 12px;background:var(--accent-l);border-radius:var(--radius);font-size:12px;color:var(--accent);line-height:1.6">
-              Each recipient needs a <strong>CallMeBot API key</strong>. To get one: send <em>"I allow callmebot to send me messages"</em> to <strong>+34 644 44 80 46</strong> on WhatsApp. You'll receive your key within minutes.
-            </div>
-          </div>
-
-          <!-- Orphaned accounts section -->
-          <div class="table-card" data-card-id="orphaned" style="padding:20px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-              <div style="font-size:13px;font-weight:600">Orphaned accounts</div>
-              <button class="btn sm" onclick="loadOrphanedAccounts()">
-                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-                Refresh
-              </button>
-            </div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
-              Auth accounts that exist in Supabase Auth but have no matching profile row. These can't sign in properly and should be cleaned up.
-            </div>
-            <div id="orphaned-list">
-              <div style="font-size:12px;color:var(--text3)">Click Refresh to scan for orphaned accounts.</div>
-            </div>
-          </div>
-
+                    <div class="stab-panel active" id="stab-all">
           </div>
 
           <div class="stab-panel" id="stab-general">
@@ -2777,8 +2217,17 @@ async function _reauthSubmit() {
 function switchSettingsTab(tid) {
   // Update buttons
   document.querySelectorAll('.stab').forEach(b => b.classList.toggle('stab-active', b.dataset.stab === tid));
-  // Show correct panel
-  document.querySelectorAll('.stab-panel').forEach(p => p.classList.toggle('active', p.id === 'stab-' + tid));
+  if (tid === 'all') {
+    // Show all content panels, hide the empty all-panel
+    document.getElementById('stab-all').classList.remove('active');
+    ['general','tickets','email','data'].forEach(id => {
+      document.getElementById('stab-' + id).classList.add('active');
+    });
+  } else {
+    // Hide all, show only selected
+    document.querySelectorAll('.stab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('stab-' + tid)?.classList.add('active');
+  }
   // Clear search
   const si = document.getElementById('settings-search');
   if (si && si.value) { si.value = ''; filterSettingsCards(''); }
@@ -2790,9 +2239,12 @@ function filterSettingsCards(q) {
   let anyVisible = false;
 
   if (term) {
-    // Switch to All tab when searching
+    // Show all content panels when searching
     document.querySelectorAll('.stab').forEach(b => b.classList.toggle('stab-active', b.dataset.stab === 'all'));
-    document.querySelectorAll('.stab-panel').forEach(p => p.classList.toggle('active', p.id === 'stab-all'));
+    document.getElementById('stab-all').classList.remove('active');
+    ['general','tickets','email','data'].forEach(id => {
+      document.getElementById('stab-' + id)?.classList.add('active');
+    });
   }
 
   cards.forEach(card => {
@@ -2848,18 +2300,19 @@ async function saveTicketSeq() {
 
 /* ── General settings save/load ── */
 async function saveGeneralSettings() {
-  const wa = document.getElementById('settings-wa-number')?.value.trim() || '';
   if (!sbClient) { toast('Not connected'); return; }
+  const wa = document.getElementById('settings-wa-number')?.value.trim() || '';
   const { error } = await sbClient.from('app_settings')
     .upsert({ key: 'support_whatsapp', value: wa }, { onConflict: 'key' });
   if (error) { toast('Error: ' + error.message); return; }
   toast('Settings saved');
+  if (typeof loadWaButton === 'function') loadWaButton();
 }
 async function loadGeneralSettings() {
   if (!sbClient) return;
   const { data } = await sbClient.from('app_settings').select('value').eq('key','support_whatsapp').maybeSingle();
   const el = document.getElementById('settings-wa-number');
-  if (el && data?.value) el.value = data.value;
+  if (el) el.value = data?.value || '';
 }
 
 /* ── Email signature ── */
@@ -5755,6 +5208,13 @@ async function restoreSettingsOrder() {
 }
 
 function initSettingsDrag() {
+  // Ensure All tab shows all content panels on first load
+  const allPanel = document.getElementById('stab-all');
+  if (allPanel) allPanel.classList.remove('active');
+  ['general','tickets','email','data'].forEach(id => {
+    document.getElementById('stab-' + id)?.classList.add('active');
+  });
+
   const grid = document.getElementById('settings-grid');
   if (!grid) return;
 
