@@ -7485,7 +7485,7 @@ function openNavGroup(group) {
 function navToSettingsTab(tab) {
   const el = document.getElementById('nav-settings-parent');
   adminNav(el, 'settings');
-  loadBackupStats(); loadLogStats(); loadVersion();
+  loadGeneralSettings(); loadBackupStats(); loadLogStats(); loadVersion();
   loadDirCoColors().then(() => { loadCompanyColors().then(() => renderOrgList()); });
   loadCategories(); loadCannedResponses(); loadRateLimits(); loadSessionTimeout();
   loadReportStart(); loadOrphanedAccounts(); loadWaTriggers();
