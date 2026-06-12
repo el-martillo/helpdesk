@@ -1490,7 +1490,7 @@
     <div class="fg"><textarea id="eu-notes" class="fc" placeholder="Any additional notes about this user…" style="min-height:60px;resize:none"></textarea></div>
 
     <div class="form-footer">
-      <button class="btn danger" onclick="deleteUser(document.getElementById('eu-id').value)" style="margin-right:auto">
+      <button class="btn danger" id="eu-delete-btn" onclick="deleteUser(document.getElementById('eu-id').value)" style="margin-right:auto">
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
         Delete
       </button>
@@ -2578,7 +2578,7 @@ function navTo(page) {
 
 /* ── Navigation ── */
 function adminNav(el, page) {
-  const superAdminOnly = ['reports','activity','syslog','auditlog','settings','users'];
+  const superAdminOnly = ['reports','activity','syslog','auditlog','settings'];
   if (superAdminOnly.includes(page) && currentProfile?.role !== 'super_admin') {
     toast('Access restricted to Super Admins.');
     return;
@@ -4066,6 +4066,17 @@ function openEditUser(id) {
   const waSection = document.getElementById('eu-wa-section');
   if (waSection) waSection.style.display = isStaff ? '' : 'none';
 
+  // Admins cannot delete or demote super_admin users
+  const viewerIsSuperAdmin = currentProfile?.role === 'super_admin';
+  const targetIsSuperAdmin = p.role === 'super_admin';
+  const restrictForAdmin   = targetIsSuperAdmin && !viewerIsSuperAdmin;
+
+  const delBtn = document.getElementById('eu-delete-btn');
+  if (delBtn) delBtn.style.display = restrictForAdmin ? 'none' : '';
+
+  const roleEl = document.getElementById('eu-role');
+  if (roleEl) roleEl.disabled = restrictForAdmin;
+
   const waCheck = document.getElementById('eu-wa-alerts');
   if (waCheck) {
     waCheck.checked = !!p.whatsapp_alerts;
@@ -4208,6 +4219,9 @@ async function saveUser() {
 async function deleteUser(id) {
   if (!confirm('Permanently delete this user? Their tickets will be reassigned to a Deleted User placeholder. This cannot be undone.')) return;
   const delP = allProfiles.find(x => x.id === id);
+  if (delP?.role === 'super_admin' && currentProfile?.role !== 'super_admin') {
+    toast('Only super admins can delete super admin accounts'); return;
+  }
   try {
     await requireReauth(`Permanently delete user "${delP?.full_name || delP?.email || id}"? This cannot be undone.`);
   } catch(e) { return; } // cancelled
