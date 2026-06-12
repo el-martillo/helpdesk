@@ -137,12 +137,10 @@ th.sort-desc::after { content: ' ↓'; color: var(--accent); font-size: 10px; }
     animation: metalShift 13s ease-in-out infinite;
   }
 }
-.settings-grid { columns: 3; column-gap: 16px; max-width: 900px; margin: 0 auto; }
-.settings-grid > * { break-inside: avoid; margin-bottom: 20px; }
-@media (max-width: 900px) { .settings-grid { columns: 2; } }
-@media (max-width: 600px) { .settings-grid { columns: 1; } .content { padding: 16px; } }
+.settings-grid { display:flex; flex-direction:column; gap:14px; max-width:900px; margin:0 auto; }
+@media (max-width: 600px) { .settings-grid { gap:10px; } .content { padding: 16px; } }
 /* Drag handle on settings cards */
-.settings-grid > .table-card { position: relative; }
+.settings-grid > .table-card { position: relative; width:100%; border:1px solid var(--border2); }
 
 /* Settings tab bar */
 .stab-bar { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:20px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-l); padding:6px; max-width:900px; margin-left:auto; margin-right:auto; }
