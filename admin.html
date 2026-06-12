@@ -1388,6 +1388,7 @@
       </button>
     </div>
 
+    <div id="eu-wa-section">
     <div style="height:1px;background:var(--border);margin:14px 0"></div>
 
     <!-- WhatsApp -->
@@ -1405,6 +1406,7 @@
     <div class="form-row">
       <div class="fg"><label class="fl">WhatsApp number</label><input id="eu-wa-number" class="fc" type="tel" placeholder="+35012345678"/></div>
       <div class="fg"><label class="fl">CallMeBot API key</label><input id="eu-wa-apikey" class="fc" type="text" placeholder="123456"/></div>
+    </div>
     </div>
 
     <div style="height:1px;background:var(--border);margin:14px 0"></div>
@@ -1445,12 +1447,35 @@
   <div class="modal">
     <div class="modal-head"><div class="modal-title">Invite tech</div><button class="close-x" data-tip="Close  Esc" onclick="closeModal('modal-invite-agent')">✕</button></div>
     <p style="font-size:13px;color:var(--text2);margin-bottom:16px">The tech user will receive an email invitation to set their password.</p>
-    <div class="fg"><label class="fl">Full name</label><input id="ia-name" class="fc" type="text" placeholder="Jane Smith"/></div>
-    <div class="fg"><label class="fl">Email address</label><input id="ia-email" class="fc" type="email" placeholder="agent@support.com"/></div>
+
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">Identity</div>
+    <div class="form-row">
+      <div class="fg"><label class="fl">Full name</label><input id="ia-name" class="fc" type="text" placeholder="Jane Smith"/></div>
+      <div class="fg"><label class="fl">Email address</label><input id="ia-email" class="fc" type="email" placeholder="agent@support.com"/></div>
+    </div>
     <div class="fg"><label class="fl">Role</label><select id="ia-role" class="fc"><option value="admin">Admin</option><option value="super_admin">Super Admin</option></select></div>
+
+    <div style="height:1px;background:var(--border);margin:14px 0"></div>
+
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">WhatsApp alerts</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px">
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--text1)">Enable WhatsApp notifications</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Send alerts to this user for enabled triggers</div>
+      </div>
+      <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0">
+        <input type="checkbox" id="ia-wa-alerts" style="opacity:0;width:0;height:0" onchange="document.getElementById('ia-wa-slider').style.background=this.checked?'var(--success)':''"/>
+        <span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s" id="ia-wa-slider"></span>
+      </label>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label class="fl">WhatsApp number</label><input id="ia-wa-number" class="fc" type="tel" placeholder="+35012345678"/></div>
+      <div class="fg"><label class="fl">CallMeBot API key</label><input id="ia-wa-apikey" class="fc" type="text" placeholder="123456"/></div>
+    </div>
+
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-invite-agent')">Cancel</button>
-      <button class="btn primary" onclick="inviteAgent()">Send invitation</button>
+      <button class="btn primary" id="ia-submit-btn" onclick="inviteAgent()">Send invitation</button>
     </div>
   </div>
 </div>
@@ -3957,6 +3982,12 @@ function openEditUser(id) {
   document.getElementById('eu-notes').value   = p.notes      || '';
   populateCompanySelects();
   document.getElementById('eu-company').value = p.company    || '';
+
+  // Show WA section only for admin/super_admin
+  const isStaff = p.role === 'admin' || p.role === 'super_admin';
+  const waSection = document.getElementById('eu-wa-section');
+  if (waSection) waSection.style.display = isStaff ? '' : 'none';
+
   const waCheck = document.getElementById('eu-wa-alerts');
   if (waCheck) {
     waCheck.checked = !!p.whatsapp_alerts;
@@ -4005,6 +4036,64 @@ async function sendInviteEmail() {
     toast('Error: ' + e.message);
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg> Send'; }
+  }
+}
+
+async function inviteAgent() {
+  const name     = document.getElementById('ia-name').value.trim();
+  const email    = document.getElementById('ia-email').value.trim();
+  const role     = document.getElementById('ia-role').value;
+  const waAlerts = document.getElementById('ia-wa-alerts')?.checked || false;
+  const waNumber = document.getElementById('ia-wa-number')?.value.trim() || null;
+  const waApikey = document.getElementById('ia-wa-apikey')?.value.trim() || null;
+
+  if (!name || !email) { toast('Name and email are required'); return; }
+  if (role === 'super_admin' && currentProfile?.role !== 'super_admin') {
+    toast('Only super admins can assign the super_admin role'); return;
+  }
+
+  const btn = document.getElementById('ia-submit-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+
+  try {
+    // 1. Send the invite email via edge function
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session?.access_token) throw new Error('Not authenticated');
+
+    const resp = await fetch(`${SB_URL}/functions/v1/user-invite`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, full_name: name, role, redirect_to: 'https://el-martillo.github.io/helpdesk/admin.html' })
+    });
+    const result = await resp.json();
+    if (!resp.ok) throw new Error(result?.error || result?.message || 'Unknown error');
+
+    // 2. Upsert profile with role + WA settings (the edge function may create the auth user;
+    //    the profile row is created/updated here so WA fields are set from the start)
+    const { data: authUser } = await sbClient
+      .from('profiles').select('id').eq('email', email).maybeSingle();
+    if (authUser?.id) {
+      const profileUpdates = { full_name: name, role, whatsapp_alerts: waAlerts };
+      if (waNumber) profileUpdates.whatsapp_number = waNumber;
+      if (waApikey) profileUpdates.whatsapp_apikey = waApikey;
+      await sbClient.from('profiles').update(profileUpdates).eq('id', authUser.id);
+    }
+
+    closeModal('modal-invite-agent');
+    // Clear form
+    ['ia-name','ia-email','ia-wa-number','ia-wa-apikey'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    const waCheck = document.getElementById('ia-wa-alerts'); if (waCheck) waCheck.checked = false;
+    const waSlider = document.getElementById('ia-wa-slider'); if (waSlider) waSlider.style.background = '';
+    document.getElementById('ia-role').value = 'admin';
+
+    loadProfiles(); loadAllProfiles();
+    toast('Invitation sent to ' + email);
+    logSystemEvent('user_invite_sent', `Tech invite sent to: ${email} | Role: ${role}${waAlerts ? ' | WA alerts enabled' : ''}`);
+
+  } catch(e) {
+    toast('Error: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Send invitation'; }
   }
 }
 

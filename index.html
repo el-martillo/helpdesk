@@ -810,6 +810,7 @@ function startRealtime() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, payload => {
       const key = payload.new?.key || payload.old?.key;
       if (key === 'categories') loadCategoriesFromSupabase();
+      if (key === 'support_whatsapp') loadWaButton();
     })
     .subscribe();
 }
@@ -893,21 +894,24 @@ function updateUserHeader() {
 /* ── WhatsApp support button ── */
 async function loadWaButton() {
   if (!sbClient) return;
-  const { data } = await sbClient.from('app_settings').select('value').eq('key','support_whatsapp').maybeSingle();
-  const num = data?.value?.trim();
-  const waBtn  = document.getElementById('chat-wa-btn');
-  const waRow  = document.getElementById('chat-wa-row');
-  const waLink = document.getElementById('chat-wa-link');
-  if (num) {
-    const clean = num.replace(/[\s\-\(\)]/g, '').replace('+', '');
-    const href  = 'https://wa.me/' + clean;
-    if (waBtn)  { waBtn.href = href;  waBtn.style.display  = 'flex'; }
-    if (waRow)  { waRow.style.display = 'block'; }
-    if (waLink) { waLink.href = href; }
-  } else {
-    if (waBtn)  waBtn.style.display  = 'none';
-    if (waRow)  waRow.style.display  = 'none';
-  }
+  try {
+    const { data, error } = await sbClient.from('app_settings').select('value').eq('key','support_whatsapp').maybeSingle();
+    if (error) { console.warn('[WA button] app_settings read error:', error.message); return; }
+    const num = data?.value?.trim();
+    const waBtn  = document.getElementById('chat-wa-btn');
+    const waRow  = document.getElementById('chat-wa-row');
+    const waLink = document.getElementById('chat-wa-link');
+    if (num) {
+      const clean = num.replace(/[\s\-\(\)]/g, '').replace('+', '');
+      const href  = 'https://wa.me/' + clean;
+      if (waBtn)  { waBtn.href = href;  waBtn.style.display  = 'flex'; }
+      if (waRow)  { waRow.style.display = 'block'; }
+      if (waLink) { waLink.href = href; }
+    } else {
+      if (waBtn)  waBtn.style.display  = 'none';
+      if (waRow)  waRow.style.display  = 'none';
+    }
+  } catch(e) { console.warn('[WA button] unexpected error:', e.message); }
 }
 
 /* ── Unread tracking (database-backed) ── */
@@ -1562,7 +1566,6 @@ async function initSupabase() {
   sbClient = window.supabase.createClient(url, key, {auth:{storage:window.sessionStorage,persistSession:true}});
   try { await loadOrgsFromSupabase(); } catch(e) { console.warn('Could not load orgs:', e.message); }
   try { await loadCategoriesFromSupabase(); } catch(e) { console.warn('Could not load categories:', e.message); }
-  loadVersion();
 
   // Handle email confirmation / magic link token in URL hash
   const hash = window.location.hash;
