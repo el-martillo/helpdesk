@@ -460,6 +460,24 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .page { display: none; }
 .page.active { display: block; min-height: calc(100vh - 52px); }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; gap: 12px; }
+
+/* Ticket page gradient banners */
+.ticket-banner {
+  margin: -24px -24px 24px;
+  padding: 28px 28px 22px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+}
+.ticket-banner h1 { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 2px; text-shadow: 0 1px 3px rgba(0,0,0,.18); }
+.ticket-banner p  { font-size: 12px; color: rgba(255,255,255,.8); margin-top: 2px; }
+.ticket-banner .btn { border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.15); color: #fff; backdrop-filter: blur(4px); }
+.ticket-banner .btn:hover { background: rgba(255,255,255,.28); }
+.ticket-banner .btn.primary { background: rgba(255,255,255,.25); border-color: rgba(255,255,255,.5); color: #fff; }
+.ticket-banner .btn.primary:hover { background: rgba(255,255,255,.38); }
+.tb-all        { background: linear-gradient(135deg, #1a3a6b 0%, #185FA5 50%, #2d8fc4 100%); }
+.tb-open       { background: linear-gradient(135deg, #1f4e8c 0%, #2271c3 50%, #47a0e8 100%); }
+.tb-in_progress{ background: linear-gradient(135deg, #3a2d8c 0%, #534AB7 50%, #7b72d4 100%); }
+.tb-waiting    { background: linear-gradient(135deg, #7a3a00 0%, #c47a0a 50%, #e8a82a 100%); }
+.tb-resolved   { background: linear-gradient(135deg, #1a4a08 0%, #3B6D11 50%, #5a9e1e 100%); }
 .page-header h1 { font-size: 18px; font-weight: 600; }
 .page-header p { font-size: 12px; color: var(--text2); margin-top: 2px; }
 
