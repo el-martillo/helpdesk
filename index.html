@@ -29,6 +29,38 @@
 <body>
 <canvas id="idx-canvas"></canvas>
 
+<!-- Loading screen -->
+<div id="loading-screen" class="screen active" style="background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:18px">
+    <svg width="100" height="76" viewBox="0 0 680 520" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">
+      <style>
+        @keyframes ld-o1 { from { offset-distance:0% } to { offset-distance:100% } }
+        @keyframes ld-o2 { from { offset-distance:0% } to { offset-distance:100% } }
+        @keyframes ld-o3 { from { offset-distance:0% } to { offset-distance:100% } }
+      </style>
+      <ellipse cx="340" cy="260" rx="200" ry="70" fill="none" stroke="#2196F3" stroke-width="5"/>
+      <g transform="rotate(60,340,260)">
+        <ellipse cx="340" cy="260" rx="200" ry="70" fill="none" stroke="#2196F3" stroke-width="5"/>
+      </g>
+      <g transform="rotate(120,340,260)">
+        <ellipse cx="340" cy="260" rx="200" ry="70" fill="none" stroke="#2196F3" stroke-width="5"/>
+      </g>
+      <circle cx="340" cy="260" r="38" fill="#1A3A7A"/>
+      <circle r="13" fill="none" stroke="#2196F3" stroke-width="4"
+        style="offset-path:path('M 140,260 A 200,70 0 1,1 539.9,260 A 200,70 0 1,1 140,260');offset-distance:0%;animation:ld-o1 3.5s linear infinite"/>
+      <g transform="rotate(60,340,260)">
+        <circle r="13" fill="none" stroke="#2196F3" stroke-width="4"
+          style="offset-path:path('M 140,260 A 200,70 0 1,1 539.9,260 A 200,70 0 1,1 140,260');offset-distance:33%;animation:ld-o2 4.5s linear infinite reverse"/>
+      </g>
+      <g transform="rotate(120,340,260)">
+        <circle r="13" fill="none" stroke="#2196F3" stroke-width="4"
+          style="offset-path:path('M 140,260 A 200,70 0 1,1 539.9,260 A 200,70 0 1,1 140,260');offset-distance:66%;animation:ld-o3 6s linear infinite"/>
+      </g>
+    </svg>
+    <div style="font-size:13px;font-weight:500;color:var(--text2);letter-spacing:.04em">Loading…</div>
+  </div>
+</div>
+
 <!-- Config screen (only shown if no saved URL) -->
 <div id="cfg-screen" class="screen active">
   <div class="screen-card">
@@ -1615,16 +1647,19 @@ async function initSupabase() {
       const { data: prof } = await sbClient.from('profiles').select('*').eq('id', currentUser.id).single();
       currentProfile = prof;
       document.getElementById('cfg-screen').classList.remove('active');
+      document.getElementById('loading-screen').style.display = 'none';
       loadVersion();
       showApp();
     } else {
       document.getElementById('cfg-screen').classList.remove('active');
+      document.getElementById('loading-screen').style.display = 'none';
       document.getElementById('auth-screen').classList.add('active');
       populateAllOrgSelects();
     }
   } catch(e) {
     console.error('Session restore error:', e);
     document.getElementById('cfg-screen').classList.remove('active');
+    document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('auth-screen').classList.add('active');
   }
 }

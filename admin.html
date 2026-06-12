@@ -24,6 +24,38 @@
 <body>
 <canvas id="beach-canvas"></canvas>
 
+<!-- Loading screen -->
+<div id="loading-screen" class="screen active" style="background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:18px">
+    <svg width="100" height="76" viewBox="0 0 680 520" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">
+      <style>
+        @keyframes ld-o1 { from { offset-distance:0% } to { offset-distance:100% } }
+        @keyframes ld-o2 { from { offset-distance:0% } to { offset-distance:100% } }
+        @keyframes ld-o3 { from { offset-distance:0% } to { offset-distance:100% } }
+      </style>
+      <ellipse cx="340" cy="260" rx="200" ry="70" fill="none" stroke="#2196F3" stroke-width="5"/>
+      <g transform="rotate(60,340,260)">
+        <ellipse cx="340" cy="260" rx="200" ry="70" fill="none" stroke="#2196F3" stroke-width="5"/>
+      </g>
+      <g transform="rotate(120,340,260)">
+        <ellipse cx="340" cy="260" rx="200" ry="70" fill="none" stroke="#2196F3" stroke-width="5"/>
+      </g>
+      <circle cx="340" cy="260" r="38" fill="#1A3A7A"/>
+      <circle r="13" fill="none" stroke="#2196F3" stroke-width="4"
+        style="offset-path:path('M 140,260 A 200,70 0 1,1 539.9,260 A 200,70 0 1,1 140,260');offset-distance:0%;animation:ld-o1 3.5s linear infinite"/>
+      <g transform="rotate(60,340,260)">
+        <circle r="13" fill="none" stroke="#2196F3" stroke-width="4"
+          style="offset-path:path('M 140,260 A 200,70 0 1,1 539.9,260 A 200,70 0 1,1 140,260');offset-distance:33%;animation:ld-o2 4.5s linear infinite reverse"/>
+      </g>
+      <g transform="rotate(120,340,260)">
+        <circle r="13" fill="none" stroke="#2196F3" stroke-width="4"
+          style="offset-path:path('M 140,260 A 200,70 0 1,1 539.9,260 A 200,70 0 1,1 140,260');offset-distance:66%;animation:ld-o3 6s linear infinite"/>
+      </g>
+    </svg>
+    <div style="font-size:13px;font-weight:500;color:var(--text2);letter-spacing:.04em">Loading…</div>
+  </div>
+</div>
+
 <!-- Config screen -->
 <div id="cfg-screen" class="screen" style="display:none">
   <div class="screen-card">
@@ -975,6 +1007,48 @@
             <div style="margin-top:14px;padding:12px;background:var(--warn-l);border-radius:var(--radius);font-size:12px;color:var(--warn);line-height:1.6;display:none" id="backup-progress">
               <div style="display:flex;align-items:center;gap:8px"><div class="loader" style="border-top-color:var(--warn)"></div> <span id="backup-progress-msg">Fetching data…</span></div>
             </div>
+          </div>
+
+          <!-- Ticket deletion section -->
+          <div class="table-card" data-card-id="ticket-delete" style="padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Delete tickets</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+              Permanently delete a single ticket or a range of tickets by ticket number. Associated comments and attachments are also removed. This action cannot be undone.
+            </div>
+
+            <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px">
+              <div class="fg" style="margin-bottom:0">
+                <label class="fl">Mode</label>
+                <select class="fc" id="del-ticket-mode" onchange="onDelModeChange()" style="max-width:160px">
+                  <option value="single">Single ticket</option>
+                  <option value="range">Range of tickets</option>
+                </select>
+              </div>
+              <div class="fg" style="margin-bottom:0">
+                <label class="fl" id="del-from-label">Ticket #</label>
+                <input class="fc" id="del-ticket-from" type="number" min="1" step="1" placeholder="e.g. 42" style="max-width:120px" oninput="clearDelPreview()"/>
+              </div>
+              <div class="fg" id="del-to-wrap" style="margin-bottom:0;display:none">
+                <label class="fl">To #</label>
+                <input class="fc" id="del-ticket-to" type="number" min="1" step="1" placeholder="e.g. 50" style="max-width:120px" oninput="clearDelPreview()"/>
+              </div>
+              <button class="btn" onclick="previewTicketDelete()">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                Preview
+              </button>
+            </div>
+
+            <div id="del-ticket-preview" style="display:none;margin-bottom:12px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+              <div style="padding:8px 12px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)" id="del-preview-heading">Tickets to delete</div>
+              <div id="del-preview-list" style="max-height:220px;overflow-y:auto"></div>
+            </div>
+
+            <div id="del-ticket-status" style="font-size:12px;color:var(--text3);margin-bottom:10px;display:none"></div>
+
+            <button class="btn danger" id="btn-del-tickets" onclick="runTicketDelete()" disabled>
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+              Delete tickets
+            </button>
           </div>
 
           <!-- Logs download section -->
@@ -3832,12 +3906,14 @@ async function initSupabase() {
       // Block client accounts from accessing admin
       if (!prof?.role || prof?.role === 'client') {
         await sbClient.auth.signOut();
+        document.getElementById('loading-screen').style.display = 'none';
         showAuthScreen();
         document.getElementById('auth-err').textContent = 'Access denied. Client accounts must use the client portal.';
         return;
       }
       document.getElementById('cfg-screen').classList.remove('active');
       document.getElementById('auth-screen').classList.remove('active');
+      document.getElementById('loading-screen').style.display = 'none';
       const tu = document.getElementById('topbar-user');
       if (tu) tu.textContent = prof?.full_name || currentUser.email;
       // Sync mobile hamburger pill
@@ -3852,11 +3928,13 @@ async function initSupabase() {
       document.getElementById('app').style.display = 'flex'; stopBeachCanvas();
       loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart(); loadCategories(); loadCannedResponses(); loadSeenMap();
     } else {
+      document.getElementById('loading-screen').style.display = 'none';
       showAuthScreen();
       loadVersion();
     }
   } catch(e) {
     console.error('Session restore error:', e);
+    document.getElementById('loading-screen').style.display = 'none';
     showAuthScreen();
   }
 }
@@ -4969,6 +5047,129 @@ function downloadJSON(data, filename) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/* ── Ticket deletion ── */
+function onDelModeChange() {
+  const mode = document.getElementById('del-ticket-mode').value;
+  const toWrap = document.getElementById('del-to-wrap');
+  const fromLabel = document.getElementById('del-from-label');
+  toWrap.style.display = mode === 'range' ? '' : 'none';
+  fromLabel.textContent = mode === 'range' ? 'From #' : 'Ticket #';
+  clearDelPreview();
+}
+
+function clearDelPreview() {
+  document.getElementById('del-ticket-preview').style.display = 'none';
+  document.getElementById('del-ticket-status').style.display = 'none';
+  document.getElementById('btn-del-tickets').disabled = true;
+}
+
+async function previewTicketDelete() {
+  const mode = document.getElementById('del-ticket-mode').value;
+  const from = parseInt(document.getElementById('del-ticket-from').value);
+  const to   = mode === 'range' ? parseInt(document.getElementById('del-ticket-to').value) : from;
+
+  if (!from || isNaN(from)) { toast('Enter a ticket number'); return; }
+  if (mode === 'range' && (isNaN(to) || to < from)) { toast('Range end must be ≥ range start'); return; }
+  if (mode === 'range' && (to - from) > 999) { toast('Range limited to 1000 tickets at a time'); return; }
+
+  const status = document.getElementById('del-ticket-status');
+  const preview = document.getElementById('del-ticket-preview');
+  const list = document.getElementById('del-preview-list');
+  const btn = document.getElementById('btn-del-tickets');
+
+  status.style.display = 'block';
+  status.style.color = 'var(--text3)';
+  status.textContent = 'Searching…';
+  preview.style.display = 'none';
+  btn.disabled = true;
+
+  let query = sbClient.from('tickets')
+    .select('id, ticket_number, subject, status, requester:profiles!requester_id(full_name)')
+    .gte('ticket_number', from)
+    .lte('ticket_number', to)
+    .order('ticket_number');
+
+  const { data, error } = await query;
+  if (error) { status.textContent = 'Error: ' + error.message; status.style.color = 'var(--danger)'; return; }
+
+  if (!data.length) {
+    status.textContent = mode === 'range'
+      ? `No tickets found between #${from} and #${to}.`
+      : `Ticket #${from} not found.`;
+    status.style.color = 'var(--text3)';
+    return;
+  }
+
+  document.getElementById('del-preview-heading').textContent =
+    `${data.length} ticket${data.length !== 1 ? 's' : ''} will be permanently deleted`;
+
+  list.innerHTML = data.map(t => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px">
+      <span class="tid" style="flex-shrink:0">#${t.ticket_number}</span>
+      <span class="sb s-${t.status}" style="font-size:10px;padding:2px 6px;flex-shrink:0">${sLabel(t.status)}</span>
+      <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text1)">${esc(t.subject)}</span>
+      <span style="color:var(--text3);flex-shrink:0">${esc(t.requester?.full_name || '—')}</span>
+    </div>`).join('');
+
+  preview.style.display = 'block';
+  status.textContent = `⚠️ ${data.length} ticket${data.length !== 1 ? 's' : ''} and all associated comments and attachments will be permanently removed.`;
+  status.style.color = 'var(--warn)';
+  btn.disabled = false;
+
+  // Store IDs for deletion
+  btn.dataset.deleteIds = JSON.stringify(data.map(t => t.id));
+  btn.dataset.deleteNums = data.map(t => t.ticket_number).join(', ');
+}
+
+async function runTicketDelete() {
+  const btn = document.getElementById('btn-del-tickets');
+  const ids = JSON.parse(btn.dataset.deleteIds || '[]');
+  const nums = btn.dataset.deleteNums || '';
+  if (!ids.length) return;
+
+  const label = ids.length === 1
+    ? `Delete ticket #${nums}? This cannot be undone.`
+    : `Delete ${ids.length} tickets (#${nums})? This cannot be undone.`;
+
+  try {
+    await requireReauth(label);
+  } catch(e) { return; }
+
+  btn.disabled = true;
+  const status = document.getElementById('del-ticket-status');
+  status.style.display = 'block';
+  status.style.color = 'var(--text3)';
+  status.textContent = `Deleting ${ids.length} ticket${ids.length !== 1 ? 's' : ''}…`;
+
+  // Delete in chunks of 50 to stay within Supabase URL length limits
+  const CHUNK = 50;
+  let deleted = 0;
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const chunk = ids.slice(i, i + CHUNK);
+    const { error } = await sbClient.from('tickets').delete().in('id', chunk);
+    if (error) {
+      status.style.color = 'var(--danger)';
+      status.textContent = `Error after ${deleted} deleted: ${error.message}`;
+      btn.disabled = false;
+      return;
+    }
+    deleted += chunk.length;
+  }
+
+  status.style.color = 'var(--success)';
+  status.textContent = `✓ ${deleted} ticket${deleted !== 1 ? 's' : ''} deleted successfully.`;
+  document.getElementById('del-ticket-preview').style.display = 'none';
+  document.getElementById('del-ticket-from').value = '';
+  document.getElementById('del-ticket-to').value = '';
+  delete btn.dataset.deleteIds;
+  delete btn.dataset.deleteNums;
+
+  logSystemEvent('tickets_deleted', `${deleted} ticket${deleted !== 1 ? 's' : ''} deleted | #${nums} | by ${currentProfile?.full_name || 'admin'}`);
+  loadTickets();
+  loadBackupStats();
+  toast(`${deleted} ticket${deleted !== 1 ? 's' : ''} deleted`);
 }
 
 /* ── Dashboard ── */
