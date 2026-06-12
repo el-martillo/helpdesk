@@ -151,6 +151,15 @@
       </a>
       <div class="mobile-menu-sep"></div>
       <div style="padding:10px 12px 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">Tickets</div>
+      <button class="mobile-menu-item" onclick="adminNav(document.querySelector('.nav-item[onclick*=\"dashboard\"]'),'dashboard');renderDashboard();closeMobileMenu()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </button>
+      <a class="mobile-menu-item" href="index.html" style="text-decoration:none">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Client portal
+      </a>
+      <div class="mobile-menu-sep"></div>
       <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[0],'all');closeMobileMenu()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8h18M3 12h18M3 16h18"/></svg>
         All tickets
@@ -202,7 +211,7 @@
           </button>
         </div>
       </div>
-      <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[8],'settings');loadBackupStats();closeMobileMenu()">
+      <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[8],'settings');loadBackupStats();loadEmailSignature();closeMobileMenu()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </button>
@@ -295,7 +304,7 @@
           </div>
         </div>
       </div>
-      <div class="nav-item" id="nav-settings" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();loadDirCoColors().then(()=>{loadCompanyColors().then(()=>renderOrgList())});loadCategories();loadCannedResponses();loadRateLimits();loadSessionTimeout();loadReportStart();loadOrphanedAccounts();loadWaTriggers();initSettingsDrag()">
+      <div class="nav-item" id="nav-settings" onclick="adminNav(this,'settings');loadBackupStats();loadLogStats();loadVersion();loadDirCoColors().then(()=>{loadCompanyColors().then(()=>renderOrgList())});loadCategories();loadCannedResponses();loadRateLimits();loadSessionTimeout();loadReportStart();loadOrphanedAccounts();loadWaTriggers();loadEmailSignature();initSettingsDrag()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </div>
@@ -812,6 +821,50 @@
             <div style="display:flex;gap:8px;margin-top:8px">
               <button class="btn primary" onclick="saveGeneralSettings()">Save settings</button>
               <button class="btn" onclick="clearCreds()">Disconnect Supabase</button>
+            </div>
+          </div>
+
+          <!-- Email signature -->
+          <div class="table-card" data-card-id="email-signature" style="padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Email signature</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
+              Appended to all outbound Resend emails. Supports basic HTML. The El Martillo logo is automatically included above this signature.
+            </div>
+
+            <div class="fg">
+              <label class="fl">Signature HTML</label>
+              <textarea id="sig-html" class="fc" style="min-height:110px;font-family:var(--mono);font-size:12px;resize:vertical" placeholder="e.g. &lt;p&gt;El Martillo I.T. | +350 200 50630 | helpdesk@el-martillo.com&lt;/p&gt;" oninput="updateSigPreview(this.value)"></textarea>
+            </div>
+
+            <div style="margin-bottom:14px">
+              <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">Live preview</div>
+              <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+                <!-- Simulated email header -->
+                <div style="background:var(--surface2);padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">
+                  <div><strong style="color:var(--text2)">From:</strong> El Martillo I.T. &lt;helpdesk@el-martillo.com&gt;</div>
+                  <div style="margin-top:2px"><strong style="color:var(--text2)">Subject:</strong> [Ticket #42] Your request has been resolved</div>
+                </div>
+                <div style="padding:16px;background:var(--surface)">
+                  <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">Hi Jane,<br><br>Your ticket has been resolved. Please reply if you need further assistance.</p>
+                  <!-- Signature preview area -->
+                  <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                      <img src="logo.png" alt="El Martillo I.T." style="height:28px;width:auto;opacity:.9"/>
+                      <span style="font-size:11px;font-weight:600;color:var(--text2)">El Martillo I.T.</span>
+                    </div>
+                    <div id="sig-preview" style="font-size:12px;color:var(--text2);line-height:1.7"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn primary" onclick="saveEmailSignature()">Save signature</button>
+              <button class="btn" onclick="loadEmailSignature()">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+                Reload
+              </button>
+              <button class="btn" onclick="document.getElementById('sig-html').value='';document.getElementById('sig-preview').innerHTML=''">Clear</button>
             </div>
           </div>
 
@@ -2103,6 +2156,34 @@ async function loadGeneralSettings() {
   const { data } = await sbClient.from('app_settings').select('value').eq('key','support_whatsapp').maybeSingle();
   const el = document.getElementById('settings-wa-number');
   if (el && data?.value) el.value = data.value;
+}
+
+/* ── Email signature ── */
+async function loadEmailSignature() {
+  if (!sbClient) return;
+  const { data } = await sbClient.from('app_settings').select('value').eq('key','email_signature').maybeSingle();
+  const val = data?.value || '';
+  const ta = document.getElementById('sig-html');
+  if (ta) ta.value = val;
+  updateSigPreview(val);
+}
+
+async function saveEmailSignature() {
+  const val = (document.getElementById('sig-html')?.value || '').trim();
+  const { error } = await sbClient.from('app_settings')
+    .upsert({ key: 'email_signature', value: val }, { onConflict: 'key' });
+  if (error) { toast('Error: ' + error.message); return; }
+  updateSigPreview(val);
+  logSystemEvent('email_signature_updated', `Email signature updated by ${currentProfile?.full_name || 'admin'}`);
+  toast('Signature saved');
+}
+
+function updateSigPreview(html) {
+  const el = document.getElementById('sig-preview');
+  if (!el) return;
+  // Strip script tags for preview safety
+  const safe = (html || '').replace(/<script[\s\S]*?<\/script>/gi, '').replace(/on\w+="[^"]*"/gi, '');
+  el.innerHTML = safe || '<span style="color:var(--text3);font-style:italic">No signature set</span>';
 }
 
 /* ── Unread tracking (database-backed) ── */
