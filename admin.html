@@ -951,6 +951,22 @@
               </button>
               <span id="tpl-save-status" style="font-size:12px;color:var(--success);display:none"></span>
             </div>
+
+            <div style="height:1px;background:var(--border);margin:18px 0"></div>
+
+            <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px">Send test email</div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6">Sends a test email using the currently selected template (saved version) to the address below.</div>
+            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+              <div class="fg" style="margin-bottom:0;flex:1;min-width:200px">
+                <label class="fl">Recipient email</label>
+                <input id="tpl-test-email" class="fc" type="email" placeholder="you@example.com"/>
+              </div>
+              <button class="btn" id="tpl-test-btn" onclick="sendTestTemplateEmail()" style="flex-shrink:0">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Send test
+              </button>
+            </div>
+            <div id="tpl-test-status" style="font-size:12px;margin-top:8px;display:none"></div>
           </div>
 
           <!-- Reports start ticket -->
@@ -2422,6 +2438,51 @@ async function resetEmailTemplate() {
   if (error) { toast('Error: ' + error.message); return; }
   loadTemplateIntoEditor();
   toast('Template reset to default');
+}
+
+async function sendTestTemplateEmail() {
+  const to  = (document.getElementById('tpl-test-email')?.value || '').trim();
+  const key = document.getElementById('tpl-select')?.value || 'resolved';
+  if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { toast('Enter a valid recipient email'); return; }
+
+  const btn    = document.getElementById('tpl-test-btn');
+  const status = document.getElementById('tpl-test-status');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  status.style.display = 'none';
+
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session?.access_token) throw new Error('Not authenticated');
+
+    const res = await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        _sig_test:  true,
+        to_email:   to,
+        changed_by: currentProfile?.full_name || 'Admin',
+        _tpl_key:   key,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.sent) {
+      status.style.display = 'block';
+      status.style.color   = 'var(--success)';
+      const labels = { resolved: 'Ticket resolved', reopened: 'Ticket reopened (helpdesk)', client_reopened: 'Ticket reopened (client)', closed_helpdesk: 'Ticket closed' };
+      status.textContent = `✓ Test email sent to ${to} using "${labels[key] || key}" template`;
+    } else {
+      throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
+    }
+  } catch(e) {
+    status.style.display = 'block';
+    status.style.color   = 'var(--danger)';
+    status.textContent   = 'Error: ' + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send test`;
+  }
 }
 
 /* ── Unread tracking (database-backed) ── */
