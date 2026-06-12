@@ -480,17 +480,37 @@ textarea.fc { resize: vertical; min-height: 80px; }
 .tb-resolved   { background: linear-gradient(135deg, #1a4a08 0%, #3B6D11 50%, #5a9e1e 100%); }
 
 /* Tinted page body backgrounds */
-#page-all        { background: linear-gradient(180deg, #e8f1fa 0%, var(--bg) 340px); }
-#page-open       { background: linear-gradient(180deg, #deeaf8 0%, var(--bg) 340px); }
-#page-in_progress{ background: linear-gradient(180deg, #ebe8f8 0%, var(--bg) 340px); }
-#page-waiting    { background: linear-gradient(180deg, #fdf3de 0%, var(--bg) 340px); }
-#page-resolved   { background: linear-gradient(180deg, #e4f2d8 0%, var(--bg) 340px); }
+#page-all        { background: #e8f1fa; }
+#page-open       { background: #deeaf8; }
+#page-in_progress{ background: #ebe8f8; }
+#page-waiting    { background: #fdf3de; }
+#page-resolved   { background: #e4f2d8; }
+
+/* Table cards on tinted pages inherit the tint */
+#page-all .table-card,
+#page-open .table-card,
+#page-in_progress .table-card,
+#page-waiting .table-card,
+#page-resolved .table-card { background: rgba(255,255,255,.72); backdrop-filter: blur(4px); }
+
+#page-all .stat-card,
+#page-open .stat-card,
+#page-in_progress .stat-card,
+#page-waiting .stat-card,
+#page-resolved .stat-card { background: rgba(255,255,255,.72); }
+
 @media (prefers-color-scheme: dark) {
-  #page-all        { background: linear-gradient(180deg, #0d1e33 0%, var(--bg) 340px); }
-  #page-open       { background: linear-gradient(180deg, #0d1e38 0%, var(--bg) 340px); }
-  #page-in_progress{ background: linear-gradient(180deg, #1a1538 0%, var(--bg) 340px); }
-  #page-waiting    { background: linear-gradient(180deg, #2a1800 0%, var(--bg) 340px); }
-  #page-resolved   { background: linear-gradient(180deg, #0d2208 0%, var(--bg) 340px); }
+  #page-all        { background: #0d1e33; }
+  #page-open       { background: #0d1e38; }
+  #page-in_progress{ background: #1a1538; }
+  #page-waiting    { background: #2a1800; }
+  #page-resolved   { background: #0d2208; }
+  #page-all .table-card, #page-open .table-card,
+  #page-in_progress .table-card, #page-waiting .table-card,
+  #page-resolved .table-card { background: rgba(255,255,255,.06); }
+  #page-all .stat-card, #page-open .stat-card,
+  #page-in_progress .stat-card, #page-waiting .stat-card,
+  #page-resolved .stat-card { background: rgba(255,255,255,.06); }
 }
 .page-header h1 { font-size: 18px; font-weight: 600; }
 .page-header p { font-size: 12px; color: var(--text2); margin-top: 2px; }
