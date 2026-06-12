@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="Content-Security-Policy"
+  content="default-src 'self';
+           script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.google.com https://www.gstatic.com;
+           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com;
+           font-src https://fonts.gstatic.com;
+           connect-src 'self' https://gtcrmqbmlvtlyiwnshma.supabase.co https://corsproxy.io https://api.allorigins.win https://rss.app;
+           img-src 'self' data: blob: https://ichef.bbci.co.uk https://gtcrmqbmlvtlyiwnshma.supabase.co;
+           frame-src https://www.google.com;"/>
 <title>El Martillo I.T. Ticketing System — Admin</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://www.google.com/recaptcha/api.js?render=explicit" async defer></script>
@@ -1317,7 +1325,7 @@
       </div>
     </div>
     <div class="fg"><label class="fl">Notes</label><textarea id="au-notes" class="fc" placeholder="Any additional notes about this user…" style="min-height:60px;resize:none"></textarea></div>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:4px;line-height:1.6">A profile row will be created. To also grant login access, invite the user via <a href="https://supabase.com/dashboard/project/gtcrmqbmlvtlyiwnshma/auth/users" target="_blank" style="color:var(--accent)">Supabase Auth →</a></p>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:4px;line-height:1.6">A profile row will be created. To also grant login access, invite the user via the Supabase Auth dashboard.</p>
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-add-user')">Cancel</button>
       <button class="btn primary" onclick="addUser()">Add user</button>
@@ -1622,6 +1630,7 @@ const AV_COLORS = ['av-blue','av-purple','av-teal','av-coral','av-green'];
 
 /* ── Helpers ── */
 const esc       = s => { const d=document.createElement('div'); d.textContent=String(s??''); return d.innerHTML; };
+const safeEmail = e => (e && /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(e)) ? e : null;
 const initials  = n => n ? n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '?';
 const avColor   = id => AV_COLORS[(id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0) % AV_COLORS.length];
 const timeAgo   = iso => { if(!iso) return '—'; const m=Math.floor((Date.now()-new Date(iso))/60000); if(m<1) return 'just now'; if(m<60) return m+'m ago'; const h=Math.floor(m/60); if(h<24) return h+'h ago'; return Math.floor(h/24)+'d ago'; };
@@ -1818,7 +1827,6 @@ async function connectSupabase() {
     sbClient = window.supabase.createClient(url, key, {auth:{storage:window.sessionStorage,persistSession:true}});
     const {error} = await sbClient.from('profiles').select('id').limit(1);
     if (error) throw error;
-    localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
     showAuthScreen();
   } catch(e) { alert('Connection failed: '+e.message); }
 }
@@ -1876,17 +1884,17 @@ async function signIn() {
   document.getElementById('topbar-user').textContent = prof?.full_name||email;
   const rb = document.getElementById('topbar-role-badge'); if(rb) rb.textContent = prof?.role==='super_admin'?'Super Admin':'Admin';
   applyRoleUI(prof?.role);
-  document.getElementById('settings-url').value = localStorage.getItem('sb_url')||'';
+  document.getElementById('settings-url').value = SB_URL;
   // Sync mobile hamburger pill
   const _mn = prof?.full_name||email;
   const mobAv = document.getElementById('mob-avatar-admin');
   const mobNm = document.getElementById('mob-name-admin');
   if (mobAv) { mobAv.textContent = initials(_mn); mobAv.className = 'avatar ' + avColor(prof?.id||''); }
   if (mobNm) mobNm.textContent = _mn;
-  loadTickets(); loadProfiles(); loadGeneralSettings(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart(); loadCategories(); loadCannedResponses();
+  loadTickets(); loadProfiles(); loadGeneralSettings(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart(); loadCategories(); loadCannedResponses(); loadSeenMap();
 }
 async function signOut() { if(realtimeChannel && sbClient) sbClient.removeChannel(realtimeChannel); if(sbClient) await sbClient.auth.signOut(); location.reload(); }
-function clearCreds() { localStorage.removeItem('sb_url'); localStorage.removeItem('sb_key'); location.reload(); }
+function clearCreds() { localStorage.removeItem('sb_key'); location.reload(); }
 
 /* ── Re-authentication ── */
 let _reauthResolve = null;
@@ -2006,10 +2014,29 @@ async function loadGeneralSettings() {
   if (el && data?.value) el.value = data.value;
 }
 
-/* ── Unread tracking ── */
-function seenKey(id) { return 'seen_' + id; }
-function getSeenAt(id) { return localStorage.getItem(seenKey(id)) || ''; }
-function markSeen(id, updatedAt) { localStorage.setItem(seenKey(id), updatedAt); }
+/* ── Unread tracking (database-backed) ── */
+let _seenMap = {}; // ticket_id -> seen_at (ISO string), populated on load
+
+async function loadSeenMap() {
+  if (!currentUser) return;
+  const { data } = await sbClient
+    .from('ticket_views')
+    .select('ticket_id, seen_at')
+    .eq('user_id', currentUser.id);
+  if (data) data.forEach(r => { _seenMap[r.ticket_id] = r.seen_at; });
+}
+
+function getSeenAt(id) { return _seenMap[id] || ''; }
+
+async function markSeen(id, updatedAt) {
+  if (!currentUser) return;
+  _seenMap[id] = updatedAt;
+  await sbClient.from('ticket_views').upsert(
+    { user_id: currentUser.id, ticket_id: id, seen_at: updatedAt },
+    { onConflict: 'user_id,ticket_id' }
+  );
+}
+
 function isUnread(t) {
   const seen = getSeenAt(t.id);
   if (!seen) return false;
@@ -2664,7 +2691,7 @@ async function openTicketDetail(id) {
         <div class="val">${timeAgo(t.updated_at)}</div>
       </div>
       ${(req?.company||t.organisation)?(()=>{const co=req?.company||t.organisation;const s=coStyle(co);return `<div class="dmi" style="${s}"><div class="key">Organisation</div><div class="val" style="font-weight:600;color:${(()=>{if(!_coColors)return 'inherit';const lower=co.toLowerCase();const k=Object.keys(_coColors).find(k=>k===co)||Object.keys(_coColors).find(k=>k.toLowerCase()===lower)||Object.keys(_coColors).find(k=>lower.includes(k.toLowerCase())||k.toLowerCase().includes(lower));return k?_coColors[k]:'inherit';})()}">${esc(co)}</div></div>`;})():''}
-      ${(req?.email||t.contact_email)?`<div class="dmi"><div class="key">Email</div><div class="val"><a href="mailto:${esc(req?.email||t.contact_email)}" style="color:var(--accent);word-break:break-all">${esc(req?.email||t.contact_email)}</a></div></div>`:''}
+      ${(()=>{const em=safeEmail(req?.email||t.contact_email);return em?`<div class="dmi"><div class="key">Email</div><div class="val"><a href="mailto:${esc(em)}" style="color:var(--accent);word-break:break-all">${esc(em)}</a></div></div>`:'';})()} 
       ${(req?.phone||t.contact_phone)?`<div class="dmi"><div class="key">Telephone</div><div class="val"><a href="tel:${esc(req?.phone||t.contact_phone)}" style="color:var(--accent)">${esc(req?.phone||t.contact_phone)}</a></div></div>`:''}
     </div>
     </div>
@@ -3760,7 +3787,6 @@ async function initSupabase() {
   // Always hide config screen immediately — credentials are hardcoded
   document.getElementById('cfg-screen').classList.remove('active');
   const url = SB_URL, key = SB_KEY;
-  localStorage.setItem('sb_url', url); localStorage.setItem('sb_key', key);
   const cfgUrl = document.getElementById('cfg-url');
   const cfgKey = document.getElementById('cfg-key');
   if (cfgUrl) cfgUrl.value = url;
@@ -3799,7 +3825,7 @@ async function initSupabase() {
       if (rb) rb.textContent = prof?.role === 'super_admin' ? 'Super Admin' : 'Admin';
       applyRoleUI(prof?.role);
       document.getElementById('app').style.display = 'flex'; stopBeachCanvas();
-      loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart(); loadCategories(); loadCannedResponses();
+      loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart(); loadCategories(); loadCannedResponses(); loadSeenMap();
     } else {
       showAuthScreen();
       loadVersion();
@@ -3869,7 +3895,7 @@ function renderUsersTable() {
           <div class="avatar ${avColor(p.id)}" style="width:30px;height:30px;font-size:11px">${initials(p.full_name||'?')}</div>
           <div>
             <div style="font-weight:500;font-size:13px">${esc(p.full_name)||'—'}</div>
-            <div style="font-size:11px;margin-top:2px">${p.email ? `<a href="mailto:${esc(p.email)}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${esc(p.email)}</a>` : `<span style="color:var(--text3);font-family:var(--mono)">${p.id.slice(0,8)}…</span>`}</div>
+            <div style="font-size:11px;margin-top:2px">${(()=>{const em=safeEmail(p.email);return em?`<a href="mailto:${esc(em)}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${esc(em)}</a>`:`<span style="color:var(--text3);font-family:var(--mono)">${p.id.slice(0,8)}…</span>`;})()}</div>
           </div>
         </div>
       </td>
@@ -5559,7 +5585,7 @@ function renderActivityTable() {
     <tr>
       <td style="font-size:12px;color:var(--text3);white-space:nowrap">${timeAgo(a.created_at)}<div style="font-size:10px;margin-top:1px">${a.created_at ? new Date(a.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}</div></td>
       <td><div style="font-size:13px;font-weight:500">${esc(a.user_name)||'—'}</div></td>
-      <td style="font-size:12px;color:var(--text2)">${a.user_email ? `<a href="mailto:${esc(a.user_email)}" style="color:var(--accent);text-decoration:none">${esc(a.user_email)}</a>` : '—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${(()=>{const em=safeEmail(a.user_email);return em?`<a href="mailto:${esc(em)}" style="color:var(--accent);text-decoration:none">${esc(em)}</a>`:'—';})()}</td>
       <td>${actionLabel(a.action)}</td>
       <td>${statusLabel(a.status)}</td>
       <td style="font-size:12px;color:var(--text2);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.details)||'—'}</td>
@@ -6554,7 +6580,7 @@ function renderAdminDir() {
       <td style="font-weight:500">${escH(e.name)}</td>
       <td><span class="co-badge" style="background:${color}18;color:${color}">${escH(e.company)}</span></td>
       <td style="color:var(--text2)">${escH(e.department||'—')}</td>
-      <td>${e.email?`<a href="mailto:${escH(e.email)}" style="color:var(--accent);text-decoration:none;font-size:12px">${escH(e.email)}</a>`:'—'}</td>
+      <td>${(()=>{const em=safeEmail(e.email);return em?`<a href="mailto:${esc(em)}" style="color:var(--accent);text-decoration:none;font-size:12px">${esc(em)}</a>`:'—';})()}</td>
       <td style="font-family:var(--mono);font-size:12px">${escH(e.extension||'—')}</td>
       <td>${e.is_queue
         ? '<span class="queue-tag">Queue</span>'
