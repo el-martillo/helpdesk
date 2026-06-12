@@ -553,15 +553,6 @@ async function openModal(id){
   const overlay = document.getElementById(id);
   if (!overlay) return;
   overlay.classList.add('open');
-  const modal = overlay.querySelector('.modal');
-  if (modal) {
-    requestAnimationFrame(() => {
-      const vw = window.innerWidth, vh = window.innerHeight;
-      const mw = modal.offsetWidth,  mh = modal.offsetHeight;
-      modal.style.left = Math.max(8, (vw - mw) / 2) + 'px';
-      modal.style.top  = Math.max(8, Math.min((vh - mh) / 2, vh * 0.1)) + 'px';
-    });
-  }
   if (id === 'modal-new-ticket') {
     populateCompanyDropdown();
     populateCategoryDropdown();
@@ -1048,12 +1039,7 @@ function renderTickets() {
 /* ── Ticket detail ── */
 function centreTicketModal() {
   const overlay = document.getElementById('modal-ticket-detail');
-  const modal   = overlay?.querySelector('.modal');
-  if (!overlay || !modal) return;
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const mw = modal.offsetWidth,  mh = modal.offsetHeight;
-  modal.style.left = Math.max(8, (vw - mw) / 2) + 'px';
-  modal.style.top  = Math.max(8, Math.min((vh - mh) / 2, vh * 0.1)) + 'px';
+  if (overlay) overlay.scrollTop = 0;
 }
 
 async function openTicketDetail(id) {
