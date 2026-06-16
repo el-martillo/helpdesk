@@ -1679,6 +1679,51 @@
       </button>
     </div>
 
+    <!-- Set password -->
+    <div style="border:1px solid var(--border);border-radius:var(--radius);margin-bottom:4px;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2)">
+        <div>
+          <div style="font-size:12px;font-weight:500;color:var(--text1)">Set new password</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Directly set a password for this user</div>
+        </div>
+        <button class="btn sm" onclick="toggleSetPassword()" id="eu-setpw-toggle" style="white-space:nowrap;flex-shrink:0">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Set password
+        </button>
+      </div>
+      <div id="eu-setpw-form" style="display:none;padding:12px;border-top:1px solid var(--border);background:var(--surface)">
+        <div class="form-row" style="margin-bottom:8px">
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl">New password</label>
+            <div style="position:relative">
+              <input id="eu-new-password" class="fc" type="password" placeholder="Min. 8 characters" autocomplete="new-password" style="padding-right:36px"/>
+              <button type="button" onclick="togglePwVisibility('eu-new-password','eu-pw-eye')" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);padding:2px;line-height:1" id="eu-pw-eye">
+                <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl">Confirm password</label>
+            <div style="position:relative">
+              <input id="eu-confirm-password" class="fc" type="password" placeholder="Repeat password" autocomplete="new-password" style="padding-right:36px"/>
+              <button type="button" onclick="togglePwVisibility('eu-confirm-password','eu-pw-eye2')" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);padding:2px;line-height:1" id="eu-pw-eye2">
+                <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="eu-pw-strength" style="height:4px;border-radius:2px;background:var(--border);margin-bottom:8px;overflow:hidden"><div id="eu-pw-strength-bar" style="height:100%;width:0;border-radius:2px;transition:width .2s,background .2s"></div></div>
+        <div id="eu-pw-match" style="font-size:11px;color:var(--text3);margin-bottom:10px"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn sm" onclick="toggleSetPassword()">Cancel</button>
+          <button class="btn sm primary" id="eu-setpw-btn" onclick="adminSetPassword()">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Save password
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div id="eu-wa-section">
     <div style="height:1px;background:var(--border);margin:14px 0"></div>
 
@@ -4547,6 +4592,11 @@ function openEditUser(id) {
   }
   document.getElementById('eu-wa-number').value  = p.whatsapp_number  || '';
   document.getElementById('eu-wa-apikey').value  = p.whatsapp_apikey  || '';
+  // Always collapse set-password form on open
+  const spForm = document.getElementById('eu-setpw-form');
+  const spToggle = document.getElementById('eu-setpw-toggle');
+  if (spForm) spForm.style.display = 'none';
+  if (spToggle) spToggle.innerHTML = '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Set password';
   openModal('modal-edit-user');
 }
 
@@ -4586,6 +4636,91 @@ async function sendInviteEmail() {
     toast('Error: ' + e.message);
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg> Send'; }
+  }
+}
+
+function toggleSetPassword() {
+  const form   = document.getElementById('eu-setpw-form');
+  const toggle = document.getElementById('eu-setpw-toggle');
+  const isOpen = form.style.display !== 'none';
+  form.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    document.getElementById('eu-new-password').value     = '';
+    document.getElementById('eu-confirm-password').value = '';
+    document.getElementById('eu-pw-strength-bar').style.width = '0';
+    document.getElementById('eu-pw-match').textContent = '';
+    document.getElementById('eu-new-password').focus();
+    document.getElementById('eu-new-password').oninput    = updatePwFeedback;
+    document.getElementById('eu-confirm-password').oninput = updatePwFeedback;
+  }
+  toggle.innerHTML = isOpen
+    ? '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Set password'
+    : '\u2715 Cancel';
+}
+
+function togglePwVisibility(inputId, btnId) {
+  const input = document.getElementById(inputId);
+  const isText = input.type === 'text';
+  input.type = isText ? 'password' : 'text';
+  const btn = document.getElementById(btnId);
+  btn.innerHTML = isText
+    ? '<svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+    : '<svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+}
+
+function updatePwFeedback() {
+  const pw   = document.getElementById('eu-new-password').value;
+  const conf = document.getElementById('eu-confirm-password').value;
+  let score = 0;
+  if (pw.length >= 8)       score++;
+  if (/[A-Z]/.test(pw))     score++;
+  if (/[0-9]/.test(pw))     score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const bar     = document.getElementById('eu-pw-strength-bar');
+  const colours = ['#E24B4A','#EF9F27','#378ADD','#3B6D11'];
+  const labels  = ['Too short','Weak','Good','Strong'];
+  bar.style.width      = pw.length ? (score / 4 * 100) + '%' : '0';
+  bar.style.background = pw.length ? (colours[score - 1] || colours[0]) : '';
+  const matchEl = document.getElementById('eu-pw-match');
+  if (!conf) { matchEl.textContent = pw.length ? (labels[score-1] || 'Too short') : ''; matchEl.style.color = colours[score-1] || ''; return; }
+  if (pw === conf) { matchEl.textContent = '\u2713 Passwords match'; matchEl.style.color = 'var(--success)'; }
+  else             { matchEl.textContent = '\u2717 Passwords do not match'; matchEl.style.color = 'var(--danger)'; }
+}
+
+async function adminSetPassword() {
+  const userId    = document.getElementById('eu-id').value;
+  const userName  = document.getElementById('eu-name').value.trim();
+  const userEmail = document.getElementById('eu-email').value.trim();
+  const pw        = document.getElementById('eu-new-password').value;
+  const conf      = document.getElementById('eu-confirm-password').value;
+  const btn       = document.getElementById('eu-setpw-btn');
+  if (pw.length < 8) { toast('Password must be at least 8 characters'); return; }
+  if (pw !== conf)   { toast('Passwords do not match'); return; }
+  if (userId === currentUser?.id) { toast('Use your account settings to change your own password'); return; }
+  const targetProfile = allProfiles.find(p => p.id === userId);
+  if (targetProfile?.role === 'super_admin' && currentProfile?.role !== 'super_admin') {
+    toast('Only super admins can set passwords for super admin accounts'); return;
+  }
+  if (!confirm('Set a new password for ' + (userName || userEmail) + '? They will be able to sign in immediately with the new password.')) return;
+  btn.disabled = true; btn.textContent = 'Saving\u2026';
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session?.access_token) throw new Error('Not authenticated');
+    const resp = await fetch(SB_URL + '/functions/v1/admin-set-password', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, password: pw })
+    });
+    const result = await resp.json();
+    if (!resp.ok) throw new Error(result?.error || result?.message || 'Unknown error');
+    toast('Password updated for ' + (userName || userEmail));
+    logSystemEvent('password_set', 'Admin set password for: ' + userName + ' (' + userEmail + ')');
+    toggleSetPassword();
+  } catch(e) {
+    toast('Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save password';
   }
 }
 
@@ -6655,15 +6790,13 @@ function startRealtime() {
 
   realtimeChannel = sbClient
     .channel('admin-realtime')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tickets' }, async payload => {
-      await loadTickets();
-      refreshCurrentPage();
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tickets' }, payload => {
+      loadTickets();
       const t = payload.new;
       toast(`New ticket #${t.ticket_number}: ${t.subject?.slice(0,40) || 'New ticket received'}`);
     })
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tickets' }, async () => {
-      await loadTickets();
-      refreshCurrentPage();
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tickets' }, () => {
+      loadTickets();
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, () => {
       loadAllProfiles();
