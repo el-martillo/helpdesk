@@ -1110,10 +1110,15 @@
             <div class="fg">
               <label class="fl">Email type</label>
               <select class="fc" id="tpl-select" onchange="loadTemplateIntoEditor()" style="max-width:320px">
+                <option value="new_ticket">🎫 New ticket confirmation → client</option>
                 <option value="resolved">✅ Ticket resolved → client</option>
                 <option value="reopened">🔄 Ticket reopened by client → helpdesk</option>
                 <option value="client_reopened">🔄 Ticket reopened confirmation → client</option>
                 <option value="closed_helpdesk">✅ Ticket closed by client → helpdesk</option>
+                <option value="new_comment">💬 New agent reply → client</option>
+                <option value="critical">🚨 Critical ticket → helpdesk</option>
+                <option value="escalated">⚠️ Ticket escalated → helpdesk</option>
+                <option value="new_user">👤 New user registered → helpdesk</option>
               </select>
             </div>
 
@@ -2020,14 +2025,7 @@ function openModal(id) {
   if (!overlay) return;
   overlay.classList.add('open');
 }
-function closeModal(id) {
-  const overlay = document.getElementById(id);
-  if (!overlay) return;
-  overlay.classList.remove('open');
-  // Reset any drag-induced position so the modal opens centred next time
-  const modal = overlay.querySelector('.modal');
-  if (modal) { modal.style.position = ''; modal.style.left = ''; modal.style.top = ''; modal.style.margin = ''; }
-}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function clearSearch(inputId, callback) {
   const el = document.getElementById(inputId); if (!el) return;
   el.value = '';
@@ -2054,12 +2052,8 @@ function toggleClear(input) {
       head.style.cursor = 'grabbing';
       function onMove(e) {
         const vw = window.innerWidth, vh = window.innerHeight;
-        const mw = modal.offsetWidth, mh = modal.offsetHeight;
-        // Switch to absolute so left/top actually move the modal within the fixed overlay
-        modal.style.position = 'absolute';
-        modal.style.margin   = '0';
-        modal.style.left = Math.max(0, Math.min(vw - mw, e.clientX - startX)) + 'px';
-        modal.style.top  = Math.max(0, Math.min(vh - mh, e.clientY - startY)) + 'px';
+        modal.style.left = Math.max(0, Math.min(vw - modal.offsetWidth,  e.clientX - startX)) + 'px';
+        modal.style.top  = Math.max(0, Math.min(vh - modal.offsetHeight, e.clientY - startY)) + 'px';
       }
       function onUp() {
         head.style.cursor = '';
@@ -2454,6 +2448,31 @@ const EMAIL_TEMPLATE_DEFAULTS = {
   closed_helpdesk: {
     subject: '✅ Ticket #{{ticket_number}} Closed by Client — {{subject}}',
     body:    '<p>A ticket has been <strong>closed</strong> by the client and marked as resolved.</p>',
+    to_label: '→ helpdesk',
+  },
+  new_ticket: {
+    subject: '🎫 Support ticket #{{ticket_number}} received — {{subject}}',
+    body:    '<p>Hi {{name}},</p><p>Thank you for contacting El Martillo I.T. We have received your support request and assigned it ticket number <strong>#{{ticket_number}}</strong>.</p><p>A member of our team will be in touch shortly. You can track the status of your ticket at any time via the client portal.</p>',
+    to_label: '→ client',
+  },
+  new_comment: {
+    subject: '💬 New reply on ticket #{{ticket_number}} — {{subject}}',
+    body:    '<p>Hi {{name}},</p><p>{{agent}} has posted a new reply on your support ticket <strong>#{{ticket_number}}</strong>.</p><p>Log in to the client portal to read the reply and respond.</p>',
+    to_label: '→ client',
+  },
+  critical: {
+    subject: '🚨 Critical ticket #{{ticket_number}} — {{subject}}',
+    body:    '<p>A new <strong>critical priority</strong> ticket has been raised and requires immediate attention.</p><p><strong>Ticket:</strong> #{{ticket_number}} — {{subject}}</p><p>Please assign and respond as soon as possible.</p>',
+    to_label: '→ helpdesk',
+  },
+  escalated: {
+    subject: '⚠️ Ticket #{{ticket_number}} escalated — {{subject}}',
+    body:    '<p>Ticket <strong>#{{ticket_number}}</strong> has been <strong>escalated</strong> and requires senior attention.</p><p>Please review and follow up with the client promptly.</p>',
+    to_label: '→ helpdesk',
+  },
+  new_user: {
+    subject: '👤 New user registered — {{name}}',
+    body:    '<p>A new user has registered on the client portal.</p><p><strong>Name:</strong> {{name}}</p><p>Please review their account in the admin panel and ensure they are assigned to the correct organisation.</p>',
     to_label: '→ helpdesk',
   },
 };
@@ -3154,15 +3173,7 @@ function adminNav(el, page) {
 /* ── Ticket detail ── */
 function centreTicketModal() {
   const overlay = document.getElementById('modal-ticket-detail');
-  if (!overlay) return;
-  const modal = overlay.querySelector('.modal');
-  if (modal) {
-    modal.style.position = '';
-    modal.style.left     = '';
-    modal.style.top      = '';
-    modal.style.margin   = '';
-  }
-  overlay.scrollTop = 0;
+  if (overlay) overlay.scrollTop = 0;
 }
 
 async function openTicketDetail(id) {
