@@ -1855,7 +1855,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
         <div class="modal-sub" id="detail-sub"></div>
       </div>
       <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-        <button class="btn sm" id="header-merge-btn" style="display:none;padding:3px 8px;font-size:11px;color:var(--purple);border-color:var(--purple-l);background:var(--purple-l)" onclick="openMergeModal(window._currentTicketId)" title="Merge into another ticket">
+        <button class="btn sm" id="header-merge-btn" style="display:none;padding:3px 8px;font-size:11px;color:var(--purple);border-color:var(--purple-l);background:var(--purple-l)" onclick="openMergeModal(_currentTicketId)" title="Merge into another ticket">
           <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 6l4-4 4 4M12 2v13M8 18l4 4 4-4M12 22v-4"/></svg>
           Merge
         </button>
@@ -3363,15 +3363,6 @@ async function openTicketDetail(id) {
   const asgn = (t.assignee||{});
   _currentTicketId = t.id;
   document.getElementById('detail-title').textContent = `#${t.ticket_number} · ${t.subject}`;
-  // Set meta grid background to org tint colour
-  const _company = t.requester?.company || t.organisation || '';
-  requestAnimationFrame(() => {
-    const wrap = document.getElementById('detail-meta-wrap');
-    if (wrap) {
-      const bg = coBgColor(_company);
-      wrap.style.background = bg || 'var(--surface2)';
-    }
-  });
   // Show merge button in header only for non-merged tickets
   const _hmb = document.getElementById('header-merge-btn');
   if (_hmb) _hmb.style.display = (t.status === 'merged') ? 'none' : '';
@@ -3454,7 +3445,7 @@ async function openTicketDetail(id) {
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         Details
       </button>
-      <div id="detail-meta-wrap" style="border-radius:var(--radius-l);padding:14px 12px;margin-bottom:4px;transition:background .3s">
+      <div id="detail-meta-wrap" style="border-radius:var(--radius-l);padding:16px 14px 20px;margin-bottom:8px;transition:background .3s">
       <div class="detail-meta-grid">
       <div class="dmi dmi-user">
         <div class="key">Client</div>
@@ -3562,6 +3553,15 @@ async function openTicketDetail(id) {
     })()}`;
   markSeen(id, t.updated_at);
   openModal('modal-ticket-detail');
+  // Apply org tint background to meta wrap — must run after innerHTML is set
+  requestAnimationFrame(() => {
+    const _company = (t.requester?.company || t.organisation || '').trim();
+    const wrap = document.getElementById('detail-meta-wrap');
+    if (wrap) {
+      const bg = coBgColor(_company);
+      wrap.style.background = bg || 'var(--surface2)';
+    }
+  });
   // Stagger meta cards
   requestAnimationFrame(() => {
     document.querySelectorAll('#modal-ticket-detail .dmi').forEach((el, i) => {
@@ -3793,8 +3793,14 @@ function openMergeModal(sourceId) {
   document.getElementById('merge-selected-info').textContent = '';
   document.getElementById('btn-do-merge').disabled = true;
   renderMergeList();
-  closeModal('modal-ticket-detail');
-  openModal('modal-merge-ticket');
+  // Wait for ticket detail close animation before opening merge modal
+  const _td = document.getElementById('modal-ticket-detail');
+  if (_td && _td.classList.contains('open')) {
+    closeModal('modal-ticket-detail');
+    setTimeout(() => openModal('modal-merge-ticket'), 200);
+  } else {
+    openModal('modal-merge-ticket');
+  }
 }
 
 function renderMergeList() {
