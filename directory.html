@@ -692,12 +692,12 @@ async function initSharedNav() {
     const storageKey = sessionStorage.getItem(SUPABASE_SESSION_KEY) 
       ? SUPABASE_SESSION_KEY 
       : Object.keys(sessionStorage).find(k => k.includes('auth-token'));
-    if (!storageKey) return;
+    if (!storageKey) { window.location.replace('index.html'); return; }
     let session;
-    try { session = JSON.parse(sessionStorage.getItem(storageKey)); } catch(e) { return; }
+    try { session = JSON.parse(sessionStorage.getItem(storageKey)); } catch(e) { window.location.replace('index.html'); return; }
     const accessToken = session?.access_token;
     const userId = session?.user?.id;
-    if (!accessToken || !userId) return;
+    if (!accessToken || !userId) { window.location.replace('index.html'); return; }
     // Fetch profile via REST
     const res = await fetch(
       `${SB_URL}/rest/v1/profiles?id=eq.${userId}&select=full_name,role&limit=1`,

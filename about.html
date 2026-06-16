@@ -328,7 +328,7 @@ document.addEventListener('DOMContentLoaded', loadVersion);
 
   try {
     const { data: { session } } = await _sb.auth.getSession();
-    if (!session) return; // not logged in — keep logged-out nav visible
+    if (!session) { window.location.replace('index.html'); return; }
 
     const { data: prof } = await _sb
       .from('profiles')
