@@ -1663,6 +1663,17 @@ async function initSupabase() {
   try { await loadOrgsFromSupabase(); } catch(e) { console.warn('Could not load orgs:', e.message); }
   try { await loadCategoriesFromSupabase(); } catch(e) { console.warn('Could not load categories:', e.message); }
 
+  // Listen for PASSWORD_RECOVERY event — fires when Supabase exchanges a recovery token
+  sbClient.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      console.log('PASSWORD_RECOVERY event — showing reset UI');
+      currentUser    = session?.user || null;
+      if (session?.user) ensureProfile(session.user).then(p => { currentProfile = p; });
+      history.replaceState(null, '', window.location.pathname);
+      showPasswordResetUI();
+    }
+  });
+
   // Handle PKCE auth code in URL query params (newer Supabase flow)
   const urlParams = new URLSearchParams(window.location.search);
   const authCode  = urlParams.get('code');
@@ -1676,7 +1687,13 @@ async function initSupabase() {
         currentUser    = data.session.user;
         currentProfile = await ensureProfile(currentUser);
         history.replaceState(null, '', window.location.pathname);
-        if (authType === 'recovery') {
+        // Check AMR for recovery — Supabase sets amr claim when using recovery token
+        const amr = data.session.user?.amr || data.session.amr || [];
+        const isRecovery = authType === 'recovery' ||
+          (Array.isArray(amr) && amr.some(a => a.method === 'recovery')) ||
+          (data.session.user?.recovery_sent_at && 
+           new Date() - new Date(data.session.user.recovery_sent_at) < 3600000);
+        if (isRecovery) {
           showPasswordResetUI();
           return;
         }
