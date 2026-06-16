@@ -22,18 +22,38 @@
 <link rel="stylesheet" href="styles.css"/>
 <style>
 /* Ticket detail modal — wider, scrollbar at right edge */
+/* Footer must sit below overlays */
+.footer { z-index: 50 !important; }
+
 #modal-ticket-detail { padding: 16px 0 16px 16px; }
 #modal-ticket-detail .modal {
   max-width: 820px !important;
   width: calc(100vw - 80px) !important;
+  overflow-y: auto;
+  max-height: calc(100vh - 48px);
+  padding-right: 8px;
 }
 #modal-ticket-detail .modal > * { padding-right: 24px; }
 #modal-ticket-detail .modal-head,
 #modal-ticket-detail #detail-body { padding-right: 16px; }
-#modal-ticket-detail .modal {
-  overflow-y: auto;
-  max-height: calc(100vh - 48px);
-  padding-right: 8px;
+@media (max-width: 600px) {
+  #modal-ticket-detail { padding: 8px; }
+  #modal-ticket-detail .modal {
+    width: calc(100vw - 16px) !important;
+    max-height: calc(100vh - 16px);
+    padding: 14px 12px !important;
+  }
+  #modal-ticket-detail .modal > * { padding-right: 0; }
+  #modal-ticket-detail .modal-head,
+  #modal-ticket-detail #detail-body { padding-right: 0; }
+  /* Header merge button — hide text on mobile */
+  #header-merge-btn svg { display: block; }
+  /* Detail meta grid — single column on mobile */
+  .detail-meta-grid { grid-template-columns: 1fr 1fr !important; }
+  /* Reply actions — stack on mobile */
+  .reply-actions { flex-wrap: wrap !important; gap: 6px !important; }
+  /* Title edit form — stack input and buttons */
+  #title-edit-form .fc { font-size: 13px !important; }
 }
 /* Push scrollbar flush to right edge of modal */
 #modal-ticket-detail .modal::-webkit-scrollbar { width: 6px; }
@@ -3452,13 +3472,13 @@ async function openTicketDetail(id) {
         <span style="font-size:12px;color:var(--text2)"><span class="pdot ${t.priority}"></span>${t.priority} priority</span>
       </div>`
     : `<div style="margin-bottom:16px">
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
           <span class="sb s-${t.status}">${sLabel(t.status)}</span>
           ${sourcePill(t.source)}
           <span style="font-size:12px;color:var(--text2);font-weight:500;margin-left:4px">Category:</span>
           <select class="filter-sel" id="detail-cat-sel" onchange="updateCategory('${t.id}',this.value)">${categoriesList.map(c=>`<option value="${c}" ${c===t.category?'selected':''}>${c}</option>`).join('')}</select>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;row-gap:8px">
           <span style="font-size:12px;color:var(--text2);font-weight:500">Priority:</span>
           <select class="filter-sel" id="detail-pri-sel" onchange="updatePriority('${t.id}',this.value)">
             <option value="low" ${t.priority==='low'?'selected':''}>Low</option>
