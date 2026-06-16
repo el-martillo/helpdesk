@@ -6655,13 +6655,15 @@ function startRealtime() {
 
   realtimeChannel = sbClient
     .channel('admin-realtime')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tickets' }, payload => {
-      loadTickets();
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tickets' }, async payload => {
+      await loadTickets();
+      refreshCurrentPage();
       const t = payload.new;
       toast(`New ticket #${t.ticket_number}: ${t.subject?.slice(0,40) || 'New ticket received'}`);
     })
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tickets' }, () => {
-      loadTickets();
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tickets' }, async () => {
+      await loadTickets();
+      refreshCurrentPage();
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, () => {
       loadAllProfiles();
