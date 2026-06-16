@@ -1,9 +1,9 @@
-const CACHE_NAME = 'elmartillo-helpdesk-v1';
+const CACHE_NAME = 'elmartillo-helpdesk-v2';
 
-// Assets to pre-cache on install
+// Assets to pre-cache on install.
+// HTML files are intentionally excluded — they must always be fetched
+// fresh from the network so JS/CSS fixes take effect immediately.
 const PRECACHE_URLS = [
-  '/helpdesk/index.html',
-  '/helpdesk/styles.css',
   '/helpdesk/logo.png',
   '/helpdesk/favicon.ico',
   '/helpdesk/manifest.json',
