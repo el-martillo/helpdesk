@@ -3412,7 +3412,9 @@ async function openTicketDetail(id) {
   }
   if (hasMergedIn) {
     const nums = (t.merged_ticket_ids||[]).map(mid => {
-      const src = tickets.find(x => x.id === mid);
+      // merged_ticket_ids entries may be plain IDs or objects {id, urls, prev_status}
+      const lookupId = (typeof mid === 'object' && mid !== null) ? mid.id : mid;
+      const src = tickets.find(x => x.id === lookupId);
       return src ? `<strong>#${src.ticket_number}</strong>` : '(unknown)';
     }).join(', ');
     mergeBannerHtml += `<div class="merge-banner purple">
