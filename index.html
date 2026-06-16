@@ -919,6 +919,11 @@ async function setPasswordSubmit() {
   }
   closeModal('modal-set-password');
   toast('Password set! You\'re all set, ' + (currentProfile?.full_name?.split(' ')[0] || 'welcome') + '!');
+  // If not already in the app (e.g. came from reset link), show the app now
+  const appEl = document.getElementById('app');
+  if (!appEl || appEl.style.display === 'none' || appEl.style.display === '') {
+    showApp();
+  }
 }
 
 async function signOut() {
@@ -1628,6 +1633,22 @@ async function fireWhatsApp(triggerKey, message) {
   }
 }
 
+function showPasswordResetUI() {
+  // Show the auth screen (not the full app) with the reset-password modal on top
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('cfg-screen').classList.remove('active');
+  document.getElementById('auth-screen').classList.add('active');
+  // Update modal wording for reset (not invite)
+  const modalTitle  = document.querySelector('#modal-set-password .modal-title');
+  const modalSub    = document.querySelector('#modal-set-password .modal-sub');
+  const modalBanner = document.querySelector('#modal-set-password .modal-head + div');
+  if (modalTitle)  modalTitle.textContent  = 'Reset your password';
+  if (modalSub)    modalSub.textContent    = 'Choose a new password for your account';
+  if (modalBanner) modalBanner.style.display = 'none';
+  // After password is set, setPasswordSubmit calls showApp() which will log them in
+  setTimeout(() => openModal('modal-set-password'), 200);
+}
+
 async function initSupabase() {
   if (!window.supabase) { console.error('Supabase SDK not loaded'); return; }
   // Always hide config screen immediately — credentials are hardcoded
@@ -1655,15 +1676,8 @@ async function initSupabase() {
         currentUser    = data.session.user;
         currentProfile = await ensureProfile(currentUser);
         history.replaceState(null, '', window.location.pathname);
-        if (authType === 'recovery' || data.session.user.aud === 'authenticated') {
-          const modalTitle  = document.querySelector('#modal-set-password .modal-title');
-          const modalSub    = document.querySelector('#modal-set-password .modal-sub');
-          const modalBanner = document.querySelector('#modal-set-password .modal-head + div');
-          if (modalTitle)  modalTitle.textContent  = 'Reset your password';
-          if (modalSub)    modalSub.textContent    = 'Choose a new password for your account';
-          if (modalBanner) modalBanner.style.display = 'none';
-          showApp();
-          setTimeout(() => openModal('modal-set-password'), 400);
+        if (authType === 'recovery') {
+          showPasswordResetUI();
           return;
         }
         showApp();
@@ -1696,15 +1710,7 @@ async function initSupabase() {
           currentProfile = await ensureProfile(currentUser);
           history.replaceState(null, '', window.location.pathname);
           if (type === 'recovery') {
-            // Password reset flow — show set-password modal with reset wording
-            const modalTitle = document.querySelector('#modal-set-password .modal-title');
-            const modalSub   = document.querySelector('#modal-set-password .modal-sub');
-            const modalBanner = document.querySelector('#modal-set-password .modal-head + div');
-            if (modalTitle) modalTitle.textContent = 'Reset your password';
-            if (modalSub)   modalSub.textContent   = 'Choose a new password for your account';
-            if (modalBanner) modalBanner.style.display = 'none';
-            showApp();
-            setTimeout(() => openModal('modal-set-password'), 400);
+            showPasswordResetUI();
           } else if (type === 'invite') {
             showApp();
             // Prompt user to set a password after accepting invite
