@@ -232,25 +232,25 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
       </a>
       <div class="mobile-menu-sep"></div>
       <div style="padding:10px 12px 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">Tickets</div>
-      <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[0],'all');closeMobileMenu()">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8h18M3 12h18M3 16h18"/></svg>
-        All tickets
-      </button>
-      <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[1],'open');closeMobileMenu()">
+      <button class="mobile-menu-item" onclick="navTo('open');closeMobileMenu()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
         Open
       </button>
-      <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[2],'in_progress');closeMobileMenu()">
+      <button class="mobile-menu-item" onclick="navTo('in_progress');closeMobileMenu()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83"/></svg>
         In progress
       </button>
-      <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[3],'waiting');closeMobileMenu()">
+      <button class="mobile-menu-item" onclick="navTo('waiting');closeMobileMenu()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
         Waiting
       </button>
-      <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[4],'resolved');closeMobileMenu()">
+      <button class="mobile-menu-item" onclick="navTo('resolved');closeMobileMenu()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
         Resolved
+      </button>
+      <button class="mobile-menu-item" onclick="navTo('all');closeMobileMenu()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8h18M3 12h18M3 16h18"/></svg>
+        All tickets
       </button>
       <div class="mobile-menu-sep"></div>
       <div style="padding:10px 12px 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">Manage</div>
@@ -328,10 +328,6 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
       </div>
       <div class="sep"></div>
       <div class="sidebar-label">Tickets</div>
-      <div class="nav-item" onclick="adminNav(this,'all')">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8h18M3 12h18M3 16h18"/></svg>
-        All tickets <span class="nav-badge" id="badge-all">—</span>
-      </div>
       <div class="nav-item" onclick="adminNav(this,'open')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
         Open <span class="nav-badge" id="badge-open">—</span>
@@ -347,6 +343,10 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
       <div class="nav-item" onclick="adminNav(this,'resolved')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
         Resolved
+      </div>
+      <div class="nav-item" onclick="adminNav(this,'all')">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 8h18M3 12h18M3 16h18"/></svg>
+        All tickets <span class="nav-badge" id="badge-all">—</span>
       </div>
       <div class="sep"></div>
       <div class="sidebar-label">Manage</div>
@@ -2802,6 +2802,11 @@ function getSeenAt(id) { return _seenMap[id] || ''; }
 async function markSeen(id, updatedAt) {
   if (!currentUser) return;
   _seenMap[id] = updatedAt;
+  // Remove badge from table rows immediately without waiting for re-render
+  document.querySelectorAll('.unread-badge').forEach(el => {
+    const row = el.closest('tr');
+    if (row && row.getAttribute('onclick')?.includes(id)) el.remove();
+  });
   await sbClient.from('ticket_views').upsert(
     { user_id: currentUser.id, ticket_id: id, seen_at: updatedAt },
     { onConflict: 'user_id,ticket_id' }
@@ -2810,8 +2815,8 @@ async function markSeen(id, updatedAt) {
 
 function isUnread(t) {
   const seen = getSeenAt(t.id);
-  if (!seen) return false;
-  return t.updated_at > seen;
+  if (!seen) return true;            // never viewed → unread
+  return t.updated_at > seen;       // viewed but updated since → unread
 }
 function unreadBadge() {
   return '<span class="unread-badge" title="New activity">1</span>';
@@ -3225,7 +3230,7 @@ function renderFilteredPage(page) {
       <td><span class="tid">#${t.ticket_number}</span></td>
       <td style="font-size:12px">${esc(req?.full_name)||'—'}</td>
       <td style="font-size:12px;color:var(--text2);white-space:nowrap">${esc(req?.company)||'—'}</td>
-      <td style="max-width:200px"><div style="display:flex;align-items:center">${THUMB(t)}<div style="min-width:0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.subject)}</div></div></td>
+      <td style="max-width:200px"><div style="display:flex;align-items:center">${THUMB(t)}<div style="min-width:0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px">${esc(t.subject)}${isUnread(t)?unreadBadge():''}</div></div></td>
       <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
       <td style="font-size:12px;color:var(--text2)">${esc(asgn?.full_name)||'—'}</td>
       <td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td>
@@ -6126,7 +6131,7 @@ function renderDashboard() {
       <td><span class="tid">#${t.ticket_number}</span></td>
       <td style="font-size:12px">${esc(req?.full_name)||'—'}</td>
       <td style="font-size:12px;color:var(--text2);white-space:nowrap">${esc(req?.company)||'—'}</td>
-      <td style="max-width:180px"><div style="display:flex;align-items:center">${(()=>{const urls=t.attachment_urls?JSON.parse(t.attachment_urls):(t.attachment_url?[t.attachment_url]:[]);return urls.length?`<div style="position:relative;flex-shrink:0;margin-right:6px"><img src="${urls[0]}" class="attach-thumb-sm" title="${urls.length} attachment${urls.length>1?'s':''}" onclick="event.stopPropagation();openLightbox(urls,0)"/>${urls.length>1?`<span style="position:absolute;bottom:2px;right:2px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 4px;line-height:1">${urls.length}</span>`:''}</div>`:'';})()}<div style="min-width:0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.subject)}</div></div></td>
+      <td style="max-width:180px"><div style="display:flex;align-items:center">${(()=>{const urls=t.attachment_urls?JSON.parse(t.attachment_urls):(t.attachment_url?[t.attachment_url]:[]);return urls.length?`<div style="position:relative;flex-shrink:0;margin-right:6px"><img src="${urls[0]}" class="attach-thumb-sm" title="${urls.length} attachment${urls.length>1?'s':''}" onclick="event.stopPropagation();openLightbox(urls,0)"/>${urls.length>1?`<span style="position:absolute;bottom:2px;right:2px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 4px;line-height:1">${urls.length}</span>`:''}</div>`:'';})()}<div style="min-width:0;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px">${esc(t.subject)}${isUnread(t)?unreadBadge():''}</div></div></td>
       <td><span class="sb s-${t.status}" style="cursor:pointer" onclick="event.stopPropagation();openTicketDetail('${t.id}')" title="Open ticket">${sLabel(t.status)}</span></td>
       <td><span class="pdot ${t.priority}"></span><span class="p-${t.priority}">${t.priority}</span></td>
       <td style="font-size:12px;color:var(--text3)">${timeAgo(t.updated_at)}</td>
