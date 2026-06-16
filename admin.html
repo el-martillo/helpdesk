@@ -21,6 +21,32 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="styles.css"/>
 <style>
+/* Detail meta grid — more visual weight */
+.detail-meta-grid > .dmi {
+  background: var(--surface) !important;
+  border: 1px solid var(--border2) !important;
+  border-radius: var(--radius-l) !important;
+  padding: 12px 14px !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07), 0 0 0 0 transparent;
+  transition: box-shadow .2s, border-color .2s !important;
+}
+.detail-meta-grid > .dmi:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,.10);
+  border-color: var(--accent) !important;
+}
+.detail-meta-grid > .dmi .key {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: .08em !important;
+  color: var(--text3) !important;
+  margin-bottom: 7px !important;
+}
+.detail-meta-grid > .dmi .val {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--text1) !important;
+}
+
 /* Per-status page background tints — match each banner's colour */
 .page.active { min-height: 100%; }
 .content[data-page="all"]         { background: var(--accent-l) !important; }
@@ -3305,10 +3331,10 @@ async function openTicketDetail(id) {
         <span style="font-size:12px;color:var(--text2)"><span class="pdot ${t.priority}"></span>${t.priority} priority</span>
       </div>`
     : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
-        <span class="sb s-${t.status}">${sLabel(t.status)}</span>
+        <span style="font-size:12px;color:var(--text2);font-weight:500">Status:</span><span class="sb s-${t.status}">${sLabel(t.status)}</span>
         ${sourcePill(t.source)}
-        <select class="filter-sel" id="detail-cat-sel" onchange="updateCategory('${t.id}',this.value)">${categoriesList.map(c=>`<option value="${c}" ${c===t.category?'selected':''}>${c}</option>`).join('')}</select>
-        <select class="filter-sel" id="detail-pri-sel" onchange="updatePriority('${t.id}',this.value)">
+        <span style="font-size:12px;color:var(--text2);font-weight:500">Category:</span><select class="filter-sel" id="detail-cat-sel" onchange="updateCategory('${t.id}',this.value)">${categoriesList.map(c=>`<option value="${c}" ${c===t.category?'selected':''}>${c}</option>`).join('')}</select>
+        <span style="font-size:12px;color:var(--text2);font-weight:500">Priority:</span><select class="filter-sel" id="detail-pri-sel" onchange="updatePriority('${t.id}',this.value)">
           <option value="low" ${t.priority==='low'?'selected':''}>Low</option>
           <option value="medium" ${t.priority==='medium'?'selected':''}>Medium</option>
           <option value="high" ${t.priority==='high'?'selected':''}>High</option>
