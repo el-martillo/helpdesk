@@ -1582,7 +1582,7 @@ async function initSupabase() {
   if (cfgUrl) cfgUrl.value = url;
   if (cfgKey) cfgKey.value = key;
   sbClient = window.supabase.createClient(url, key, {auth:{storage:window.sessionStorage,persistSession:true}});
-  loadVersion(); // load version immediately — doesn't require auth
+  loadVersion(); // runs immediately — app_settings is publicly readable, no auth needed
   try { await loadOrgsFromSupabase(); } catch(e) { console.warn('Could not load orgs:', e.message); }
   try { await loadCategoriesFromSupabase(); } catch(e) { console.warn('Could not load categories:', e.message); }
 
