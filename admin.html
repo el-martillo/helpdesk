@@ -25,7 +25,11 @@
 /* Footer must sit below overlays */
 .footer { z-index: 50 !important; }
 
-#modal-ticket-detail { padding: 16px 0 16px 16px; }
+/* Ensure overlay backdrop fully covers footer area */
+#modal-ticket-detail { padding: 16px 0 56px 16px; }
+
+/* Modal bottom padding so content doesn't sit flush against edge */
+#modal-ticket-detail .modal { padding-bottom: 24px !important; }
 #modal-ticket-detail .modal {
   max-width: 820px !important;
   width: calc(100vw - 80px) !important;
@@ -50,6 +54,8 @@
   #header-merge-btn svg { display: block; }
   /* Detail meta grid — single column on mobile */
   .detail-meta-grid { grid-template-columns: 1fr 1fr !important; }
+  /* Agent label — force new line on mobile */
+  .detail-agent-label { width: 100%; margin-top: 4px; }
   /* Reply actions — stack on mobile */
   .reply-actions { flex-wrap: wrap !important; gap: 6px !important; }
   /* Title edit form — stack input and buttons */
@@ -3493,7 +3499,7 @@ async function openTicketDetail(id) {
             <option value="waiting" ${t.status==='waiting'?'selected':''}>Waiting</option>
             <option value="resolved" ${t.status==='resolved'?'selected':''}>Resolved</option>
           </select>
-          <span style="font-size:12px;color:var(--text2);font-weight:500">Agent:</span>
+          <span class="detail-agent-label" style="font-size:12px;color:var(--text2);font-weight:500">Agent:</span>
           <select class="filter-sel" onchange="updateAssignee('${t.id}',this.value)">
             <option value="">Unassigned</option>${agentOpts}
           </select>
