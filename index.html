@@ -1582,6 +1582,7 @@ async function initSupabase() {
   if (cfgUrl) cfgUrl.value = url;
   if (cfgKey) cfgKey.value = key;
   sbClient = window.supabase.createClient(url, key, {auth:{storage:window.sessionStorage,persistSession:true}});
+  loadVersion(); // load version immediately — doesn't require auth
   try { await loadOrgsFromSupabase(); } catch(e) { console.warn('Could not load orgs:', e.message); }
   try { await loadCategoriesFromSupabase(); } catch(e) { console.warn('Could not load categories:', e.message); }
 
@@ -1634,7 +1635,6 @@ async function initSupabase() {
       currentProfile = prof;
       document.getElementById('cfg-screen').classList.remove('active');
       document.getElementById('loading-screen').style.display = 'none';
-      loadVersion();
       showApp();
     } else {
       document.getElementById('cfg-screen').classList.remove('active');
