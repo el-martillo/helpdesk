@@ -22,8 +22,10 @@
 <link rel="stylesheet" href="styles.css"/>
 <style>
 /* Ticket detail modal — wider, scrollbar at right edge */
-/* Footer must sit below overlays */
+/* Footer must sit below all overlays and modals */
 .footer { z-index: 50 !important; }
+/* Overlay covers full viewport including footer gap */
+.overlay.open { position: fixed; inset: 0; padding-bottom: 0 !important; }
 
 /* Ensure overlay backdrop fully covers footer area */
 #modal-ticket-detail { padding: 16px 0 56px 16px; }
@@ -54,18 +56,31 @@
   #header-merge-btn svg { display: block; }
   /* Detail meta grid — single column on mobile */
   .detail-meta-grid { grid-template-columns: 1fr 1fr !important; }
-  /* Agent label — force new line on mobile */
+  /* Priority/Status row — Agent label + select on own line on mobile */
   .detail-agent-label { width: 100%; margin-top: 4px; }
+  .detail-agent-label ~ .filter-sel { width: 100%; }
   /* Reply actions — stack on mobile */
   .reply-actions { flex-wrap: wrap !important; gap: 6px !important; }
   /* Title edit form — stack input and buttons */
   #title-edit-form .fc { font-size: 13px !important; }
+  /* Modal title — wrap instead of truncate on mobile */
+  #modal-ticket-detail .modal-title {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    font-size: 13px !important;
+    line-height: 1.4;
+  }
+  /* Modal head — allow wrapping */
+  #modal-ticket-detail .modal-head { flex-wrap: wrap; align-items: flex-start; }
 }
 /* Push scrollbar flush to right edge of modal */
 #modal-ticket-detail .modal::-webkit-scrollbar { width: 6px; }
-#modal-ticket-detail .modal::-webkit-scrollbar-track { background: transparent; }
+#modal-ticket-detail .modal::-webkit-scrollbar-track { background: var(--surface); border-radius: 0 var(--radius-l) var(--radius-l) 0; }
 #modal-ticket-detail .modal::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 #modal-ticket-detail .modal::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+/* Ensure modal background is always solid — no gaps */
+#modal-ticket-detail .modal { background: var(--surface) !important; }
 
 /* Detail meta grid — more visual weight */
 .detail-meta-grid > .dmi {
