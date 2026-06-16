@@ -160,6 +160,17 @@
       <div style="margin-bottom:14px;display:flex;justify-content:center"><div id="recaptcha-signin"></div></div>
       <button class="btn primary" style="width:100%;justify-content:center" onclick="signIn()">Sign in</button>
       <div class="err" id="si-err"></div>
+      <div style="text-align:center;margin-top:10px">
+        <button onclick="toggleForgotPassword()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--accent);font-family:var(--font);padding:0" id="forgot-pw-link">Forgot password?</button>
+      </div>
+      <div id="forgot-pw-form" style="display:none;margin-top:12px;padding:14px;background:var(--surface2);border-radius:var(--radius);border:1px solid var(--border)">
+        <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px">Enter your email and we'll send a reset link:</div>
+        <div style="display:flex;gap:8px">
+          <input id="forgot-pw-email" class="fc" type="email" placeholder="you@example.com" style="flex:1" onkeydown="if(event.key==='Enter')sendPasswordReset()"/>
+          <button class="btn primary sm" onclick="sendPasswordReset()" style="white-space:nowrap">Send link</button>
+        </div>
+        <div id="forgot-pw-msg" style="font-size:12px;margin-top:8px"></div>
+      </div>
     </div>
 
     <!-- Sign up -->
@@ -630,6 +641,51 @@ async function ensureProfile(user, fallbackName) {
   }, { onConflict: 'id' });
   const {data:created} = await sbClient.from('profiles').select('*').eq('id', user.id).single();
   return created || { id: user.id, full_name: name, role: 'client' };
+}
+
+function toggleForgotPassword() {
+  const form = document.getElementById('forgot-pw-form');
+  const link = document.getElementById('forgot-pw-link');
+  if (!form) return;
+  const open = form.style.display === 'none';
+  form.style.display = open ? '' : 'none';
+  if (link) link.textContent = open ? 'Cancel' : 'Forgot password?';
+  if (open) {
+    const inp = document.getElementById('forgot-pw-email');
+    // Pre-fill with whatever is in the email field
+    const siEmail = document.getElementById('si-email');
+    if (inp && siEmail && siEmail.value) inp.value = siEmail.value;
+    if (inp) inp.focus();
+    const msg = document.getElementById('forgot-pw-msg');
+    if (msg) msg.textContent = '';
+  }
+}
+
+async function sendPasswordReset() {
+  const inp = document.getElementById('forgot-pw-email');
+  const msg = document.getElementById('forgot-pw-msg');
+  if (!inp || !msg) return;
+  const email = inp.value.trim();
+  if (!email || !email.includes('@')) {
+    msg.style.color = 'var(--danger)';
+    msg.textContent = 'Please enter a valid email address.';
+    return;
+  }
+  msg.style.color = 'var(--text3)';
+  msg.textContent = 'Sending…';
+  const { error } = await sbClient.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://el-martillo.github.io/helpdesk/index.html'
+  });
+  if (error) {
+    msg.style.color = 'var(--danger)';
+    msg.textContent = 'Error: ' + error.message;
+  } else {
+    msg.style.color = 'var(--success)';
+    msg.textContent = '✓ Reset link sent — check your inbox.';
+    inp.value = '';
+    // Auto-collapse after 4 seconds
+    setTimeout(() => toggleForgotPassword(), 4000);
+  }
 }
 
 async function signIn() {
@@ -1586,6 +1642,36 @@ async function initSupabase() {
   try { await loadOrgsFromSupabase(); } catch(e) { console.warn('Could not load orgs:', e.message); }
   try { await loadCategoriesFromSupabase(); } catch(e) { console.warn('Could not load categories:', e.message); }
 
+  // Handle PKCE auth code in URL query params (newer Supabase flow)
+  const urlParams = new URLSearchParams(window.location.search);
+  const authCode  = urlParams.get('code');
+  const authType  = urlParams.get('type');
+  if (authCode) {
+    try {
+      const { data, error } = await sbClient.auth.exchangeCodeForSession(authCode);
+      if (error) {
+        console.warn('Code exchange error:', error.message);
+      } else if (data?.session) {
+        currentUser    = data.session.user;
+        currentProfile = await ensureProfile(currentUser);
+        history.replaceState(null, '', window.location.pathname);
+        if (authType === 'recovery' || data.session.user.aud === 'authenticated') {
+          const modalTitle  = document.querySelector('#modal-set-password .modal-title');
+          const modalSub    = document.querySelector('#modal-set-password .modal-sub');
+          const modalBanner = document.querySelector('#modal-set-password .modal-head + div');
+          if (modalTitle)  modalTitle.textContent  = 'Reset your password';
+          if (modalSub)    modalSub.textContent    = 'Choose a new password for your account';
+          if (modalBanner) modalBanner.style.display = 'none';
+          showApp();
+          setTimeout(() => openModal('modal-set-password'), 400);
+          return;
+        }
+        showApp();
+        return;
+      }
+    } catch(e) { console.warn('Code exchange error:', e.message); }
+  }
+
   // Handle email confirmation / magic link token in URL hash
   const hash = window.location.hash;
   if (hash && hash.includes('access_token')) {
@@ -1609,7 +1695,17 @@ async function initSupabase() {
           currentUser    = data.session.user;
           currentProfile = await ensureProfile(currentUser);
           history.replaceState(null, '', window.location.pathname);
-          if (type === 'invite') {
+          if (type === 'recovery') {
+            // Password reset flow — show set-password modal with reset wording
+            const modalTitle = document.querySelector('#modal-set-password .modal-title');
+            const modalSub   = document.querySelector('#modal-set-password .modal-sub');
+            const modalBanner = document.querySelector('#modal-set-password .modal-head + div');
+            if (modalTitle) modalTitle.textContent = 'Reset your password';
+            if (modalSub)   modalSub.textContent   = 'Choose a new password for your account';
+            if (modalBanner) modalBanner.style.display = 'none';
+            showApp();
+            setTimeout(() => openModal('modal-set-password'), 400);
+          } else if (type === 'invite') {
             showApp();
             // Prompt user to set a password after accepting invite
             setTimeout(() => openModal('modal-set-password'), 400);

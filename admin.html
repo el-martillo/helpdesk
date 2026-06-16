@@ -1195,7 +1195,14 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
                 <option value="critical">🚨 Critical ticket → helpdesk</option>
                 <option value="escalated">⚠️ Ticket escalated → helpdesk</option>
                 <option value="new_user">👤 New user registered → helpdesk</option>
+                <option value="password_reset">🔑 Password reset → client</option>
               </select>
+            </div>
+
+            <div id="tpl-supabase-notice" style="display:none;padding:10px 14px;background:var(--warn-l);border:1px solid var(--warn);border-radius:var(--radius);font-size:12px;color:var(--warn);line-height:1.6;margin-bottom:14px">
+              <strong>⚠️ Supabase-managed template</strong> — This email is sent directly by Supabase Auth, not via Resend. The subject and body below are for reference only.
+              To apply changes, copy the HTML and paste it into <strong>Supabase Dashboard → Authentication → Email Templates → Reset Password</strong>.
+              Use <code style="background:var(--warn-l);border:1px solid var(--warn);padding:1px 4px;border-radius:3px">{{ .ConfirmationURL }}</code> as the reset link placeholder.
             </div>
 
             <div class="fg">
@@ -2635,6 +2642,12 @@ const EMAIL_TEMPLATE_DEFAULTS = {
     body:    '<p>A new user has registered on the client portal.</p><p><strong>Name:</strong> {{name}}</p><p>Please review their account in the admin panel and ensure they are assigned to the correct organisation.</p>',
     to_label: '→ helpdesk',
   },
+  password_reset: {
+    subject: '🔑 Reset your El Martillo I.T. password',
+    body:    '<p>Hi,</p><p>We received a request to reset your password for the El Martillo I.T. client portal.</p><p><a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#185FA5;color:#fff;text-decoration:none;padding:10px 20px;border-radius:6px;font-size:14px;font-weight:500">Reset my password →</a></p><p style="font-size:12px;color:#9e9a94;margin-top:16px">If you did not request a password reset, you can safely ignore this email. This link expires in 1 hour.</p>',
+    to_label: '→ client',
+    _supabase_managed: true,
+  },
 };
 
 let _emailTemplates = {}; // loaded from app_settings
@@ -2653,6 +2666,9 @@ function loadTemplateIntoEditor() {
   const defaults = EMAIL_TEMPLATE_DEFAULTS[key] || {};
   document.getElementById('tpl-subject').value = saved.subject ?? defaults.subject ?? '';
   document.getElementById('tpl-body').value    = saved.body    ?? defaults.body    ?? '';
+  // Show Supabase-managed notice for password_reset
+  const notice = document.getElementById('tpl-supabase-notice');
+  if (notice) notice.style.display = defaults._supabase_managed ? '' : 'none';
   updateTemplatePreview();
 }
 
@@ -3476,8 +3492,8 @@ async function openTicketDetail(id) {
       ${(req?.phone||t.contact_phone)?`<div class="dmi"><div class="key">Telephone</div><div class="val"><a href="tel:${esc(req?.phone||t.contact_phone)}" style="color:var(--accent)">${esc(req?.phone||t.contact_phone)}</a></div></div>`:''}
     </div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">Description</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;margin-top:18px">
+      <div style="font-size:13px;font-weight:700;color:var(--text1)">Description</div>
       <button class="btn sm" id="desc-edit-btn" onclick="toggleDescEdit('${t.id}')" style="padding:2px 8px;font-size:11px" title="Edit description">
         <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         Edit
@@ -3503,7 +3519,7 @@ async function openTicketDetail(id) {
       return `<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">Attachments (${urls.length})</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">${thumbs}</div></div>`;
     })()}
     <div class="activity">
-      <div class="activity-label">Activity (${comments.length} comment${comments.length!==1?'s':''})</div>
+      <div class="activity-label" style="font-size:13px;font-weight:700;color:var(--text1)">Activity (${comments.length} comment${comments.length!==1?'s':''})</div>
       <div id="comments-list">${renderComments(comments,true)}</div>
       ${isMerged ? `<div style="margin-top:12px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--text3)">
         This ticket has been merged — replies are disabled. <a href="#" style="color:var(--accent)" onclick="event.preventDefault();closeModal('modal-ticket-detail');openTicketDetail('${t.merged_into}')">Go to primary ticket →</a>
