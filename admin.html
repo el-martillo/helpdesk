@@ -47,6 +47,46 @@
   color: var(--text1) !important;
 }
 
+/* ── Animations ──────────────────────────────────────────────────────────── */
+
+/* Keyframes */
+@keyframes fadeSlideIn  { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeSlideUp  { from { opacity:0; transform:translateY(6px);  } to { opacity:1; transform:translateY(0); } }
+@keyframes modalIn      { from { opacity:0; transform:scale(.95) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
+@keyframes modalOut     { from { opacity:1; transform:scale(1) translateY(0); } to { opacity:0; transform:scale(.95) translateY(8px); } }
+@keyframes overlayIn    { from { opacity:0; } to { opacity:1; } }
+@keyframes toastSlide   { from { opacity:0; transform:translateX(32px); } to { opacity:1; transform:translateX(0); } }
+@keyframes statusFlash  { 0%,100% { box-shadow:none; } 40% { box-shadow:0 0 0 3px var(--accent); } }
+@keyframes countUp      { from { opacity:0; transform:translateY(8px) scale(.85); } to { opacity:1; transform:translateY(0) scale(1); } }
+@keyframes rowFadeIn    { from { opacity:0; transform:translateX(-6px); } to { opacity:1; transform:translateX(0); } }
+@keyframes pageFade     { from { opacity:0; } to { opacity:1; } }
+@keyframes metaCardIn   { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+@keyframes commentIn    { from { opacity:0; transform:translateX(-8px); } to { opacity:1; transform:translateX(0); } }
+
+/* Page transitions */
+.page.active { animation: pageFade .22s ease; }
+
+/* Modal open animation */
+.overlay.open .modal { animation: modalIn .22s cubic-bezier(.34,1.28,.64,1) both; }
+
+/* Overlay backdrop fade */
+.overlay.open { animation: overlayIn .18s ease both; }
+
+/* Toast slide in from right */
+#toast.show { animation: toastSlide .22s cubic-bezier(.34,1.28,.64,1) both; }
+
+/* Stat card count-up */
+.stat-card .value.anim { animation: countUp .35s cubic-bezier(.34,1.28,.64,1) both; }
+
+/* Table row stagger */
+tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
+
+/* Detail meta cards stagger */
+.detail-meta-grid > .dmi.anim { animation: metaCardIn .25s ease both; }
+
+/* Comment stagger */
+.comment-item.anim { animation: commentIn .2s ease both; }
+
 /* Per-status page background tints — match each banner's colour */
 .page.active { min-height: 100%; }
 .content[data-page="all"]         { background: var(--accent-l) !important; }
@@ -2086,6 +2126,18 @@ async function loadCompanyColors() {
   } catch(e) { /* use defaults */ }
   return { colors: _coColors, bg: _coBg };
 }
+function coBgColor(company) {
+  if (!company || !_coBg) return '';
+  let bg = _coBg[company];
+  if (!bg) {
+    const lower = company.toLowerCase();
+    const key = Object.keys(_coBg).find(k => k.toLowerCase() === lower)
+             || Object.keys(_coBg).find(k => lower.includes(k.toLowerCase()) || k.toLowerCase().includes(lower));
+    if (key) bg = _coBg[key];
+  }
+  return bg || '';
+}
+
 function coStyle(company) {
   if (!company || !_coColors) return '';
   // Exact match first
@@ -2117,7 +2169,17 @@ function openModal(id) {
   if (!overlay) return;
   overlay.classList.add('open');
 }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(id) {
+  const overlay = document.getElementById(id);
+  if (!overlay) return;
+  const modal = overlay.querySelector('.modal');
+  if (modal) {
+    modal.style.animation = 'modalOut .18s ease both';
+    setTimeout(() => { overlay.classList.remove('open'); modal.style.animation = ''; }, 170);
+  } else {
+    overlay.classList.remove('open');
+  }
+}
 function clearSearch(inputId, callback) {
   const el = document.getElementById(inputId); if (!el) return;
   el.value = '';
@@ -2811,13 +2873,13 @@ function renderTable(statusFilter) {
   if (!list.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="10">No tickets found</td></tr>'; return; }
   const visible = list.slice(0, adminPerPage);
   const remaining = list.length - visible.length;
-  tbody.innerHTML = visible.map(t => {
+  tbody.innerHTML = visible.map((t, _ri) => {
     const req  = (t.requester||{});
     const asgn = (t.assignee||{});
     const mergedBadge = (t.merged_ticket_ids?.length)
       ? `<span class="source-ticket-tag" title="Contains ${t.merged_ticket_ids.length} merged ticket(s)">+${t.merged_ticket_ids.length} merged</span> ` : '';
     const isSelected = bulkSelected.has(t.id);
-    return `<tr onclick="openTicketDetail('${t.id}')" class="${isSelected?'selected-row':''}">
+    return `<tr onclick="openTicketDetail('${t.id}')" class="${isSelected?'selected-row':''} row-anim" style="animation-delay:${Math.min(_ri*25,300)}ms">
       <td class="cb-cell" onclick="event.stopPropagation()"><input type="checkbox" class="bulk-cb" data-id="${t.id}" ${isSelected?'checked':''} onchange="bulkToggleOne(this,'${t.id}')"/></td>
       <td><span class="tid">#${t.ticket_number}</span></td>
       <td><div class="flex-c"><div class="avatar ${avColor(req?.id)}">${initials(req?.full_name||'?')}</div><span style="font-size:12px">${esc(req?.full_name)||'—'}</span></div></td>
@@ -2866,8 +2928,17 @@ function refreshCurrentPage() {
 
 function updateStats() {
   const active = tickets.filter(t => t.status !== 'merged');
-  document.getElementById('stat-open').textContent     = active.filter(t=>t.status==='open').length;
-  document.getElementById('stat-inprog').textContent   = active.filter(t=>t.status==='in_progress').length;
+  const _animStat = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('anim');
+    void el.offsetWidth; // reflow
+    el.textContent = val;
+    el.classList.add('anim');
+    setTimeout(() => el.classList.remove('anim'), 400);
+  };
+  _animStat('stat-open',    active.filter(t=>t.status==='open').length);
+  _animStat('stat-inprog',  active.filter(t=>t.status==='in_progress').length);
   const statWait = document.getElementById('stat-waiting'); if(statWait) statWait.textContent = active.filter(t=>t.status==='waiting').length;
   document.getElementById('stat-resolved').textContent = active.filter(t=>t.status==='resolved').length;
   document.getElementById('stat-total').textContent    = active.length;
@@ -3292,6 +3363,15 @@ async function openTicketDetail(id) {
   const asgn = (t.assignee||{});
   _currentTicketId = t.id;
   document.getElementById('detail-title').textContent = `#${t.ticket_number} · ${t.subject}`;
+  // Set meta grid background to org tint colour
+  const _company = t.requester?.company || t.organisation || '';
+  requestAnimationFrame(() => {
+    const wrap = document.getElementById('detail-meta-wrap');
+    if (wrap) {
+      const bg = coBgColor(_company);
+      wrap.style.background = bg || 'var(--surface2)';
+    }
+  });
   // Show merge button in header only for non-merged tickets
   const _hmb = document.getElementById('header-merge-btn');
   if (_hmb) _hmb.style.display = (t.status === 'merged') ? 'none' : '';
@@ -3337,29 +3417,33 @@ async function openTicketDetail(id) {
         <span class="cat-badge ${({Billing:'cat-billing',Technical:'cat-technical',Account:'cat-account',General:'cat-general'})[t.category]||'cat-general'}">${esc(t.category||'General')}</span>
         <span style="font-size:12px;color:var(--text2)"><span class="pdot ${t.priority}"></span>${t.priority} priority</span>
       </div>`
-    : `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
-        <span class="sb s-${t.status}">${sLabel(t.status)}</span>
-        ${sourcePill(t.source)}
-        <span style="font-size:12px;color:var(--text2);font-weight:500">Category:</span><select class="filter-sel" id="detail-cat-sel" onchange="updateCategory('${t.id}',this.value)">${categoriesList.map(c=>`<option value="${c}" ${c===t.category?'selected':''}>${c}</option>`).join('')}</select>
-        <span style="font-size:12px;color:var(--text2);font-weight:500">Priority:</span><select class="filter-sel" id="detail-pri-sel" onchange="updatePriority('${t.id}',this.value)">
-          <option value="low" ${t.priority==='low'?'selected':''}>Low</option>
-          <option value="medium" ${t.priority==='medium'?'selected':''}>Medium</option>
-          <option value="high" ${t.priority==='high'?'selected':''}>High</option>
-          <option value="critical" ${t.priority==='critical'?'selected':''}>Critical</option>
-        </select>
-        <span style="font-size:12px;color:var(--text2);font-weight:500">Status:</span><select class="filter-sel" style="margin-left:auto" onchange="updateStatus('${t.id}',this.value)">
-          <option value="open" ${t.status==='open'?'selected':''}>Open</option>
-          <option value="in_progress" ${t.status==='in_progress'?'selected':''}>In progress</option>
-          <option value="waiting" ${t.status==='waiting'?'selected':''}>Waiting</option>
-          <option value="resolved" ${t.status==='resolved'?'selected':''}>Resolved</option>
-        </select>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:12px;font-weight:500;color:var(--text2);white-space:nowrap">Agent:</span>
+    : `<div style="margin-bottom:16px">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <span class="sb s-${t.status}">${sLabel(t.status)}</span>
+          ${sourcePill(t.source)}
+          <span style="font-size:12px;color:var(--text2);font-weight:500;margin-left:4px">Category:</span>
+          <select class="filter-sel" id="detail-cat-sel" onchange="updateCategory('${t.id}',this.value)">${categoriesList.map(c=>`<option value="${c}" ${c===t.category?'selected':''}>${c}</option>`).join('')}</select>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:12px;color:var(--text2);font-weight:500">Priority:</span>
+          <select class="filter-sel" id="detail-pri-sel" onchange="updatePriority('${t.id}',this.value)">
+            <option value="low" ${t.priority==='low'?'selected':''}>Low</option>
+            <option value="medium" ${t.priority==='medium'?'selected':''}>Medium</option>
+            <option value="high" ${t.priority==='high'?'selected':''}>High</option>
+            <option value="critical" ${t.priority==='critical'?'selected':''}>Critical</option>
+          </select>
+          <span style="font-size:12px;color:var(--text2);font-weight:500">Status:</span>
+          <select class="filter-sel" onchange="updateStatus('${t.id}',this.value)">
+            <option value="open" ${t.status==='open'?'selected':''}>Open</option>
+            <option value="in_progress" ${t.status==='in_progress'?'selected':''}>In progress</option>
+            <option value="waiting" ${t.status==='waiting'?'selected':''}>Waiting</option>
+            <option value="resolved" ${t.status==='resolved'?'selected':''}>Resolved</option>
+          </select>
+          <span style="font-size:12px;color:var(--text2);font-weight:500">Agent:</span>
           <select class="filter-sel" onchange="updateAssignee('${t.id}',this.value)">
-              <option value="">Unassigned</option>${agentOpts}
+            <option value="">Unassigned</option>${agentOpts}
           </select>
         </div>
-
       </div>`;
 
   document.getElementById('detail-body').innerHTML=`
@@ -3370,6 +3454,7 @@ async function openTicketDetail(id) {
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         Details
       </button>
+      <div id="detail-meta-wrap" style="border-radius:var(--radius-l);padding:14px 12px;margin-bottom:4px;transition:background .3s">
       <div class="detail-meta-grid">
       <div class="dmi dmi-user">
         <div class="key">Client</div>
@@ -3477,6 +3562,24 @@ async function openTicketDetail(id) {
     })()}`;
   markSeen(id, t.updated_at);
   openModal('modal-ticket-detail');
+  // Stagger meta cards
+  requestAnimationFrame(() => {
+    document.querySelectorAll('#modal-ticket-detail .dmi').forEach((el, i) => {
+      el.classList.remove('anim');
+      void el.offsetWidth;
+      el.style.animationDelay = i * 40 + 'ms';
+      el.classList.add('anim');
+      setTimeout(() => { el.classList.remove('anim'); el.style.animationDelay = ''; }, 400 + i * 40);
+    });
+    // Stagger comments
+    document.querySelectorAll('#modal-ticket-detail .comment-item').forEach((el, i) => {
+      el.classList.remove('anim');
+      void el.offsetWidth;
+      el.style.animationDelay = i * 50 + 'ms';
+      el.classList.add('anim');
+      setTimeout(() => { el.classList.remove('anim'); el.style.animationDelay = ''; }, 400 + i * 50);
+    });
+  });
 }
 function renderComments(comments, showInternal=false) {
   if (!comments.length) return '<div style="color:var(--text3);font-size:13px;padding:8px 0">No comments yet.</div>';
@@ -3585,6 +3688,11 @@ async function addComment(ticketId) {
   }
 }
 async function updateStatus(id, status) {
+  // Flash the status pill in the open modal if it's this ticket
+  if (_currentTicketId === id) {
+    const pill = document.querySelector('#modal-ticket-detail .sb[class*="s-"]');
+    if (pill) { pill.style.animation='none'; void pill.offsetWidth; pill.style.animation='statusFlash .6s ease'; setTimeout(()=>pill.style.animation='',700); }
+  }
   await sbClient.from('tickets').update({status}).eq('id',id);
   await loadTickets();
   refreshCurrentPage();
@@ -4386,6 +4494,7 @@ function renderReports() {
             <div style="font-size:10px;color:var(--text3);margin-top:3px;text-transform:capitalize">${p} · ${group.length}</div>
           </div>`;
         }).join('')}
+      </div>
       </div>
     </div>
     <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:12px">By priority</div>
@@ -5964,11 +6073,17 @@ async function runTicketDelete() {
 /* ── Dashboard ── */
 function renderDashboard() {
   loadBBCNews();
-  document.getElementById('dash-open').textContent    = tickets.filter(t=>t.status==='open').length;
-  document.getElementById('dash-inprog').textContent  = tickets.filter(t=>t.status==='in_progress').length;
-  document.getElementById('dash-waiting').textContent = tickets.filter(t=>t.status==='waiting').length;
-  document.getElementById('dash-resolved').textContent= tickets.filter(t=>t.status==='resolved').length;
-  document.getElementById('dash-total').textContent   = tickets.length;
+  const _ad = (id, val) => {
+    const el = document.getElementById(id); if (!el) return;
+    el.classList.remove('anim'); void el.offsetWidth;
+    el.textContent = val; el.classList.add('anim');
+    setTimeout(() => el.classList.remove('anim'), 400);
+  };
+  _ad('dash-open',     tickets.filter(t=>t.status==='open').length);
+  _ad('dash-inprog',   tickets.filter(t=>t.status==='in_progress').length);
+  _ad('dash-waiting',  tickets.filter(t=>t.status==='waiting').length);
+  _ad('dash-resolved', tickets.filter(t=>t.status==='resolved').length);
+  _ad('dash-total',    tickets.length);
 
   const rTickets = reportTickets();
   const statuses=['open','in_progress','waiting','resolved'];
