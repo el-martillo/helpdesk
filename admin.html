@@ -3406,15 +3406,10 @@ async function openTicketDetail(id) {
         <div class="reply-actions" style="margin-top:6px">
           <label class="internal-toggle"><input type="checkbox" id="reply-internal"/> Internal note only</label>
           <div style="display:flex;gap:6px;align-items:center">
-            <div style="position:relative">
-              <button class="btn sm" onclick="toggleCannedDropdown()" title="Canned responses">
+              <button class="btn sm" id="canned-btn" onclick="toggleCannedDropdown()" title="Canned responses">
                 <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 Canned
               </button>
-              <div id="canned-dropdown" style="display:none;position:absolute;bottom:calc(100% + 6px);right:0;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.15);min-width:320px;max-width:420px;max-height:280px;overflow-y:auto;z-index:300">
-                <div id="canned-dropdown-list"></div>
-              </div>
-            </div>
             <button class="btn primary sm" onclick="addComment('${t.id}')">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               Send reply
@@ -4802,6 +4797,9 @@ async function adminSetPassword() {
     if (!res.ok) throw new Error(json.error || res.statusText);
     if (fb) { fb.textContent = '✓ Password updated successfully.'; fb.style.color = 'var(--success)'; }
     document.getElementById('eu-setpw-input').value = '';
+    const targetEmail = document.getElementById('eu-email').value.trim();
+    const targetName  = document.getElementById('eu-name').value.trim();
+    logSystemEvent('password_set', `Password directly set for user: ${targetName}${targetEmail ? ' <' + targetEmail + '>' : ''}`);
     setTimeout(() => toggleSetPassword(), 1500);
   } catch(e) {
     if (fb) { fb.textContent = 'Error: ' + e.message; fb.style.color = 'var(--danger)'; }
@@ -5163,27 +5161,47 @@ async function cannedDrop(toIdx) {
 }
 
 function toggleCannedDropdown() {
-  const dd = document.getElementById('canned-dropdown');
-  if (!dd) return;
-  const isOpen = dd.style.display !== 'none';
-  if (isOpen) { dd.style.display = 'none'; return; }
-  const list = document.getElementById('canned-dropdown-list');
-  if (list) {
-    if (!cannedResponses.length) {
-      list.innerHTML = '<div style="padding:12px 14px;font-size:12px;color:var(--text3)">No canned responses. Add some in Settings.</div>';
-    } else {
-      list.innerHTML = cannedResponses.map((r, i) => `
+  // Remove any existing body-level dropdown
+  let dd = document.getElementById('canned-dropdown');
+  if (dd) { dd.remove(); return; }
+
+  const btn = document.getElementById('canned-btn');
+  if (!btn) return;
+
+  // Build dropdown content
+  const inner = !cannedResponses.length
+    ? '<div style="padding:12px 14px;font-size:12px;color:var(--text3)">No canned responses. Add some in Settings.</div>'
+    : cannedResponses.map((r, i) => `
         <div onclick="insertCanned(${i})"
           style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s"
           onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
           <div style="font-size:13px;font-weight:600;margin-bottom:2px">${esc(r.title)}</div>
-          <div style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px">${esc(r.body)}</div>
+          <div style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:380px">${esc(r.body)}</div>
         </div>`).join('');
-    }
-  }
-  dd.style.display = 'block';
+
+  // Create floating dropdown appended to body so it escapes modal overflow
+  dd = document.createElement('div');
+  dd.id = 'canned-dropdown';
+  dd.style.cssText = 'position:fixed;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:320px;max-width:420px;max-height:300px;overflow-y:auto;z-index:9999';
+  dd.innerHTML = inner;
+  document.body.appendChild(dd);
+
+  // Position above the button
+  const rect = btn.getBoundingClientRect();
+  const ddH  = Math.min(300, cannedResponses.length * 58 + 8);
+  const top  = rect.top - ddH - 6;
+  dd.style.left = Math.max(8, rect.right - 420) + 'px';
+  dd.style.top  = (top < 8 ? rect.bottom + 6 : top) + 'px';
+  dd.style.width = '420px';
+
+  // Close on outside click
   setTimeout(() => {
-    const close = (e) => { if (!dd.contains(e.target)) { dd.style.display = 'none'; document.removeEventListener('click', close); } };
+    const close = (e) => {
+      if (!dd.contains(e.target) && e.target !== btn) {
+        dd.remove();
+        document.removeEventListener('click', close);
+      }
+    };
     document.addEventListener('click', close);
   }, 0);
 }
@@ -5196,7 +5214,8 @@ function insertCanned(i) {
   const cur = ta.value.trim();
   ta.value = cur ? cur + '\n\n' + r.body : r.body;
   ta.focus();
-  document.getElementById('canned-dropdown').style.display = 'none';
+  const dd = document.getElementById('canned-dropdown');
+  if (dd) dd.remove();
 }
 
 /* ── Rate Limits ── */
@@ -7283,10 +7302,12 @@ function initBeachCanvas(canvasId) {
   const streaks = [];
 
   function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-    hY = H * HORIZON;
-    cx = W / 2;
+    const w = window.innerWidth  || canvas.clientWidth  || 0;
+    const h = window.innerHeight || canvas.clientHeight || 0;
+    W = canvas.width  = w;
+    H = canvas.height = h;
+    if (H) hY = H * HORIZON;
+    if (W) cx = W / 2;
   }
   resize();
   window.addEventListener('resize', resize);
@@ -7317,6 +7338,7 @@ function initBeachCanvas(canvasId) {
   spawnCeilStreak(); spawnCeilStreak();
 
   function drawGrid() {
+    if (!W || !H || !isFinite(W) || !isFinite(H)) return;
     // Background
     const bg = ctx.createLinearGradient(0, 0, 0, H);
     bg.addColorStop(0,         BG_TOP);
@@ -7435,6 +7457,7 @@ function initBeachCanvas(canvasId) {
       const xBot   = cx + normX * W * 1.5 * (frac  * 2.5);
       const xTopS  = cx + normX * W * 1.5 * (fracT * 2.5);
       if (s.y > hY) {
+        if (!isFinite(xTopS) || !isFinite(xBot) || !isFinite(s.y)) return;
         const grad = ctx.createLinearGradient(xTopS, s.y - s.length, xBot, s.y);
         grad.addColorStop(0,   'rgba(255,255,255,0)');
         grad.addColorStop(0.5, 'rgba(255,255,255,0.95)');
@@ -7457,6 +7480,7 @@ function initBeachCanvas(canvasId) {
       const xHead  = cx + normX * W * 1.5 * (fracHead * 2.5);
       const xTail  = cx + normX * W * 1.5 * (fracTail * 2.5);
       if (s.y < hY) {
+        if (!isFinite(xHead) || !isFinite(xTail) || !isFinite(s.y)) return;
         const grad = ctx.createLinearGradient(xHead, s.y, xTail, s.y + s.length);
         grad.addColorStop(0,   'rgba(255,255,255,0.95)'); // bright head at top
         grad.addColorStop(0.5, 'rgba(255,255,255,0.6)');
