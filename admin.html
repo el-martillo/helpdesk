@@ -23,14 +23,11 @@
 <style>
 /* Per-status page background tints — match each banner's colour */
 .page.active { min-height: 100%; }
-.content { background: transparent !important; }
-/* Fallback for pages with no specific tint (agents, reports, settings, etc.) */
-.body { background: var(--bg); }
-#page-all         { background: var(--accent-l); }
-#page-open        { background: var(--accent-l); }
-#page-in_progress { background: var(--purple-l); }
-#page-waiting     { background: var(--warn-l); }
-#page-resolved    { background: var(--success-l); }
+.content[data-page="all"]         { background: var(--accent-l) !important; }
+.content[data-page="open"]        { background: var(--accent-l) !important; }
+.content[data-page="in_progress"] { background: var(--purple-l) !important; }
+.content[data-page="waiting"]     { background: var(--warn-l)   !important; }
+.content[data-page="resolved"]    { background: var(--success-l) !important; }
 </style>
 </head>
 <body>
@@ -3136,6 +3133,9 @@ function adminNav(el, page) {
   const pg = document.getElementById('page-'+page);
   if (!pg) return;
   pg.classList.add('active');
+  // Set content bg tint to match the active page
+  const contentEl = document.querySelector('.content');
+  if (contentEl) contentEl.setAttribute('data-page', page);
   if (['open','in_progress','waiting','resolved'].includes(page)) {
     pg.innerHTML = `
       <div class="ticket-banner tb-${page}">
