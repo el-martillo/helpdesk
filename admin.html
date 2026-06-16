@@ -2089,8 +2089,14 @@ function toggleClear(input) {
       const modal = head.closest('.modal');
       if (!modal) return;
       e.preventDefault();
-      const startX = e.clientX - modal.offsetLeft;
-      const startY = e.clientY - modal.offsetTop;
+      // Use getBoundingClientRect so first drag doesn't jump from flexbox-centred position
+      const rect = modal.getBoundingClientRect();
+      modal.style.position = 'fixed';
+      modal.style.margin   = '0';
+      modal.style.left     = rect.left + 'px';
+      modal.style.top      = rect.top  + 'px';
+      const startX = e.clientX - rect.left;
+      const startY = e.clientY - rect.top;
       head.style.cursor = 'grabbing';
       function onMove(e) {
         const vw = window.innerWidth, vh = window.innerHeight;
@@ -3218,7 +3224,15 @@ function adminNav(el, page) {
 /* ── Ticket detail ── */
 function centreTicketModal() {
   const overlay = document.getElementById('modal-ticket-detail');
-  if (overlay) overlay.scrollTop = 0;
+  if (!overlay) return;
+  const modal = overlay.querySelector('.modal');
+  if (modal) {
+    modal.style.position = '';
+    modal.style.margin   = '';
+    modal.style.left     = '';
+    modal.style.top      = '';
+  }
+  overlay.scrollTop = 0;
 }
 
 async function openTicketDetail(id) {
