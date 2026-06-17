@@ -1773,14 +1773,16 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
     <input type="hidden" id="eu-id"/>
 
     <!-- Identity -->
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">Identity</div>
-    <div class="form-row">
-      <div class="fg"><label class="fl">Full name</label><input id="eu-name" class="fc" type="text"/></div>
-      <div class="fg"><label class="fl">Email</label><input id="eu-email" class="fc" type="email" placeholder="user@example.com"/></div>
-    </div>
-    <div class="form-row">
-      <div class="fg"><label class="fl">Phone</label><input id="eu-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
-      <div class="fg"><label class="fl">Organisation</label><select id="eu-company" class="fc"><option value="">— Select company —</option></select></div>
+    <div id="eu-identity-section" style="border-radius:var(--radius-l);padding:14px;margin-bottom:14px;transition:background .3s;background:var(--surface2)">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">Identity</div>
+      <div class="form-row">
+        <div class="fg"><label class="fl">Full name</label><input id="eu-name" class="fc" type="text"/></div>
+        <div class="fg"><label class="fl">Email</label><input id="eu-email" class="fc" type="email" placeholder="user@example.com"/></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label class="fl">Phone</label><input id="eu-phone" class="fc" type="tel" placeholder="+350 200 00000"/></div>
+        <div class="fg"><label class="fl">Organisation</label><select id="eu-company" class="fc" onchange="(()=>{const bg=coBgColor(this.value);const s=document.getElementById('eu-identity-section');if(s)s.style.background=bg||'var(--surface2)'})()"><option value="">— Select company —</option></select></div>
+      </div>
     </div>
 
     <div style="height:1px;background:var(--border);margin:14px 0"></div>
@@ -3762,12 +3764,20 @@ async function addComment(ticketId) {
   }
 }
 async function updateStatus(id, status) {
-  // Flash the status pill in the open modal if it's this ticket
+  await sbClient.from('tickets').update({status}).eq('id',id);
+  // Update pill class + text immediately in open modal
   if (_currentTicketId === id) {
     const pill = document.querySelector('#modal-ticket-detail .sb[class*="s-"]');
-    if (pill) { pill.style.animation='none'; void pill.offsetWidth; pill.style.animation='statusFlash .6s ease'; setTimeout(()=>pill.style.animation='',700); }
+    if (pill) {
+      // Remove old status class, add new one
+      pill.className = pill.className.replace(/s-\S+/g, '').trim() + ' s-' + status;
+      pill.textContent = sLabel(status);
+      // Flash animation
+      pill.style.animation = 'none'; void pill.offsetWidth;
+      pill.style.animation = 'statusFlash .6s ease';
+      setTimeout(() => pill.style.animation = '', 700);
+    }
   }
-  await sbClient.from('tickets').update({status}).eq('id',id);
   await loadTickets();
   refreshCurrentPage();
   toast('Status updated');
@@ -4939,6 +4949,14 @@ function openEditUser(id) {
   document.getElementById('eu-notes').value   = p.notes      || '';
   populateCompanySelects();
   document.getElementById('eu-company').value = p.company    || '';
+  // Tint identity section with org colour
+  requestAnimationFrame(() => {
+    const section = document.getElementById('eu-identity-section');
+    if (section) {
+      const bg = coBgColor(p.company || '');
+      section.style.background = bg || 'var(--surface2)';
+    }
+  });
 
   // Show WA section only for admin/super_admin
   const isStaff = p.role === 'admin' || p.role === 'super_admin';
