@@ -1877,6 +1877,13 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">Notes</div>
     <div class="fg"><textarea id="eu-notes" class="fc" placeholder="Any additional notes about this user…" style="min-height:60px;resize:none"></textarea></div>
 
+    <!-- Recent tickets -->
+    <div style="height:1px;background:var(--border);margin:14px 0"></div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">Recent tickets</div>
+    <div id="eu-tickets-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+      <div style="font-size:12px;color:var(--text3);padding:8px 0">Loading…</div>
+    </div>
+
     <div class="form-footer">
       <button class="btn danger" id="eu-delete-btn" onclick="deleteUser(document.getElementById('eu-id').value)" style="margin-right:auto">
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
@@ -4993,6 +5000,32 @@ function openEditUser(id) {
   if (pwInput) pwInput.value = '';
   if (pwFeedback) pwFeedback.textContent = '';
   openModal('modal-edit-user');
+  loadEuTickets(p.id);
+}
+
+async function loadEuTickets(userId) {
+  const list = document.getElementById('eu-tickets-list');
+  if (!list) return;
+  list.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0"><div class="loader"></div></div>';
+  const { data } = await sbClient.from('tickets')
+    .select('id,ticket_number,subject,status,priority,updated_at')
+    .eq('requester_id', userId)
+    .order('updated_at', { ascending: false })
+    .limit(5);
+  if (!data || !data.length) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">No tickets found.</div>';
+    return;
+  }
+  list.innerHTML = data.map(t => `
+    <div onclick="closeModal('modal-edit-user');setTimeout(()=>openTicketDetail('${t.id}'),200)"
+         style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:border-color .15s,box-shadow .15s"
+         onmouseover="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 0 1px var(--accent)'"
+         onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow=''">
+      <span style="font-size:11px;color:var(--text3);flex-shrink:0;font-family:var(--mono)">#${t.ticket_number}</span>
+      <span style="flex:1;font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.subject)}</span>
+      <span class="sb s-${t.status}" style="flex-shrink:0;font-size:10px">${sLabel(t.status)}</span>
+      <span style="font-size:11px;color:var(--text3);flex-shrink:0">${timeAgo(t.updated_at)}</span>
+    </div>`).join('');
 }
 
 function toggleSetPassword() {
