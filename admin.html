@@ -2241,12 +2241,12 @@ function openModal(id) {
   const overlay = document.getElementById(id);
   if (!overlay) return;
   overlay.classList.add('open');
-  // Force reflow so scrollbar appears immediately on first open
-  requestAnimationFrame(() => {
+  // Double rAF — waits for content to paint before recalculating scroll
+  requestAnimationFrame(() => requestAnimationFrame(() => {
     overlay.style.overflowY = 'hidden';
     void overlay.scrollHeight;
     overlay.style.overflowY = '';
-  });
+  }));
 }
 function closeModal(id) {
   const overlay = document.getElementById(id);
@@ -3536,7 +3536,8 @@ async function openTicketDetail(id) {
         </div>
       </div>`;
 
-  document.getElementById('detail-body').innerHTML=`
+  const _detailEl = document.getElementById('detail-body');
+  _detailEl.innerHTML=`
     ${mergeBannerHtml}
     ${statusBar}
     <div class="detail-collapsible">
@@ -3652,6 +3653,11 @@ async function openTicketDetail(id) {
     })()}`;
   markSeen(id, t.updated_at);
   openModal('modal-ticket-detail');
+  // Trigger overlay reflow after content is set — ensures scrollbar shows on first open
+  const _ov = document.getElementById('modal-ticket-detail');
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (_ov) { _ov.style.overflowY = 'hidden'; void _ov.scrollHeight; _ov.style.overflowY = 'scroll'; }
+  }));
   // Apply org tint background to meta wrap — must run after innerHTML is set
   requestAnimationFrame(() => {
     const _company = (t.requester?.company || t.organisation || '').trim();
@@ -5019,7 +5025,10 @@ function openEditUser(id) {
   if (pwInput) pwInput.value = '';
   if (pwFeedback) pwFeedback.textContent = '';
   openModal('modal-edit-user');
-  loadEuTickets(p.id);
+  loadEuTickets(p.id).then(() => {
+    const _ov = document.getElementById('modal-edit-user');
+    if (_ov) { _ov.style.overflowY = 'hidden'; void _ov.scrollHeight; _ov.style.overflowY = ''; }
+  });
 }
 
 async function loadEuTickets(userId) {
