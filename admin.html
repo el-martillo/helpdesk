@@ -2919,6 +2919,7 @@ async function sendTestTemplateEmail() {
 
 /* ── Unread tracking (database-backed) ── */
 let _seenMap = {}; // ticket_id -> seen_at (ISO string), populated on load
+const _sessionStart = new Date().toISOString(); // track when this session began
 
 async function loadSeenMap() {
   if (!currentUser) return;
@@ -2947,7 +2948,11 @@ async function markSeen(id, updatedAt) {
 
 function isUnread(t) {
   const seen = getSeenAt(t.id);
-  if (!seen) return true;            // never viewed → unread
+  if (!seen) {
+    // Never viewed — only flag as unread if updated AFTER this session started
+    // (prevents all historical tickets showing as unread on first load)
+    return t.updated_at > _sessionStart;
+  }
   return t.updated_at > seen;       // viewed but updated since → unread
 }
 function unreadBadge() {
