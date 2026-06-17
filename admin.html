@@ -2152,6 +2152,15 @@ const initials  = n => n ? n.split(' ').map(w=>w[0]).join('').toUpperCase().slic
 const avColor   = id => AV_COLORS[(id||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0) % AV_COLORS.length];
 const timeAgo   = iso => { if(!iso) return '—'; const m=Math.floor((Date.now()-new Date(iso))/60000); if(m<1) return 'just now'; if(m<60) return m+'m ago'; const h=Math.floor(m/60); if(h<24) return h+'h ago'; return Math.floor(h/24)+'d ago'; };
 const sLabel    = s => ({open:'Open',in_progress:'In progress',waiting:'Waiting',resolved:'Resolved',merged:'Merged'}[s]||s);
+
+// Force .content scrollbar to recalculate — fixes missing scrollbar on first render
+function reflowContent() {
+  const el = document.querySelector('.content');
+  if (!el) return;
+  el.style.overflowY = 'hidden';
+  void el.scrollHeight;
+  el.style.overflowY = '';
+}
 const CO_BG_DEFAULT = {
   "ABC Cleaning":"#efebe9","Belilos":"#e0f2f1","Britannia":"#e3f2fd",
   "CIAP":"#e8eaf6","Dolphin Safari":"#e1f5fe","El Martillo":"#f0f9e6",
