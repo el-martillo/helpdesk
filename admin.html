@@ -39,6 +39,12 @@
   padding: 24px !important;
   background: var(--surface) !important;
 }
+@media (max-width: 900px) {
+  #dash-insights-grid { grid-template-columns: 1fr 1fr !important; }
+}
+@media (max-width: 600px) {
+  #dash-insights-grid { grid-template-columns: 1fr !important; }
+}
 @media (max-width: 600px) {
   #modal-ticket-detail { padding: 8px 8px 56px; }
   #modal-ticket-detail .modal {
@@ -409,7 +415,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
           <svg class="nav-chevron" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
         <div class="nav-submenu" id="nav-reports-submenu">
-          <div class="nav-item" id="nav-reports" onclick="adminNav(this,'reports');renderTicketCompanies();setTimeout(()=>{const el=document.getElementById('report-top');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},80)">
+          <div class="nav-item" id="nav-reports" onclick="adminNav(this,'reports');renderTicketCompanies();renderTopUsers();setTimeout(()=>{const el=document.getElementById('report-top');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},80)">
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="4" height="11"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="3" width="4" height="18"/></svg>
             Reports
           </div>
@@ -501,15 +507,60 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
           <div class="stat-card" onclick="navTo('resolved')"   style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--success)'" onmouseout="this.style.boxShadow=''"><div class="label">Resolved</div><div class="value" id="dash-resolved" style="color:var(--success)">—</div><div class="sub">All time</div></div>
           <div class="stat-card" onclick="navTo('all')"        style="cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--border2)'" onmouseout="this.style.boxShadow=''"><div class="label">Total</div><div class="value" id="dash-total">—</div><div class="sub">All tickets</div></div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
-          <div class="table-card" style="padding:18px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:14px">By status</div>
-            <div id="dash-status-bars"></div>
+        <!-- 5 insight cards -->
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:20px" id="dash-insights-grid">
+
+          <!-- 1. Unassigned tickets -->
+          <div class="table-card" style="padding:16px;border-top:3px solid var(--danger)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--danger)">Unassigned</div>
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="var(--danger)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><line x1="17" y1="11" x2="23" y2="11"/></svg>
+            </div>
+            <div id="dash-unassigned-count" style="font-size:28px;font-weight:700;color:var(--danger);line-height:1">—</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">tickets need agent</div>
+            <div id="dash-unassigned-list" style="margin-top:10px;display:flex;flex-direction:column;gap:4px"></div>
           </div>
-          <div class="table-card" style="padding:18px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:14px">By priority</div>
-            <div id="dash-priority-bars"></div>
+
+          <!-- 2. Overdue tickets -->
+          <div class="table-card" style="padding:16px;border-top:3px solid var(--warn)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--warn)">Overdue</div>
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="var(--warn)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div id="dash-overdue-count" style="font-size:28px;font-weight:700;color:var(--warn);line-height:1">—</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">open &gt; <span id="dash-overdue-days">3</span> days</div>
+            <div id="dash-overdue-list" style="margin-top:10px;display:flex;flex-direction:column;gap:4px"></div>
           </div>
+
+          <!-- 3. Recent activity feed -->
+          <div class="table-card" style="padding:16px;border-top:3px solid var(--accent)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent)">Activity</div>
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="var(--accent)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div id="dash-activity-feed" style="display:flex;flex-direction:column;gap:6px">
+              <div style="font-size:11px;color:var(--text3)"><div class="loader"></div></div>
+            </div>
+          </div>
+
+          <!-- 4. Top clients mini chart -->
+          <div class="table-card" style="padding:16px;border-top:3px solid var(--purple)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--purple)">Top clients</div>
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="var(--purple)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div id="dash-top-clients" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+
+          <!-- 5. By category -->
+          <div class="table-card" style="padding:16px;border-top:3px solid var(--success)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--success)">By category</div>
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="var(--success)" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            </div>
+            <div id="dash-category-bars" style="display:flex;flex-direction:column;gap:7px"></div>
+          </div>
+
         </div>
         <div class="table-card">
           <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">Recent activity</div>
@@ -6253,15 +6304,7 @@ function renderDashboard() {
   _ad('dash-resolved', tickets.filter(t=>t.status==='resolved').length);
   _ad('dash-total',    tickets.length);
 
-  const rTickets = reportTickets();
-  const statuses=['open','in_progress','waiting','resolved'];
-  const priorities=['critical','high','medium','low'];
-  const max=Math.max(...statuses.map(s=>rTickets.filter(t=>t.status===s).length),1);
-  const pmax=Math.max(...priorities.map(p=>rTickets.filter(t=>t.priority===p).length),1);
-  const sc={open:'var(--accent)',in_progress:'var(--purple)',waiting:'var(--warn)',resolved:'var(--success)'};
-  const pc={critical:'#E24B4A',high:'#EF9F27',medium:'#378ADD',low:'#9e9a94'};
-  document.getElementById('dash-status-bars').innerHTML=statuses.map(s=>{const c=rTickets.filter(t=>t.status===s).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${sLabel(s)}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/max*100)}%;height:100%;background:${sc[s]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
-  document.getElementById('dash-priority-bars').innerHTML=priorities.map(p=>{const c=rTickets.filter(t=>t.priority===p).length;return`<div style="display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:10px"><div style="width:80px;color:var(--text2)">${p}</div><div style="flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden"><div style="width:${Math.round(c/pmax*100)}%;height:100%;background:${pc[p]};border-radius:4px"></div></div><div style="width:20px;text-align:right;font-weight:600">${c}</div></div>`;}).join('');
+  renderDashInsights();
 
   const recent = [...tickets].filter(t=>t.status!=='resolved').sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at)).slice(0,8);
   const tbody = document.getElementById('dash-recent-tbody');
@@ -6365,6 +6408,97 @@ async function loadUserCount() {
 }
 
 /* ── Ticket Companies ── */
+function renderDashInsights() {
+  const active = tickets.filter(t => t.status !== 'merged' && t.status !== 'resolved');
+
+  // ── 1. Unassigned ─────────────────────────────────────────────────────────
+  const unassigned = active.filter(t => !t.assignee_id);
+  const uCount = document.getElementById('dash-unassigned-count');
+  const uList  = document.getElementById('dash-unassigned-list');
+  if (uCount) { uCount.classList.remove('anim'); void uCount.offsetWidth; uCount.textContent = unassigned.length; uCount.classList.add('anim'); setTimeout(()=>uCount.classList.remove('anim'),400); }
+  if (uList) uList.innerHTML = unassigned.slice(0,3).map(t =>
+    `<div onclick="openTicketDetail('${t.id}')" style="font-size:11px;padding:4px 7px;background:var(--surface2);border-radius:4px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-left:2px solid var(--danger)" title="${esc(t.subject)}">
+      <span style="color:var(--text3)">#${t.ticket_number}</span> ${esc(t.subject?.slice(0,28)||'')}</div>`
+  ).join('') + (unassigned.length > 3 ? `<div style="font-size:10px;color:var(--text3);text-align:center;margin-top:2px">+${unassigned.length-3} more</div>` : '');
+
+  // ── 2. Overdue ─────────────────────────────────────────────────────────────
+  const overdueDays = parseInt(document.getElementById('dash-overdue-days')?.textContent || '3');
+  const cutoff = Date.now() - overdueDays * 24 * 60 * 60 * 1000;
+  const overdue = active.filter(t => ['open','in_progress','waiting'].includes(t.status) && new Date(t.created_at).getTime() < cutoff);
+  const odCount = document.getElementById('dash-overdue-count');
+  const odList  = document.getElementById('dash-overdue-list');
+  if (odCount) { odCount.classList.remove('anim'); void odCount.offsetWidth; odCount.textContent = overdue.length; odCount.classList.add('anim'); setTimeout(()=>odCount.classList.remove('anim'),400); }
+  if (odList) odList.innerHTML = overdue.slice(0,3).map(t =>
+    `<div onclick="openTicketDetail('${t.id}')" style="font-size:11px;padding:4px 7px;background:var(--surface2);border-radius:4px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-left:2px solid var(--warn)" title="${esc(t.subject)}">
+      <span style="color:var(--text3)">#${t.ticket_number}</span> ${esc(t.subject?.slice(0,28)||'')}</div>`
+  ).join('') + (overdue.length > 3 ? `<div style="font-size:10px;color:var(--text3);text-align:center;margin-top:2px">+${overdue.length-3} more</div>` : '');
+
+  // ── 3. Activity feed — loaded async ────────────────────────────────────────
+  loadDashActivityFeed();
+
+  // ── 4. Top clients mini ────────────────────────────────────────────────────
+  const el4 = document.getElementById('dash-top-clients');
+  if (el4) {
+    const counts = {};
+    tickets.forEach(t => {
+      const req = t.requester; if (!req) return;
+      if (!counts[req.id]) counts[req.id] = { name: req.full_name || req.email || 'Unknown', id: req.id, total: 0 };
+      counts[req.id].total++;
+    });
+    const sorted = Object.values(counts).sort((a,b)=>b.total-a.total).slice(0,5);
+    const max = sorted[0]?.total || 1;
+    const colors = ['var(--accent)','var(--purple)','var(--warn)','var(--success)','var(--text3)'];
+    el4.innerHTML = sorted.map((u,i) => `
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+          <span style="font-size:11px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px">${esc(u.name)}</span>
+          <span style="font-size:11px;font-weight:600;color:${colors[i]};flex-shrink:0;margin-left:6px">${u.total}</span>
+        </div>
+        <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${Math.round(u.total/max*100)}%;background:${colors[i]};border-radius:3px;transition:width .4s ease"></div>
+        </div>
+      </div>`).join('');
+  }
+
+  // ── 5. By category ─────────────────────────────────────────────────────────
+  const el5 = document.getElementById('dash-category-bars');
+  if (el5) {
+    const cats = {};
+    tickets.forEach(t => { const c = t.category || 'General'; cats[c] = (cats[c]||0)+1; });
+    const sorted5 = Object.entries(cats).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const max5 = sorted5[0]?.[1] || 1;
+    el5.innerHTML = sorted5.map(([cat, count]) => `
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+          <span style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px">${esc(cat)}</span>
+          <span style="font-size:11px;font-weight:600;color:var(--success);flex-shrink:0;margin-left:6px">${count}</span>
+        </div>
+        <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${Math.round(count/max5*100)}%;background:var(--success);border-radius:3px;transition:width .4s ease"></div>
+        </div>
+      </div>`).join('');
+  }
+}
+
+async function loadDashActivityFeed() {
+  const el = document.getElementById('dash-activity-feed');
+  if (!el) return;
+  const { data } = await sbClient.from('system_log')
+    .select('action, details, actor_name, created_at')
+    .order('created_at', { ascending: false })
+    .limit(7);
+  if (!data || !data.length) { el.innerHTML = '<div style="font-size:11px;color:var(--text3)">No recent activity.</div>'; return; }
+  const icons = { ticket_created:'🎫', ticket_status:'🔄', email_sent:'✉️', user_updated:'👤', ticket_created_via_email:'📧', email_reply_added:'💬', user_invite_sent:'📨', password_set:'🔑' };
+  el.innerHTML = data.map(e => `
+    <div style="display:flex;align-items:flex-start;gap:6px">
+      <span style="flex-shrink:0;font-size:12px">${icons[e.action]||'•'}</span>
+      <div style="min-width:0">
+        <div style="font-size:11px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.details?.slice(0,45)||e.action)}</div>
+        <div style="font-size:10px;color:var(--text3)">${esc(e.actor_name||'')} · ${timeAgo(e.created_at)}</div>
+      </div>
+    </div>`).join('');
+}
+
 function renderTicketCompanies() {
   const el = document.getElementById('ticket-companies-list');
   if (!el) return;
