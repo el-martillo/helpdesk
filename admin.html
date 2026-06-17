@@ -28,7 +28,7 @@
 /* Overlay scrolls — modal has no internal scroll, eliminates scrollbar gap */
 #modal-ticket-detail {
   padding: 24px 16px 56px;
-  overflow-y: auto;
+  overflow-y: scroll;
   align-items: flex-start;
 }
 #modal-ticket-detail .modal {
@@ -3520,7 +3520,7 @@ async function openTicketDetail(id) {
       </button>
       <div id="detail-meta-wrap" style="border-radius:var(--radius-l);padding:16px 14px 20px;margin-bottom:8px;transition:background .3s">
       <div class="detail-meta-grid">
-      <div class="dmi dmi-user" ${req?.id?`onclick="openEditUser('${req.id}')" style="cursor:pointer" title="View user profile"`:''}  >
+      <div class="dmi dmi-user" ${req?.id?`onclick="closeModal('modal-ticket-detail');setTimeout(()=>openEditUser('${req.id}'),200)" style="cursor:pointer" title="View user profile"`:''}  >
         <div class="key">Client</div>
         <div class="val flex-c"><div class="avatar ${avColor(req?.id)}" style="width:22px;height:22px;font-size:9px">${initials(req?.full_name||'?')}</div><span style="${req?.id?'text-decoration:underline dotted;text-underline-offset:2px':''}">${esc(req?.full_name||'—')}</span></div>
       </div>
@@ -3667,9 +3667,9 @@ function renderComments(comments, showInternal=false) {
       ? `<span style="display:inline-block;font-size:10px;font-weight:600;background:#E1F5EE;color:#0F6E56;border-radius:4px;padding:1px 5px;margin-right:4px;white-space:nowrap" title="Received via email">✉ via email</span>`
       : '';
     const authorLink = author?.id
-      ? `<a href="#" onclick="event.preventDefault();event.stopPropagation();openEditUser('${author.id}')" style="color:inherit;font-weight:600;text-decoration:none;border-bottom:1px dotted var(--text3)" title="View user profile">${esc(author?.full_name)||'Unknown'}</a>`
+      ? `<a href="#" onclick="event.preventDefault();event.stopPropagation();closeModal('modal-ticket-detail');setTimeout(()=>openEditUser('${author.id}'),200)" style="color:inherit;font-weight:600;text-decoration:none;border-bottom:1px dotted var(--text3)" title="View user profile">${esc(author?.full_name)||'Unknown'}</a>`
       : `<span style="font-weight:600">${esc(author?.full_name)||'Unknown'}</span>`;
-    return `<div class="comment-item"><div class="avatar ${avColor(author?.id)}" style="flex-shrink:0;cursor:${author?.id?'pointer':'default'}" ${author?.id?`onclick="openEditUser('${author.id}')" title="View user profile"`:''}>${initials(author?.full_name||'?')}</div>
+    return `<div class="comment-item"><div class="avatar ${avColor(author?.id)}" style="flex-shrink:0;cursor:${author?.id?'pointer':'default'}" ${author?.id?`onclick="closeModal('modal-ticket-detail');setTimeout(()=>openEditUser('${author.id}'),200)" title="View user profile"`:''}>${initials(author?.full_name||'?')}</div>
       <div class="comment-bubble ${cls}"><div class="comment-meta">${srcTag}${emailTag}${authorLink}  ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${esc(c.body)}</div></div>`;
   }).join('');
 }
@@ -3770,7 +3770,7 @@ async function updateStatus(id, status) {
     const pill = document.querySelector('#modal-ticket-detail .sb[class*="s-"]');
     if (pill) {
       // Remove old status class, add new one
-      pill.className = pill.className.replace(/s-\S+/g, '').trim() + ' s-' + status;
+      pill.className = pill.className.split(' ').filter(c => !c.startsWith('s-')).join(' ').trim() + ' s-' + status;
       pill.textContent = sLabel(status);
       // Flash animation
       pill.style.animation = 'none'; void pill.offsetWidth;
