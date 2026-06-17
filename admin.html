@@ -2421,7 +2421,7 @@ async function signIn() {
   currentProfile = prof;
   if (!prof?.role || prof?.role==='client') { document.getElementById('auth-err').textContent='Access denied. Client accounts must use the client portal.'; return; }
   document.getElementById('auth-screen').classList.remove('active');
-  document.getElementById('app').style.display = 'flex'; stopBeachCanvas();
+  document.getElementById('app').style.display = 'flex'; stopBeachCanvas(); requestAnimationFrame(reflowContent);
   document.getElementById('db-dot').className = 'dot connected';
   document.getElementById('db-label').textContent = 'Supabase connected';
   document.getElementById('topbar-user').textContent = prof?.full_name||email;
@@ -3346,7 +3346,11 @@ function adminNav(el, page) {
   pg.classList.add('active');
   // Set content bg tint to match the active page
   const contentEl = document.querySelector('.content');
-  if (contentEl) contentEl.setAttribute('data-page', page);
+  if (contentEl) {
+    contentEl.setAttribute('data-page', page);
+    contentEl.scrollTop = 0;
+    requestAnimationFrame(reflowContent);
+  }
   if (['open','in_progress','waiting','resolved'].includes(page)) {
     pg.innerHTML = `
       <div class="ticket-banner tb-${page}">
@@ -4827,7 +4831,7 @@ async function initSupabase() {
       const rb = document.getElementById('topbar-role-badge');
       if (rb) rb.textContent = prof?.role === 'super_admin' ? 'Super Admin' : 'Admin';
       applyRoleUI(prof?.role);
-      document.getElementById('app').style.display = 'flex'; stopBeachCanvas();
+      document.getElementById('app').style.display = 'flex'; stopBeachCanvas(); requestAnimationFrame(reflowContent);
       loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart(); loadCategories(); loadCannedResponses(); loadSeenMap();
     } else {
       document.getElementById('loading-screen').style.display = 'none';
@@ -7221,6 +7225,43 @@ function startRealtime() {
     })
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tickets' }, () => {
       loadTickets();
+    })
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, async payload => {
+      const ticketId = payload.new?.ticket_id;
+      // If this comment belongs to the currently open ticket, refresh comments live
+      if (ticketId && ticketId === _currentTicketId) {
+        const overlay = document.getElementById('modal-ticket-detail');
+        if (overlay && overlay.classList.contains('open')) {
+          // Fetch the new comment with author info
+          const { data: comments } = await sbClient
+            .from('comments')
+            .select('*,author:profiles(id,full_name,role)')
+            .eq('ticket_id', ticketId)
+            .order('created_at');
+          if (comments) {
+            const list = document.getElementById('comments-list');
+            if (list) {
+              // Re-render comments using same logic as openTicketDetail
+              list.innerHTML = comments.map(c => {
+                const author = (c.author || {});
+                const cls = author.role === 'admin' || author.role === 'super_admin' ? 'agent-bubble' : '';
+                const srcTag = c.via_email ? '<span class="source-ticket-tag" style="margin-right:4px">📧 Email</span>' : '';
+                const emailTag = '';
+                const authorLink = author?.id
+                  ? `<a href="#" onclick="event.preventDefault();event.stopPropagation();closeModal('modal-ticket-detail');setTimeout(()=>openEditUser('${author.id}'),200)" style="color:inherit;font-weight:600;text-decoration:none;border-bottom:1px dotted var(--text3)" title="View user profile">${esc(author?.full_name)||'Unknown'}</a>`
+                  : `<span style="font-weight:600">${esc(author?.full_name)||'Unknown'}</span>`;
+                return `<div class="comment-item"><div class="avatar ${avColor(author?.id)}" style="flex-shrink:0;cursor:${author?.id?'pointer':'default'}" ${author?.id?`onclick="closeModal('modal-ticket-detail');setTimeout(()=>openEditUser('${author.id}'),200)" title="View user profile"`:''}>${initials(author?.full_name||'?')}</div>
+                  <div class="comment-bubble ${cls}"><div class="comment-meta">${srcTag}${emailTag}${authorLink}  ${c.is_internal?'· 🔒 internal':''} · ${timeAgo(c.created_at)}</div>${esc(c.body)}</div></div>`;
+              }).join('');
+              // Update activity label count
+              const label = document.querySelector('#modal-ticket-detail .activity-label');
+              if (label) label.textContent = `Activity (${comments.length} comment${comments.length!==1?'s':''})`;
+              // Scroll to bottom of comments
+              list.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }
+          }
+        }
+      }
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, () => {
       loadAllProfiles();
