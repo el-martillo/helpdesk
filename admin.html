@@ -730,6 +730,15 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
             </div>
           </div>
 
+          <!-- Top 5 users by ticket count -->
+          <div class="table-card" style="padding:18px" id="report-top-users-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+              <div style="font-size:13px;font-weight:600">Top clients by tickets</div>
+              <div style="font-size:11px;color:var(--text3)">Top 5 users</div>
+            </div>
+            <div id="report-top-users"></div>
+          </div>
+
           <!-- Tickets over time -->
           <div class="table-card full-width" style="padding:20px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
@@ -2900,7 +2909,7 @@ async function loadTickets() {
   const {data,error} = await sbClient.from('tickets')
     .select('*, requester:profiles!requester_id(id,full_name,email,phone,company), assignee:profiles!assignee_id(id,full_name)')
     .order('updated_at',{ascending:false});
-  if (error) { toast('Error: '+error.message); return; }  tickets = data||[]; renderTable(); updateStats(); updateBadges(); renderDashboard(); if(document.getElementById('page-reports')?.classList.contains('active')) renderTicketCompanies();
+  if (error) { toast('Error: '+error.message); return; }  tickets = data||[]; renderTable(); updateStats(); updateBadges(); renderDashboard(); if(document.getElementById('page-reports')?.classList.contains('active')) { renderTicketCompanies(); renderTopUsers(); }
   document.getElementById('ticket-count-sub').textContent = tickets.length+' tickets total';
 }
 async function loadProfiles() {
@@ -8104,6 +8113,7 @@ function navToAnalytics() {
   const reportsNav = document.getElementById('nav-reports');
   adminNav(reportsNav, 'reports');
   renderTicketCompanies();
+  renderTopUsers();
   openNavGroup('reports');
   // Mark analytics nav item as active
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
