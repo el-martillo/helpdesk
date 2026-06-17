@@ -2232,6 +2232,12 @@ function openModal(id) {
   const overlay = document.getElementById(id);
   if (!overlay) return;
   overlay.classList.add('open');
+  // Force reflow so scrollbar appears immediately on first open
+  requestAnimationFrame(() => {
+    overlay.style.overflowY = 'hidden';
+    void overlay.scrollHeight;
+    overlay.style.overflowY = '';
+  });
 }
 function closeModal(id) {
   const overlay = document.getElementById(id);
