@@ -1876,15 +1876,17 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
         Send
       </button>
     </div>
-    <div id="eu-verify-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:4px">
-      <div>
-        <div style="font-size:12px;font-weight:500;color:var(--text1)">Manually verify email</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px">Mark this account as verified — bypasses the confirmation email</div>
+    <div id="eu-verify-row" style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:4px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2)">
+        <div>
+          <div style="font-size:12px;font-weight:500;color:var(--text1)">Manually verify email</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Mark this account as verified — bypasses the confirmation email</div>
+        </div>
+        <button class="btn sm" id="eu-verify-btn" onclick="manuallyVerifyUser()" style="white-space:nowrap;flex-shrink:0">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Verify
+        </button>
       </div>
-      <button class="btn sm" id="eu-verify-btn" onclick="manuallyVerifyUser()" style="white-space:nowrap;flex-shrink:0">
-        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-        Verify
-      </button>
     </div>
 
     <!-- Set password directly -->
@@ -3946,13 +3948,11 @@ async function updateRequester(id, requesterId) {
   const updatePayload = { requester_id: requesterId || null };
   if (newReq?.email) updatePayload.contact_email = newReq.email;
   await sbClient.from('tickets').update(updatePayload).eq('id', id);
-  // Update in-memory ticket
   if (prev) {
     prev.requester_id = requesterId || null;
     prev.requester    = newReq || null;
     if (newReq?.email) prev.contact_email = newReq.email;
   }
-  // Update meta grid Client cell
   const clientVal = document.querySelector('#detail-body .dmi-user .val');
   if (clientVal && newReq) {
     clientVal.innerHTML = `<div class="avatar ${avColor(newReq.id)}" style="width:22px;height:22px;font-size:9px">${initials(newReq.full_name||'?')}</div><span style="text-decoration:underline dotted;text-underline-offset:2px">${escH(newReq.full_name||'—')}</span>`;
@@ -5095,10 +5095,11 @@ function openEditUser(id) {
     }
   });
 
-  // Show/hide manual verify row based on current verified status
-  const isVerified = authVerifiedMap[p.id] === true;
+  // Show/hide manual verify row: only for users with an auth record who are not yet verified
+  const hasAuthRecord = p.id in authVerifiedMap;
+  const isVerified    = authVerifiedMap[p.id] === true;
   const verifyRow = document.getElementById('eu-verify-row');
-  if (verifyRow) verifyRow.style.display = isVerified ? 'none' : '';
+  if (verifyRow) verifyRow.style.display = (hasAuthRecord && !isVerified) ? '' : 'none';
 
   // Show WA section only for admin/super_admin
   const isStaff = p.role === 'admin' || p.role === 'super_admin';
@@ -5227,7 +5228,7 @@ async function manuallyVerifyUser() {
     const res = await fetch('https://gtcrmqbmlvtlyiwnshma.supabase.co/functions/v1/admin-set-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
-      body: JSON.stringify({ user_id: id, action: 'verify_email' })
+      body: JSON.stringify({ user_id: id, email: email, action: 'verify_email' })
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || res.statusText);
@@ -6879,7 +6880,11 @@ function renderCategoryList() {
     return;
   }
   el.innerHTML = categoriesList.map((c, i) => `
-    <div style="display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)" id="cat-row-${i}">
+    <div draggable="true"
+      ondragstart="catDragStart(${i})" ondragover="event.preventDefault()"
+      ondrop="catDrop(${i})" ondragend="catDragEnd()"
+      style="display:flex;align-items:center;gap:6px;padding:5px 6px 5px 8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)" id="cat-row-${i}">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:var(--text3);cursor:grab;flex-shrink:0"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg>
       <span id="cat-label-${i}" style="flex:1;font-size:13px">${esc(c)}</span>
       <input class="fc" id="cat-input-${i}" type="text" value="${esc(c)}" style="flex:1;display:none;padding:4px 8px;font-size:13px" onkeydown="if(event.key==='Enter')saveCatEdit(${i});if(event.key==='Escape')cancelCatEdit(${i})"/>
       <button class="btn sm" id="cat-edit-btn-${i}" onclick="startCatEdit(${i})" title="Edit" style="padding:3px 8px">
@@ -6949,6 +6954,25 @@ async function persistCategories() {
     .upsert({ key: CAT_KEY, value: JSON.stringify(categoriesList) }, { onConflict: 'key' });
   if (error) toast('Error saving categories: ' + error.message);
   else toast('Categories saved');
+}
+
+let _catDragIdx = null;
+function catDragStart(i) {
+  _catDragIdx = i;
+  setTimeout(() => { const r = document.getElementById(`cat-row-${i}`); if(r) r.style.opacity = '0.4'; }, 0);
+}
+function catDragEnd() {
+  if (_catDragIdx !== null) { const r = document.getElementById(`cat-row-${_catDragIdx}`); if(r) r.style.opacity = ''; }
+  _catDragIdx = null;
+}
+async function catDrop(toIdx) {
+  if (_catDragIdx === null || _catDragIdx === toIdx) return;
+  const moved = categoriesList.splice(_catDragIdx, 1)[0];
+  categoriesList.splice(toIdx, 0, moved);
+  _catDragIdx = null;
+  renderCategoryList();
+  ntPopulateCategoryDropdown();
+  await persistCategories();
 }
 
 function populateCompanySelects() {
