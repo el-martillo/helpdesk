@@ -2231,7 +2231,10 @@ function reflowContent() {
   if (!el) return;
   el.style.overflowY = 'hidden';
   void el.scrollHeight;
-  el.style.overflowY = '';
+  requestAnimationFrame(() => {
+    el.style.overflowY = '';
+    void el.scrollHeight;
+  });
 }
 const CO_BG_DEFAULT = {
   "ABC Cleaning":"#efebe9","Belilos":"#e0f2f1","Britannia":"#e3f2fd",
@@ -5234,6 +5237,7 @@ async function manuallyVerifyUser() {
     authVerifiedMap[id] = true;
     const row = document.getElementById('eu-verify-row');
     if (row) row.style.display = 'none';
+    renderUsersTable();
     toast('✓ ' + (name || email || 'User') + ' marked as verified');
     logSystemEvent('user_verified', `Email manually verified for: ${name}${email ? ' <' + email + '>' : ''}`);
   } catch(e) {
