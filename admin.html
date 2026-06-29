@@ -5095,11 +5095,10 @@ function openEditUser(id) {
     }
   });
 
-  // Show/hide manual verify row: only for users with an auth record who are not yet verified
-  const hasAuthRecord = p.id in authVerifiedMap;
-  const isVerified    = authVerifiedMap[p.id] === true;
+  // Show verify row unless we positively know the account is already verified
+  const isVerified = authVerifiedMap[p.id] === true;
   const verifyRow = document.getElementById('eu-verify-row');
-  if (verifyRow) verifyRow.style.display = (hasAuthRecord && !isVerified) ? '' : 'none';
+  if (verifyRow) verifyRow.style.display = isVerified ? 'none' : '';
 
   // Show WA section only for admin/super_admin
   const isStaff = p.role === 'admin' || p.role === 'super_admin';
