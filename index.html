@@ -1796,16 +1796,16 @@ function closeMobileMenu() {
 
 /* ── Version ── */
 async function loadVersion() {
-  if (!sbClient) return;
   try {
-    const { data } = await sbClient
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'app_version')
-      .maybeSingle();
-    const v = data?.value || '1.0.0';
+    const SB_URL_V = 'https://gtcrmqbmlvtlyiwnshma.supabase.co';
+    const SB_KEY_V = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
+    const res = await fetch(
+      `${SB_URL_V}/rest/v1/app_settings?key=eq.app_version&select=value`,
+      { headers: { 'apikey': SB_KEY_V, 'Authorization': `Bearer ${SB_KEY_V}` } }
+    );
+    const rows = await res.json();
     const el = document.getElementById('footer-version');
-    if (el) el.textContent = 'v' + v;
+    if (el && rows?.[0]?.value) el.textContent = 'v' + rows[0].value;
   } catch(e) {}
 }
 

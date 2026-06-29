@@ -36,7 +36,7 @@
 .admin-link:hover { color: var(--text1); background: var(--bg); }
 
 /* Layout */
-.body { display: flex; flex: 1; overflow: hidden; }
+.body { display: flex; flex: 1; min-height: 0; }
 .sidebar {
   width: 210px; flex-shrink: 0;
   background: var(--surface2); border-right: 1px solid var(--border);

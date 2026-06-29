@@ -3548,6 +3548,8 @@ async function openTicketDetail(id) {
   const {data}=await sbClient.from('comments').select('*,author:profiles(id,full_name,role)').eq('ticket_id',id).order('created_at'); comments=data||[];
   const agentOpts = profiles.filter(p=>p.role==='admin'||p.role==='super_admin')
     .map(p=>`<option value="${p.id}" ${p.id===t.assignee_id?'selected':''}>${p.full_name}</option>`).join('');
+  const clientOpts = allProfiles
+    .map(p=>`<option value="${p.id}" ${p.id===t.requester_id?'selected':''}>${escH(p.full_name||p.email||p.id)}</option>`).join('');
 
   const isMerged = t.status === 'merged';
   const hasMergedIn = (t.merged_ticket_ids?.length > 0);
@@ -3607,6 +3609,10 @@ async function openTicketDetail(id) {
           <span class="detail-agent-label" style="font-size:12px;color:var(--text2);font-weight:500">Agent:</span>
           <select class="filter-sel" onchange="updateAssignee('${t.id}',this.value)">
             <option value="">Unassigned</option>${agentOpts}
+          </select>
+          <span style="font-size:12px;color:var(--text2);font-weight:500">Client:</span>
+          <select class="filter-sel" id="detail-requester-sel" onchange="updateRequester('${t.id}',this.value)">
+            <option value="">— unassigned —</option>${clientOpts}
           </select>
         </div>
       </div>`;
@@ -3932,6 +3938,30 @@ async function updateAssignee(id, assigneeId) {
   refreshCurrentPage();
   toast('Tech assigned updated');
   const ta=tickets.find(x=>x.id===id); const ag=profiles.find(p=>p.id===assigneeId); const prevAg=profiles.find(p=>p.id===ta?.assignee_id); logSystemEvent('ticket_assigned',`#${ta?.ticket_number||id} "${ta?.subject||''}" | From: ${prevAg?.full_name||'Unassigned'} → To: ${ag?.full_name||'Unassigned'} | Status: ${ta?.status||'?'}`);
+}
+
+async function updateRequester(id, requesterId) {
+  const prev = tickets.find(x => x.id === id);
+  const newReq = allProfiles.find(p => p.id === requesterId);
+  const updatePayload = { requester_id: requesterId || null };
+  if (newReq?.email) updatePayload.contact_email = newReq.email;
+  await sbClient.from('tickets').update(updatePayload).eq('id', id);
+  // Update in-memory ticket
+  if (prev) {
+    prev.requester_id = requesterId || null;
+    prev.requester    = newReq || null;
+    if (newReq?.email) prev.contact_email = newReq.email;
+  }
+  // Update meta grid Client cell
+  const clientVal = document.querySelector('#detail-body .dmi-user .val');
+  if (clientVal && newReq) {
+    clientVal.innerHTML = `<div class="avatar ${avColor(newReq.id)}" style="width:22px;height:22px;font-size:9px">${initials(newReq.full_name||'?')}</div><span style="text-decoration:underline dotted;text-underline-offset:2px">${escH(newReq.full_name||'—')}</span>`;
+  }
+  await loadTickets();
+  refreshCurrentPage();
+  toast('Client updated');
+  const prevName = prev?.requester?.full_name || prev?.contact_email || 'Unknown';
+  logSystemEvent('ticket_updated', `#${prev?.ticket_number||id} client → ${newReq?.full_name||'Unassigned'} (was: ${prevName})`);
 }
 
 async function updatePriority(id, priority) {
