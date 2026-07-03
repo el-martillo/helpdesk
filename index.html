@@ -895,7 +895,7 @@ function startRealtime() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'app_settings' }, payload => {
       const key = payload.new?.key || payload.old?.key;
       if (key === 'categories') loadCategoriesFromSupabase();
-      if (key === 'support_whatsapp') loadWaButton();
+      if (key === 'support_telegram') loadTelegramButton();
     })
     .subscribe();
 }
@@ -949,7 +949,7 @@ function showApp() {
   if (fab) fab.style.display = 'flex';
   updateUserHeader();
   loadClientTickets();
-  loadVersion(); loadWaButton();
+  loadVersion(); loadTelegramButton();
   startRealtime();
   loadAndStartIdleTimeout();
   loadSeenMap();
@@ -981,27 +981,26 @@ function updateUserHeader() {
 }
 
 /* ── Tickets ── */
-/* ── WhatsApp support button ── */
-async function loadWaButton() {
+/* ── Telegram support button ── */
+async function loadTelegramButton() {
   if (!sbClient) return;
   try {
-    const { data, error } = await sbClient.from('app_settings').select('value').eq('key','support_whatsapp').maybeSingle();
-    if (error) { console.warn('[WA button] app_settings read error:', error.message); return; }
-    const num = data?.value?.trim();
-    const waBtn  = document.getElementById('chat-wa-btn');
-    const waRow  = document.getElementById('chat-wa-row');
-    const waLink = document.getElementById('chat-wa-link');
-    if (num) {
-      const clean = num.replace(/[\s\-\(\)]/g, '').replace('+', '');
-      const href  = 'https://wa.me/' + clean;
-      if (waBtn)  { waBtn.href = href;  waBtn.style.display  = 'flex'; }
-      if (waRow)  { waRow.style.display = 'block'; }
-      if (waLink) { waLink.href = href; }
+    const { data, error } = await sbClient.from('app_settings').select('value').eq('key','support_telegram').maybeSingle();
+    if (error) { console.warn('[TG button] app_settings read error:', error.message); return; }
+    const username = data?.value?.trim().replace(/^@/, '');
+    const tgBtn  = document.getElementById('chat-tg-btn');
+    const tgRow  = document.getElementById('chat-tg-row');
+    const tgLink = document.getElementById('chat-tg-link');
+    if (username) {
+      const href = 'https://t.me/' + username;
+      if (tgBtn)  { tgBtn.href = href;  tgBtn.style.display  = 'flex'; }
+      if (tgRow)  { tgRow.style.display = 'block'; }
+      if (tgLink) { tgLink.href = href; }
     } else {
-      if (waBtn)  waBtn.style.display  = 'none';
-      if (waRow)  waRow.style.display  = 'none';
+      if (tgBtn)  tgBtn.style.display  = 'none';
+      if (tgRow)  tgRow.style.display  = 'none';
     }
-  } catch(e) { console.warn('[WA button] unexpected error:', e.message); }
+  } catch(e) { console.warn('[TG button] unexpected error:', e.message); }
 }
 
 /* ── Unread tracking (database-backed) ── */
@@ -1039,7 +1038,7 @@ function unreadBadge() {
 async function loadClientTickets() {
   document.getElementById('ticket-list').innerHTML='<div style="text-align:center;padding:32px;color:var(--text3)"><div class="loader"></div></div>';
   const {data,error}=await sbClient.from('tickets')
-    .select('*, assignee:profiles!assignee_id(id,full_name,whatsapp_number)')
+    .select('*, assignee:profiles!assignee_id(id,full_name,telegram_username)')
     .eq('requester_id',currentUser.id)
     .order('updated_at',{ascending:false});
   if (error){toast('Error: '+error.message);return;}
@@ -1135,7 +1134,7 @@ async function openTicketDetail(id) {
       <div class="detail-meta-grid">
       <div class="dmi dmi-user">
         <div class="key">Tech assigned</div>
-        <div class="val">${asgn?.full_name ? `<span class="flex-c">${(()=>{const waNum=asgn.whatsapp_number?asgn.whatsapp_number.replace(/[\s\-\(\)]/g,'').replace('+',''):'';const waHref=waNum?'https://wa.me/'+waNum:'';return `<div class="avatar ${avColor(asgn?.id||'')} " style="width:22px;height:22px;font-size:9px">${initials(asgn.full_name)}</div>${esc(asgn.full_name)}${waHref?` <a href="${waHref}" target="_blank" rel="noopener" title="Chat with ${esc(asgn.full_name)} on WhatsApp" style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:10px;background:#f0fdf4;border:1px solid #86efac;color:#15803d;font-size:11px;font-weight:600;text-decoration:none;margin-left:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a>`:''}`;})()}</span>` : '<span style="color:var(--text3)">Unassigned</span>'}</div>
+        <div class="val">${asgn?.full_name ? `<span class="flex-c">${(()=>{const tgUser=asgn.telegram_username?asgn.telegram_username.replace(/^@/,''):'';const tgHref=tgUser?'https://t.me/'+tgUser:'';return `<div class="avatar ${avColor(asgn?.id||'')} " style="width:22px;height:22px;font-size:9px">${initials(asgn.full_name)}</div>${esc(asgn.full_name)}${tgHref?` <a href="${tgHref}" target="_blank" rel="noopener" title="Chat with ${esc(asgn.full_name)} on Telegram" style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:10px;background:#eaf6fd;border:1px solid #93cdf0;color:#0c6faa;font-size:11px;font-weight:600;text-decoration:none;margin-left:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.568 8.16c-.169 1.858-.896 6.728-1.267 8.928-.157.933-.463 1.245-.76 1.276-.646.06-1.136-.427-1.762-.837-.98-.643-1.534-1.043-2.485-1.671-1.1-.724-.387-1.122.24-1.774.164-.17 3.007-2.757 3.062-2.992a.216.216 0 00-.052-.192c-.06-.05-.145-.033-.207-.02-.088.02-1.485.944-4.192 2.77-.397.273-.756.406-1.078.399-.355-.008-1.038-.2-1.546-.365-.623-.202-1.118-.31-1.075-.653.023-.18.269-.363.741-.55 2.9-1.264 4.833-2.097 5.8-2.5 2.762-1.148 3.334-1.347 3.708-1.354.082-.001.267.019.386.114.1.08.128.187.14.267.014.096.032.284.018.437z"/></svg>Telegram</a>`:''}`;})()}</span>` : '<span style="color:var(--text3)">Unassigned</span>'}</div>
       </div>
       <div class="dmi">
         <div class="key">Category</div>
@@ -1566,7 +1565,7 @@ async function submitTicket() {
   if (error){toast('Error: '+error.message);return;}
   trackUserActivity('ticket_created', 'success', `Subject: ${subject}`);
   closeModal('modal-new-ticket'); clearForm();
-  loadVersion(); loadWaButton(); await loadClientTickets(); toast('Request submitted! We\'ll be in touch soon.');
+  loadVersion(); loadTelegramButton(); await loadClientTickets(); toast('Request submitted! We\'ll be in touch soon.');
   // Telegram notifications — query DB directly so ticket_id is always correct
   try {
     const { data: newT } = await sbClient.from('tickets')
@@ -2155,24 +2154,24 @@ if ('serviceWorker' in navigator && location.hostname === 'el-martillo.github.io
       <div class="chat-header-name">El Martillo I.T. Support</div>
       <div class="chat-header-status"><span class="chat-status-dot"></span>AI assistant &middot; always on</div>
     </div>
-    <a id="chat-wa-btn" href="#" target="_blank" title="Talk to an Agent on WhatsApp"
+    <a id="chat-tg-btn" href="#" target="_blank" title="Talk to an Agent on Telegram"
        style="display:none;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;flex-shrink:0;transition:background .15s"
        onmouseover="this.style.background='rgba(255,255,255,.28)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.568 8.16c-.169 1.858-.896 6.728-1.267 8.928-.157.933-.463 1.245-.76 1.276-.646.06-1.136-.427-1.762-.837-.98-.643-1.534-1.043-2.485-1.671-1.1-.724-.387-1.122.24-1.774.164-.17 3.007-2.757 3.062-2.992a.216.216 0 00-.052-.192c-.06-.05-.145-.033-.207-.02-.088.02-1.485.944-4.192 2.77-.397.273-.756.406-1.078.399-.355-.008-1.038-.2-1.546-.365-.623-.202-1.118-.31-1.075-.653.023-.18.269-.363.741-.55 2.9-1.264 4.833-2.097 5.8-2.5 2.762-1.148 3.334-1.347 3.708-1.354.082-.001.267.019.386.114.1.08.128.187.14.267.014.096.032.284.018.437z"/>
       </svg>
     </a>
     <button class="chat-close" onclick="toggleChat()" aria-label="Close chat">&#x2715;</button>
   </div>
   <div id="chat-messages"></div>
   <div id="chat-quick-replies-wrap" class="chat-quick-replies"></div>
-  <!-- Persistent WA link row -->
-  <div id="chat-wa-row" style="display:none;padding:6px 12px 10px;margin-top:-2px">
-    <a id="chat-wa-link" href="#" target="_blank"
-       style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:14px;background:#f0fdf4;border:1px solid #86efac;color:#15803d;font-size:12px;font-weight:600;text-decoration:none;transition:all .15s;font-family:var(--font)"
-       onmouseover="this.style.background='#dcfce7';this.style.borderColor='#4ade80'" onmouseout="this.style.background='#f0fdf4';this.style.borderColor='#86efac'">
+  <!-- Persistent Telegram link row -->
+  <div id="chat-tg-row" style="display:none;padding:6px 12px 10px;margin-top:-2px">
+    <a id="chat-tg-link" href="#" target="_blank"
+       style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:14px;background:#eaf6fd;border:1px solid #93cdf0;color:#0c6faa;font-size:12px;font-weight:600;text-decoration:none;transition:all .15s;font-family:var(--font)"
+       onmouseover="this.style.background='#d7ecfa';this.style.borderColor='#5fb3e6'" onmouseout="this.style.background='#eaf6fd';this.style.borderColor='#93cdf0'">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0">
-        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.568 8.16c-.169 1.858-.896 6.728-1.267 8.928-.157.933-.463 1.245-.76 1.276-.646.06-1.136-.427-1.762-.837-.98-.643-1.534-1.043-2.485-1.671-1.1-.724-.387-1.122.24-1.774.164-.17 3.007-2.757 3.062-2.992a.216.216 0 00-.052-.192c-.06-.05-.145-.033-.207-.02-.088.02-1.485.944-4.192 2.77-.397.273-.756.406-1.078.399-.355-.008-1.038-.2-1.546-.365-.623-.202-1.118-.31-1.075-.653.023-.18.269-.363.741-.55 2.9-1.264 4.833-2.097 5.8-2.5 2.762-1.148 3.334-1.347 3.708-1.354.082-.001.267.019.386.114.1.08.128.187.14.267.014.096.032.284.018.437z"/>
       </svg>
       Talk to an Agent
     </a>

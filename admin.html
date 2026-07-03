@@ -1042,9 +1042,9 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
             <div class="fg"><label class="fl">Company name</label><input class="fc" value="El Martillo I.T." type="text"/></div>
             <div class="fg"><label class="fl">Support email</label><input class="fc" value="helpdesk@el-martillo.com" type="email"/></div>
             <div class="fg">
-              <label class="fl">WhatsApp support number <span style="color:var(--text3);font-weight:400">(shown on client portal)</span></label>
-              <input class="fc" id="settings-wa-number" type="tel" placeholder="+350 54000000"/>
-              <div class="hint">Include country code. Leave blank to hide the WhatsApp button.</div>
+              <label class="fl">Telegram support username <span style="color:var(--text3);font-weight:400">(shown on client portal)</span></label>
+              <input class="fc" id="settings-tg-username" type="text" placeholder="elmartillo_support"/>
+              <div class="hint">Your public Telegram @username, without the @. Leave blank to hide the Telegram button.</div>
             </div>
             <div class="fg">
               <label class="fl">SLA response target</label>
@@ -1376,17 +1376,17 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
             <div id="tpl-test-status" style="font-size:12px;margin-top:8px;display:none"></div>
           </div>
 
-          <!-- WhatsApp notifications section -->
+          <!-- Telegram notifications section -->
           <div class="table-card" data-card-id="whatsapp" style="padding:20px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
               <div style="display:flex;align-items:center;gap:8px">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color:#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                <div style="font-size:13px;font-weight:600">WhatsApp notifications</div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color:#26A5E4"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.568 8.16c-.169 1.858-.896 6.728-1.267 8.928-.157.933-.463 1.245-.76 1.276-.646.06-1.136-.427-1.762-.837-.98-.643-1.534-1.043-2.485-1.671-1.1-.724-.387-1.122.24-1.774.164-.17 3.007-2.757 3.062-2.992a.216.216 0 00-.052-.192c-.06-.05-.145-.033-.207-.02-.088.02-1.485.944-4.192 2.77-.397.273-.756.406-1.078.399-.355-.008-1.038-.2-1.546-.365-.623-.202-1.118-.31-1.075-.653.023-.18.269-.363.741-.55 2.9-1.264 4.833-2.097 5.8-2.5 2.762-1.148 3.334-1.347 3.708-1.354.082-.001.267.019.386.114.1.08.128.187.14.267.014.096.032.284.018.437z"/></svg>
+                <div style="font-size:13px;font-weight:600">Telegram notifications</div>
               </div>
               <span class="sb s-closed" style="font-size:10px" id="wa-status-badge">—</span>
             </div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Configure which events send WhatsApp alerts and manage recipient numbers for all admins and agents.
+              Configure which events send Telegram alerts and manage recipient chat IDs for all admins and agents.
             </div>
 
             <!-- Triggers -->
@@ -1418,15 +1418,15 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
                 <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                 Save recipients
               </button>
-              <button class="btn" id="btn-wa-test" onclick="testWhatsApp()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="color:#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              <button class="btn" id="btn-wa-test" onclick="testTelegram()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="color:#26A5E4"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.568 8.16c-.169 1.858-.896 6.728-1.267 8.928-.157.933-.463 1.245-.76 1.276-.646.06-1.136-.427-1.762-.837-.98-.643-1.534-1.043-2.485-1.671-1.1-.724-.387-1.122.24-1.774.164-.17 3.007-2.757 3.062-2.992a.216.216 0 00-.052-.192c-.06-.05-.145-.033-.207-.02-.088.02-1.485.944-4.192 2.77-.397.273-.756.406-1.078.399-.355-.008-1.038-.2-1.546-.365-.623-.202-1.118-.31-1.075-.653.023-.18.269-.363.741-.55 2.9-1.264 4.833-2.097 5.8-2.5 2.762-1.148 3.334-1.347 3.708-1.354.082-.001.267.019.386.114.1.08.128.187.14.267.014.096.032.284.018.437z"/></svg>
                 Send test message
               </button>
               <span style="font-size:11px;color:var(--text3)" id="wa-test-msg"></span>
             </div>
 
             <div style="padding:10px 12px;background:var(--accent-l);border-radius:var(--radius);font-size:12px;color:var(--accent);line-height:1.6">
-              Each recipient needs a <strong>CallMeBot API key</strong>. To get one: send <em>"I allow callmebot to send me messages"</em> to <strong>+34 644 44 80 46</strong> on WhatsApp. You'll receive your key within minutes.
+              Get each recipient's chat ID: have them message your bot once, then visit <code>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</code> and copy the <code>chat.id</code>.
             </div>
           </div>
 
@@ -1925,21 +1925,21 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
     <div id="eu-wa-section">
     <div style="height:1px;background:var(--border);margin:14px 0"></div>
 
-    <!-- WhatsApp -->
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">WhatsApp alerts</div>
+    <!-- Telegram -->
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">Telegram alerts</div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px">
       <div>
-        <div style="font-size:12px;font-weight:500;color:var(--text1)">Enable WhatsApp notifications</div>
+        <div style="font-size:12px;font-weight:500;color:var(--text1)">Enable Telegram notifications</div>
         <div style="font-size:11px;color:var(--text3);margin-top:2px">Send alerts to this user for enabled triggers</div>
       </div>
       <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0">
-        <input type="checkbox" id="eu-wa-alerts" style="opacity:0;width:0;height:0"/>
+        <input type="checkbox" id="eu-tg-alerts" style="opacity:0;width:0;height:0"/>
         <span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s" id="eu-wa-slider"></span>
       </label>
     </div>
     <div class="form-row">
-      <div class="fg"><label class="fl">WhatsApp number</label><input id="eu-wa-number" class="fc" type="tel" placeholder="+35012345678"/></div>
-      <div class="fg"><label class="fl">CallMeBot API key</label><input id="eu-wa-apikey" class="fc" type="text" placeholder="123456"/></div>
+      <div class="fg"><label class="fl">Telegram Chat ID <span style="color:var(--text3);font-weight:400">(for alerts)</span></label><input id="eu-tg-chatid" class="fc" type="text" placeholder="123456789"/></div>
+      <div class="fg"><label class="fl">Telegram username <span style="color:var(--text3);font-weight:400">(for chat link)</span></label><input id="eu-tg-username" class="fc" type="text" placeholder="jsmith"/></div>
     </div>
     </div>
 
@@ -2021,20 +2021,20 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
 
     <div style="height:1px;background:var(--border);margin:14px 0"></div>
 
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">WhatsApp alerts</div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px">Telegram alerts</div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px">
       <div>
-        <div style="font-size:12px;font-weight:500;color:var(--text1)">Enable WhatsApp notifications</div>
+        <div style="font-size:12px;font-weight:500;color:var(--text1)">Enable Telegram notifications</div>
         <div style="font-size:11px;color:var(--text3);margin-top:2px">Send alerts to this user for enabled triggers</div>
       </div>
       <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0">
-        <input type="checkbox" id="ia-wa-alerts" style="opacity:0;width:0;height:0" onchange="document.getElementById('ia-wa-slider').style.background=this.checked?'var(--success)':''"/>
+        <input type="checkbox" id="ia-tg-alerts" style="opacity:0;width:0;height:0" onchange="document.getElementById('ia-wa-slider').style.background=this.checked?'var(--success)':''"/>
         <span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s" id="ia-wa-slider"></span>
       </label>
     </div>
     <div class="form-row">
-      <div class="fg"><label class="fl">WhatsApp number</label><input id="ia-wa-number" class="fc" type="tel" placeholder="+35012345678"/></div>
-      <div class="fg"><label class="fl">CallMeBot API key</label><input id="ia-wa-apikey" class="fc" type="text" placeholder="123456"/></div>
+      <div class="fg"><label class="fl">Telegram Chat ID <span style="color:var(--text3);font-weight:400">(for alerts)</span></label><input id="ia-tg-chatid" class="fc" type="text" placeholder="123456789"/></div>
+      <div class="fg"><label class="fl">Telegram username <span style="color:var(--text3);font-weight:400">(for chat link)</span></label><input id="ia-tg-username" class="fc" type="text" placeholder="jsmith"/></div>
     </div>
 
     <div class="form-footer">
@@ -2659,17 +2659,17 @@ async function saveTicketSeq() {
 /* ── General settings save/load ── */
 async function saveGeneralSettings() {
   if (!sbClient) { toast('Not connected'); return; }
-  const wa = document.getElementById('settings-wa-number')?.value.trim() || '';
+  const tg = document.getElementById('settings-tg-username')?.value.trim().replace(/^@/, '') || '';
   const { error } = await sbClient.from('app_settings')
-    .upsert({ key: 'support_whatsapp', value: wa }, { onConflict: 'key' });
+    .upsert({ key: 'support_telegram', value: tg }, { onConflict: 'key' });
   if (error) { toast('Error: ' + error.message); return; }
   toast('Settings saved');
-  if (typeof loadWaButton === 'function') loadWaButton();
+  if (typeof loadTelegramButton === 'function') loadTelegramButton();
 }
 async function loadGeneralSettings() {
   if (!sbClient) return;
-  const { data } = await sbClient.from('app_settings').select('value').eq('key','support_whatsapp').maybeSingle();
-  const el = document.getElementById('settings-wa-number');
+  const { data } = await sbClient.from('app_settings').select('value').eq('key','support_telegram').maybeSingle();
+  const el = document.getElementById('settings-tg-username');
   if (el) el.value = data?.value || '';
 }
 
@@ -5114,15 +5114,15 @@ function openEditUser(id) {
   const roleEl = document.getElementById('eu-role');
   if (roleEl) roleEl.disabled = restrictForAdmin;
 
-  const waCheck = document.getElementById('eu-wa-alerts');
+  const waCheck = document.getElementById('eu-tg-alerts');
   if (waCheck) {
-    waCheck.checked = !!p.whatsapp_alerts;
+    waCheck.checked = !!p.telegram_alerts;
     const slider = document.getElementById('eu-wa-slider');
-    if (slider) slider.style.background = p.whatsapp_alerts ? 'var(--success)' : '';
+    if (slider) slider.style.background = p.telegram_alerts ? 'var(--success)' : '';
     waCheck.onchange = () => { if (slider) slider.style.background = waCheck.checked ? 'var(--success)' : 'var(--border2)'; };
   }
-  document.getElementById('eu-wa-number').value  = p.whatsapp_number  || '';
-  document.getElementById('eu-wa-apikey').value  = p.whatsapp_apikey  || '';
+  document.getElementById('eu-tg-chatid').value  = p.telegram_chat_id  || '';
+  document.getElementById('eu-tg-username').value = p.telegram_username || '';
   // Collapse set-password form on open
   const spForm = document.getElementById('eu-setpw-form');
   const spToggle = document.getElementById('eu-setpw-toggle');
@@ -5284,9 +5284,9 @@ async function inviteAgent() {
   const name     = document.getElementById('ia-name').value.trim();
   const email    = document.getElementById('ia-email').value.trim();
   const role     = document.getElementById('ia-role').value;
-  const waAlerts = document.getElementById('ia-wa-alerts')?.checked || false;
-  const waNumber = document.getElementById('ia-wa-number')?.value.trim() || null;
-  const waApikey = document.getElementById('ia-wa-apikey')?.value.trim() || null;
+  const waAlerts   = document.getElementById('ia-tg-alerts')?.checked || false;
+  const waChatId   = document.getElementById('ia-tg-chatid')?.value.trim() || null;
+  const waUsername = document.getElementById('ia-tg-username')?.value.trim().replace(/^@/, '') || null;
 
   if (!name || !email) { toast('Name and email are required'); return; }
   if (role === 'super_admin' && currentProfile?.role !== 'super_admin') {
@@ -5309,27 +5309,27 @@ async function inviteAgent() {
     const result = await resp.json();
     if (!resp.ok) throw new Error(result?.error || result?.message || 'Unknown error');
 
-    // 2. Upsert profile with role + WA settings (the edge function may create the auth user;
-    //    the profile row is created/updated here so WA fields are set from the start)
+    // 2. Upsert profile with role + Telegram settings (the edge function may create the auth user;
+    //    the profile row is created/updated here so Telegram fields are set from the start)
     const { data: authUser } = await sbClient
       .from('profiles').select('id').eq('email', email).maybeSingle();
     if (authUser?.id) {
-      const profileUpdates = { full_name: name, role, whatsapp_alerts: waAlerts };
-      if (waNumber) profileUpdates.whatsapp_number = waNumber;
-      if (waApikey) profileUpdates.whatsapp_apikey = waApikey;
+      const profileUpdates = { full_name: name, role, telegram_alerts: waAlerts };
+      if (waChatId)   profileUpdates.telegram_chat_id  = waChatId;
+      if (waUsername) profileUpdates.telegram_username = waUsername;
       await sbClient.from('profiles').update(profileUpdates).eq('id', authUser.id);
     }
 
     closeModal('modal-invite-agent');
     // Clear form
-    ['ia-name','ia-email','ia-wa-number','ia-wa-apikey'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    const waCheck = document.getElementById('ia-wa-alerts'); if (waCheck) waCheck.checked = false;
+    ['ia-name','ia-email','ia-tg-chatid','ia-tg-username'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    const waCheck = document.getElementById('ia-tg-alerts'); if (waCheck) waCheck.checked = false;
     const waSlider = document.getElementById('ia-wa-slider'); if (waSlider) waSlider.style.background = '';
     document.getElementById('ia-role').value = 'admin';
 
     loadProfiles(); loadAllProfiles();
     toast('Invitation sent to ' + email);
-    logSystemEvent('user_invite_sent', `Tech invite sent to: ${email} | Role: ${role}${waAlerts ? ' | WA alerts enabled' : ''}`);
+    logSystemEvent('user_invite_sent', `Tech invite sent to: ${email} | Role: ${role}${waAlerts ? ' | Telegram alerts enabled' : ''}`);
 
   } catch(e) {
     toast('Error: ' + e.message);
@@ -5346,15 +5346,15 @@ async function saveUser() {
   const company = document.getElementById('eu-company').value.trim();
   const role    = document.getElementById('eu-role').value;
   const notes      = document.getElementById('eu-notes').value.trim();
-  const waAlerts   = document.getElementById('eu-wa-alerts')?.checked || false;
-  const waNumber   = document.getElementById('eu-wa-number')?.value.trim() || null;
-  const waApikey   = document.getElementById('eu-wa-apikey')?.value.trim() || null;
+  const waAlerts   = document.getElementById('eu-tg-alerts')?.checked || false;
+  const waChatId   = document.getElementById('eu-tg-chatid')?.value.trim() || null;
+  const waUsername = document.getElementById('eu-tg-username')?.value.trim().replace(/^@/, '') || null;
   if (!name) { toast('Name is required'); return; }
   // Non-super-admins cannot assign the super_admin role
   if (role === 'super_admin' && currentProfile?.role !== 'super_admin') {
     toast('Only super admins can assign the super_admin role'); return;
   }
-  const updates = { full_name: name, role, whatsapp_alerts: waAlerts, whatsapp_number: waNumber, whatsapp_apikey: waApikey };
+  const updates = { full_name: name, role, telegram_alerts: waAlerts, telegram_chat_id: waChatId, telegram_username: waUsername };
   if (email)   updates.email   = email;
   if (phone)   updates.phone   = phone;
   if (company) updates.company = company;
@@ -5440,7 +5440,7 @@ async function addUser() {
   } catch(e) { console.warn('WA new user notify failed:', e.message); }
 }
 
-async function testWhatsApp() {
+async function testTelegram() {
   const btn = document.getElementById('btn-wa-test');
   const msg = document.getElementById('wa-test-msg');
   btn.disabled = true;
@@ -5456,11 +5456,11 @@ async function testWhatsApp() {
     if (data.skipped) {
       msg.textContent = `⚠️ ${data.reason || 'Trigger disabled or no recipients'}`;
       msg.style.color = 'var(--warn)';
-    } else if (data.wa_sent > 0) {
-      msg.textContent = `✓ Sent to ${data.wa_sent} recipient${data.wa_sent !== 1 ? 's' : ''}`;
+    } else if (data.tg_sent > 0) {
+      msg.textContent = `✓ Sent to ${data.tg_sent} recipient${data.tg_sent !== 1 ? 's' : ''}`;
       msg.style.color = 'var(--success)';
-    } else if (data.wa_failed > 0) {
-      msg.textContent = `✗ Delivery failed (check number/API key)`;
+    } else if (data.tg_failed > 0) {
+      msg.textContent = `✗ Delivery failed (check chat ID / bot token)`;
       msg.style.color = 'var(--danger)';
     } else {
       msg.textContent = `⚠️ No recipients — check settings above`;
@@ -5740,13 +5740,13 @@ async function loadWaTriggers() {
   try {
     const { data, error } = await sbClient
       .from('profiles')
-      .select('id, full_name, email, role, whatsapp_alerts, whatsapp_number, whatsapp_apikey')
+      .select('id, full_name, email, role, telegram_alerts, telegram_chat_id')
       .in('role', ['admin', 'super_admin', 'agent'])
       .order('full_name');
     if (error) throw error;
     waAdminProfiles = data || [];
     renderWaRecipients();
-    const enabled = waAdminProfiles.filter(p => p.whatsapp_alerts).length;
+    const enabled = waAdminProfiles.filter(p => p.telegram_alerts).length;
     if (badge) {
       badge.textContent = enabled ? `${enabled} active` : 'None active';
       badge.className = enabled ? 'sb s-resolved' : 'sb s-closed';
@@ -5790,21 +5790,14 @@ function renderWaRecipients() {
           <div style="font-size:11px;color:var(--text3)">${esc(p.email||'')} · ${roleLabel}</div>
         </div>
         <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;flex-shrink:0">
-          <input type="checkbox" data-wa-recipient="${p.id}" ${p.whatsapp_alerts ? 'checked' : ''}/>
+          <input type="checkbox" data-wa-recipient="${p.id}" ${p.telegram_alerts ? 'checked' : ''}/>
           Enabled
         </label>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:500">WhatsApp number</div>
-          <input class="fc" type="tel" placeholder="+35012345678" data-wa-number="${p.id}"
-            value="${esc(p.whatsapp_number||'')}" style="font-size:12px"/>
-        </div>
-        <div>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:500">CallMeBot API key</div>
-          <input class="fc" type="text" placeholder="123456" data-wa-apikey="${p.id}"
-            value="${esc(p.whatsapp_apikey||'')}" style="font-size:12px"/>
-        </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:500">Telegram Chat ID</div>
+        <input class="fc" type="text" placeholder="123456789" data-wa-chatid="${p.id}"
+          value="${esc(p.telegram_chat_id||'')}" style="font-size:12px"/>
       </div>
     </div>`;
   }).join('');
@@ -5819,19 +5812,17 @@ async function saveWaTriggers() {
   if (error) { toast('Error: ' + error.message); return; }
   waEnabledTriggers = enabled;
   if (msg) { msg.textContent = 'Saved ✓'; setTimeout(() => msg.textContent = '', 2500); }
-  toast('WhatsApp triggers saved');
+  toast('Telegram triggers saved');
 }
 
 async function saveWaRecipients() {
   const updates = waAdminProfiles.map(p => {
     const alertsEl  = document.querySelector(`[data-wa-recipient="${p.id}"]`);
-    const numberEl  = document.querySelector(`[data-wa-number="${p.id}"]`);
-    const apikeyEl  = document.querySelector(`[data-wa-apikey="${p.id}"]`);
+    const chatIdEl  = document.querySelector(`[data-wa-chatid="${p.id}"]`);
     return {
       id:                p.id,
-      whatsapp_alerts:   alertsEl  ? alertsEl.checked                : !!p.whatsapp_alerts,
-      whatsapp_number:   numberEl  ? numberEl.value.trim() || null   : p.whatsapp_number,
-      whatsapp_apikey:   apikeyEl  ? apikeyEl.value.trim() || null   : p.whatsapp_apikey,
+      telegram_alerts:   alertsEl  ? alertsEl.checked                : !!p.telegram_alerts,
+      telegram_chat_id:  chatIdEl  ? chatIdEl.value.trim() || null   : p.telegram_chat_id,
     };
   });
   const { error } = await sbClient.from('profiles').upsert(updates, { onConflict: 'id' });
