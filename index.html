@@ -8,7 +8,7 @@
            script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.google.com https://www.gstatic.com;
            style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com;
            font-src https://fonts.gstatic.com;
-           connect-src 'self' https://gtcrmqbmlvtlyiwnshma.supabase.co wss://gtcrmqbmlvtlyiwnshma.supabase.co https://api.callmebot.com;
+           connect-src 'self' https://gtcrmqbmlvtlyiwnshma.supabase.co wss://gtcrmqbmlvtlyiwnshma.supabase.co;
            img-src 'self' data: blob: https://gtcrmqbmlvtlyiwnshma.supabase.co https://el-martillo.github.io;
            frame-src https://www.google.com;"/>
 <title>El Martillo I.T. Ticketing System</title>
@@ -819,9 +819,7 @@ async function signUp() {
   errEl.textContent='';
   trackUserActivity('signup_attempt', 'success', `Account created: ${name}`);
   toast('Account created! Welcome, '+name);
-  fireWhatsApp('new_user',
-    '👥 New client: ' + name + ' (' + email + ')' +
-    (company ? ' | ' + company : ''));
+  fireTelegram('new_user', { user_name: name, user_email: email, changed_by: name });
   showApp();
 }
 
@@ -1569,7 +1567,7 @@ async function submitTicket() {
   trackUserActivity('ticket_created', 'success', `Subject: ${subject}`);
   closeModal('modal-new-ticket'); clearForm();
   loadVersion(); loadWaButton(); await loadClientTickets(); toast('Request submitted! We\'ll be in touch soon.');
-  // WhatsApp notifications — query DB directly so ticket_id is always correct
+  // Telegram notifications — query DB directly so ticket_id is always correct
   try {
     const { data: newT } = await sbClient.from('tickets')
       .select('id,ticket_number')
@@ -1577,17 +1575,11 @@ async function submitTicket() {
       .eq('subject', subject)
       .order('created_at', { ascending: false })
       .limit(1).single();
-    const _num = newT ? '#' + newT.ticket_number + ' ' : '';
-    fireWhatsApp('new_ticket',
-      '🎫 New ticket ' + _num + subject +
-      '\nPriority: ' + payload.priority + ' | Category: ' + payload.category +
-      '\nFrom: ' + email);
+    fireTelegram('new_ticket', { ticket_id: newT?.id, changed_by: email });
     if (payload.priority === 'critical') {
-      fireWhatsApp('critical',
-        '🚨 CRITICAL ticket: ' + _num + subject +
-        '\nFrom: ' + email);
+      fireTelegram('critical', { ticket_id: newT?.id, changed_by: email });
     }
-  } catch(e) { console.warn('WA new ticket notify failed:', e.message); }
+  } catch(e) { console.warn('Telegram new ticket notify failed:', e.message); }
 }
 
 /* ── Auto-restore ── */
@@ -1603,41 +1595,19 @@ async function submitTicket() {
 const SB_URL = 'https://gtcrmqbmlvtlyiwnshma.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc';
 
-/* -- WhatsApp fire engine (reads triggers + recipients from Supabase) -- */
-let _waCache = null;
-
-async function _loadWaCache() {
+/* -- Telegram fire engine — delegates to the ticket-notify Edge Function.
+      The function checks whatsapp_triggers + telegram_alerts recipients and
+      sends via the Telegram Bot API server-side, so the bot token never
+      touches the client. -- */
+async function fireTelegram(triggerKey, extra = {}) {
   try {
-    const [trigRow, recRows] = await Promise.all([
-      sbClient.from('app_settings').select('value').eq('key','whatsapp_triggers').maybeSingle(),
-      sbClient.from('profiles')
-        .select('whatsapp_alerts, whatsapp_number, whatsapp_apikey')
-        .in('role', ['admin','super_admin','agent'])
-        .eq('whatsapp_alerts', true),
-    ]);
-    const triggers   = trigRow.data?.value ? JSON.parse(trigRow.data.value) : ['new_ticket','critical','new_user','new_comment'];
-    const recipients = (recRows.data || []).filter(p => p.whatsapp_number && p.whatsapp_apikey);
-    _waCache = { triggers, recipients };
+    await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ new_status: triggerKey, ...extra })
+    });
   } catch(e) {
-    console.warn('WA cache load failed:', e.message);
-    _waCache = { triggers: ['new_ticket','critical','new_user','new_comment'], recipients: [] };
-  }
-  return _waCache;
-}
-
-async function fireWhatsApp(triggerKey, message) {
-  try {
-    _waCache = null; // always reload fresh
-    const cache = await _loadWaCache();
-    if (!cache.triggers.includes(triggerKey)) return;
-    if (!cache.recipients.length) return;
-    const encoded = encodeURIComponent(message);
-    await Promise.all(cache.recipients.map(r => {
-      const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(r.whatsapp_number)}&text=${encoded}&apikey=${encodeURIComponent(r.whatsapp_apikey)}`;
-      return fetch(url).catch(() => {});
-    }));
-  } catch(e) {
-    console.warn('fireWhatsApp error:', e.message);
+    console.warn('fireTelegram error:', e.message);
   }
 }
 
