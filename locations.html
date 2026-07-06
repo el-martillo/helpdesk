@@ -73,6 +73,9 @@
 .loc-map-outer .leaflet-popup-tip{transform:rotate(90deg)}
 .loc-map-outer .leaflet-control-zoom{transform:rotate(90deg);transform-origin:center center}
 .loc-map-outer .leaflet-control-attribution{transform:rotate(90deg);transform-origin:center center}
+/* Marker artwork counter-rotated so pins stay upright; Leaflet still positions
+   the outer .leaflet-marker-icon wrapper via the rotated container as normal. */
+.loc-map-outer .pin-rotate-fix{width:100%;height:100%;display:block;transform:rotate(90deg);transform-origin:center center}
 
 /* Leaflet popup theming */
 .leaflet-popup-content-wrapper{border-radius:var(--radius-l);box-shadow:var(--shadow)}
@@ -333,10 +336,10 @@ async function loadOrgLocationsData() {
 function pinIcon(color) {
   return L.divIcon({
     className: '',
-    html: `<svg width="28" height="38" viewBox="0 0 28 38" xmlns="http://www.w3.org/2000/svg">
+    html: `<div class="pin-rotate-fix"><svg width="28" height="38" viewBox="0 0 28 38" xmlns="http://www.w3.org/2000/svg">
       <path d="M14 0C6.3 0 0 6.3 0 14c0 10.5 14 24 14 24s14-13.5 14-24c0-7.7-6.3-14-14-14z" fill="${color}" stroke="#fff" stroke-width="1.5"/>
       <circle cx="14" cy="14" r="5.5" fill="#fff"/>
-    </svg>`,
+    </svg></div>`,
     iconSize: [28, 38],
     iconAnchor: [14, 38],
     popupAnchor: [0, -34]
@@ -347,14 +350,14 @@ function sitePinIcon(color) {
   // Distinct square/building-style marker so sites read differently from organisation pins at a glance
   return L.divIcon({
     className: '',
-    html: `<svg width="28" height="36" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg">
+    html: `<div class="pin-rotate-fix"><svg width="28" height="36" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg">
       <path d="M14 0C6.3 0 0 6.3 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.3 21.7 0 14 0z" fill="${color}" stroke="#fff" stroke-width="1.5"/>
       <rect x="8" y="7.5" width="12" height="11" rx="1" fill="#fff"/>
       <rect x="10" y="9.5" width="2.4" height="2.4" fill="${color}"/>
       <rect x="15.6" y="9.5" width="2.4" height="2.4" fill="${color}"/>
       <rect x="10" y="13.5" width="2.4" height="2.4" fill="${color}"/>
       <rect x="15.6" y="13.5" width="2.4" height="2.4" fill="${color}"/>
-    </svg>`,
+    </svg></div>`,
     iconSize: [28, 36],
     iconAnchor: [14, 36],
     popupAnchor: [0, -32]
@@ -373,6 +376,114 @@ function sizeRotatedMap() {
   if (locMap) locMap.invalidateSize();
 }
 
+/* Leaflet's own drag math has no idea the map container is visually rotated
+   -90° via CSS — it reads raw mouse deltas and applies them in its own
+   (unrotated) internal frame, so a drag right would visually pan the map up
+   or down instead. This intercepts mouse/touch events on the map, rotates
+   the *delta* since mousedown by the inverse of the visual rotation (+90°,
+   i.e. dx,dy -> -dy,dx), and re-dispatches corrected synthetic events so
+   Leaflet ends up panning in the direction the cursor actually moved. */
+function installRotationDragFix(mapEl) {
+  let dragging = false;
+  let startX = 0, startY = 0;
+
+  function rotateDelta(dx, dy) {
+    // Inverse of the container's rotate(-90deg): (dx,dy) -> (-dy,dx)
+    return { dx: -dy, dy: dx };
+  }
+
+  function dispatchCorrected(type, e, clientX, clientY) {
+    const synthetic = new MouseEvent(type, {
+      clientX, clientY,
+      bubbles: true, cancelable: true, view: window,
+      button: e.button, buttons: e.buttons
+    });
+    synthetic.__rotationFixed = true;
+    e.target.dispatchEvent(synthetic);
+  }
+
+  function onDown(e) {
+    if (e.__rotationFixed) return;
+    if (!mapEl.contains(e.target)) return;
+    dragging = true;
+    startX = e.clientX; startY = e.clientY;
+    // No correction needed yet — delta is zero at the start point.
+  }
+
+  function onMove(e) {
+    if (e.__rotationFixed || !dragging) return;
+    const rawDx = e.clientX - startX, rawDy = e.clientY - startY;
+    const { dx, dy } = rotateDelta(rawDx, rawDy);
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    dispatchCorrected('mousemove', e, startX + dx, startY + dy);
+  }
+
+  function onUp(e) {
+    if (e.__rotationFixed) return;
+    if (!dragging) return;
+    dragging = false;
+    const rawDx = e.clientX - startX, rawDy = e.clientY - startY;
+    const { dx, dy } = rotateDelta(rawDx, rawDy);
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    dispatchCorrected('mouseup', e, startX + dx, startY + dy);
+  }
+
+  document.addEventListener('mousedown', onDown, true);
+  document.addEventListener('mousemove', onMove, true);
+  document.addEventListener('mouseup', onUp, true);
+
+  // Touch (single-finger drag) — same delta-rotation, using Touch objects.
+  function touchPoint(e) { return e.touches[0] || e.changedTouches[0]; }
+
+  function dispatchCorrectedTouch(type, e, clientX, clientY) {
+    const t = touchPoint(e);
+    let touchObj;
+    try {
+      touchObj = new Touch({ identifier: t.identifier, target: e.target, clientX, clientY, pageX: clientX, pageY: clientY });
+    } catch (err) { return; } // Touch() constructor unsupported — skip silently
+    const synthetic = new TouchEvent(type, {
+      bubbles: true, cancelable: true, view: window,
+      touches: type === 'touchend' ? [] : [touchObj],
+      targetTouches: type === 'touchend' ? [] : [touchObj],
+      changedTouches: [touchObj]
+    });
+    synthetic.__rotationFixed = true;
+    e.target.dispatchEvent(synthetic);
+  }
+
+  function onTouchStart(e) {
+    if (e.__rotationFixed || e.touches.length !== 1) return;
+    if (!mapEl.contains(e.target)) return;
+    dragging = true;
+    const t = touchPoint(e);
+    startX = t.clientX; startY = t.clientY;
+  }
+  function onTouchMove(e) {
+    if (e.__rotationFixed || !dragging || e.touches.length !== 1) return;
+    const t = touchPoint(e);
+    const rawDx = t.clientX - startX, rawDy = t.clientY - startY;
+    const { dx, dy } = rotateDelta(rawDx, rawDy);
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    dispatchCorrectedTouch('touchmove', e, startX + dx, startY + dy);
+  }
+  function onTouchEnd(e) {
+    if (e.__rotationFixed || !dragging) return;
+    dragging = false;
+    const t = touchPoint(e);
+    const rawDx = t.clientX - startX, rawDy = t.clientY - startY;
+    const { dx, dy } = rotateDelta(rawDx, rawDy);
+    e.stopImmediatePropagation();
+    dispatchCorrectedTouch('touchend', e, startX + dx, startY + dy);
+  }
+
+  document.addEventListener('touchstart', onTouchStart, { capture: true, passive: true });
+  document.addEventListener('touchmove', onTouchMove, { capture: true, passive: false });
+  document.addEventListener('touchend', onTouchEnd, { capture: true, passive: true });
+}
+
 function initMap() {
   sizeRotatedMap();
   locMap = L.map('loc-map', { zoomControl: true }).setView([36.1408, -5.3536], 13);
@@ -381,6 +492,7 @@ function initMap() {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
   }).addTo(locMap);
 
+  installRotationDragFix(document.getElementById('loc-map'));
   window.addEventListener('resize', sizeRotatedMap);
 
   const bounds = [];
