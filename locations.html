@@ -47,7 +47,7 @@
 .loc-item:hover{background:var(--surface2)}
 .loc-item.active{background:var(--accent-l)}
 .loc-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;box-shadow:0 0 0 3px var(--surface2)}
-.loc-dot-office{border-radius:3px}
+.loc-dot-site{border-radius:3px}
 .loc-item.active .loc-dot{box-shadow:0 0 0 3px var(--accent-l)}
 .loc-name{flex:1;min-width:0;font-size:12.5px;font-weight:500;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .loc-addr{font-size:10.5px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -218,7 +218,7 @@
           </div>
           <div class="loc-empty-note" id="loc-empty-note" style="display:none">
             No locations have been set yet. An admin can add addresses and drop pins under
-            <a href="admin.html">Settings → Organisations / Offices</a>.
+            <a href="admin.html">Settings → Organisations / Sites</a>.
           </div>
         </div>
 
@@ -261,9 +261,9 @@ let COMPANY_COLORS = {
 };
 
 let orgLocations = {};     // { companyName: { address, lat, lng } }
-let officeLocations = {};  // { officeName: { address, lat, lng } }
-let officeColors = {};
-let places = [];           // unified list: { key, name, type: 'org'|'office', address, lat, lng, color }
+let siteLocations = {};  // { siteName: { address, lat, lng } }
+let siteColors = {};
+let places = [];           // unified list: { key, name, type: 'org'|'site', address, lat, lng, color }
 let locMap = null;
 let locMarkers = {};       // key -> Leaflet marker
 let activeLocKey = null;
@@ -274,16 +274,16 @@ function esc(s) {
 
 async function loadOrgLocationsData() {
   try {
-    const [locRes, colorRes, officeLocRes, officeColorRes] = await Promise.all([
+    const [locRes, colorRes, siteLocRes, siteColorRes] = await Promise.all([
       fetch(`${SB_URL}/rest/v1/app_settings?key=eq.organisation_locations&select=value`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }),
       fetch(`${SB_URL}/rest/v1/app_settings?key=eq.directory_company_colors&select=value`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }),
-      fetch(`${SB_URL}/rest/v1/app_settings?key=eq.office_locations&select=value`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }),
-      fetch(`${SB_URL}/rest/v1/app_settings?key=eq.office_colors&select=value`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }),
+      fetch(`${SB_URL}/rest/v1/app_settings?key=eq.site_locations&select=value`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }),
+      fetch(`${SB_URL}/rest/v1/app_settings?key=eq.site_colors&select=value`, { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }),
     ]);
-    const [locRows, colorRows, officeLocRows, officeColorRows] = await Promise.all([locRes.json(), colorRes.json(), officeLocRes.json(), officeColorRes.json()]);
+    const [locRows, colorRows, siteLocRows, siteColorRows] = await Promise.all([locRes.json(), colorRes.json(), siteLocRes.json(), siteColorRes.json()]);
     orgLocations = locRows?.[0]?.value ? JSON.parse(locRows[0].value) : {};
-    officeLocations = officeLocRows?.[0]?.value ? JSON.parse(officeLocRows[0].value) : {};
-    officeColors = officeColorRows?.[0]?.value ? JSON.parse(officeColorRows[0].value) : {};
+    siteLocations = siteLocRows?.[0]?.value ? JSON.parse(siteLocRows[0].value) : {};
+    siteColors = siteColorRows?.[0]?.value ? JSON.parse(siteColorRows[0].value) : {};
     if (colorRows?.[0]?.value) {
       const saved = JSON.parse(colorRows[0].value);
       Object.entries(saved).forEach(([company, hex]) => { COMPANY_COLORS[company] = hex; });
@@ -291,8 +291,8 @@ async function loadOrgLocationsData() {
   } catch(e) {
     console.error('Failed to load locations:', e.message);
     orgLocations = {};
-    officeLocations = {};
-    officeColors = {};
+    siteLocations = {};
+    siteColors = {};
   }
 
   places = [
@@ -301,10 +301,10 @@ async function loadOrgLocationsData() {
       address: orgLocations[name]?.address, lat: orgLocations[name]?.lat, lng: orgLocations[name]?.lng,
       color: COMPANY_COLORS[name] || '#185FA5'
     })),
-    ...Object.keys(officeLocations).map(name => ({
-      key: `office::${name}`, name, type: 'office',
-      address: officeLocations[name]?.address, lat: officeLocations[name]?.lat, lng: officeLocations[name]?.lng,
-      color: officeColors[name] || '#6a1b9a'
+    ...Object.keys(siteLocations).map(name => ({
+      key: `site::${name}`, name, type: 'site',
+      address: siteLocations[name]?.address, lat: siteLocations[name]?.lat, lng: siteLocations[name]?.lng,
+      color: siteColors[name] || '#6a1b9a'
     }))
   ].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -325,8 +325,8 @@ function pinIcon(color) {
   });
 }
 
-function officePinIcon(color) {
-  // Distinct square/building-style marker so offices read differently from organisation pins at a glance
+function sitePinIcon(color) {
+  // Distinct square/building-style marker so sites read differently from organisation pins at a glance
   return L.divIcon({
     className: '',
     html: `<svg width="28" height="36" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg">
@@ -353,9 +353,9 @@ function initMap() {
   const bounds = [];
   places.forEach(p => {
     if (typeof p.lat !== 'number' || typeof p.lng !== 'number') return;
-    const icon = p.type === 'office' ? officePinIcon(p.color) : pinIcon(p.color);
+    const icon = p.type === 'site' ? sitePinIcon(p.color) : pinIcon(p.color);
     const marker = L.marker([p.lat, p.lng], { icon }).addTo(locMap);
-    const typeTag = p.type === 'office' ? '<div style="font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#999;margin-bottom:1px">Office</div>' : '';
+    const typeTag = p.type === 'site' ? '<div style="font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#999;margin-bottom:1px">Site</div>' : '';
     marker.bindPopup(`${typeTag}<div class="loc-popup-title">${esc(p.name)}</div>${p.address ? `<div class="loc-popup-addr">${esc(p.address)}</div>` : ''}`);
     marker.on('click', () => setActiveLocItem(p.key, false));
     locMarkers[p.key] = marker;
@@ -375,10 +375,10 @@ function renderLocList() {
   const list = document.getElementById('loc-list');
   const sub = document.getElementById('loc-count-sub');
   const orgCount = places.filter(p => p.type === 'org').length;
-  const officeCount = places.filter(p => p.type === 'office').length;
+  const siteCount = places.filter(p => p.type === 'site').length;
   const parts = [];
   if (orgCount) parts.push(`${orgCount} ${orgCount===1 ? 'company' : 'companies'}`);
-  if (officeCount) parts.push(`${officeCount} ${officeCount===1 ? 'office' : 'offices'}`);
+  if (siteCount) parts.push(`${siteCount} ${siteCount===1 ? 'site' : 'sites'}`);
   sub.textContent = parts.length ? `${parts.join(' · ')} on the map` : 'Nothing on the map yet';
 
   if (!filtered.length) {
@@ -392,7 +392,7 @@ function renderLocList() {
     if (!items.length) return '';
     return `<div class="loc-group-head">${title}</div>` + items.map(p => `
       <div class="loc-item${p.key===activeLocKey?' active':''}" onclick="setActiveLocItem('${esc(p.key)}', true)">
-        <div class="loc-dot${p.type==='office'?' loc-dot-office':''}" style="background:${p.color}"></div>
+        <div class="loc-dot${p.type==='site'?' loc-dot-site':''}" style="background:${p.color}"></div>
         <div class="loc-item-text">
           <div class="loc-name">${esc(p.name)}</div>
           ${p.address ? `<div class="loc-addr">${esc(p.address)}</div>` : `<div class="loc-nopin">No address on file</div>`}
@@ -401,8 +401,8 @@ function renderLocList() {
   };
 
   const orgs = filtered.filter(p => p.type === 'org');
-  const offices = filtered.filter(p => p.type === 'office');
-  list.innerHTML = renderGroup('Companies', orgs) + renderGroup('Offices', offices);
+  const sites = filtered.filter(p => p.type === 'site');
+  list.innerHTML = renderGroup('Companies', orgs) + renderGroup('Sites', sites);
 }
 
 function setActiveLocItem(key, flyTo) {
