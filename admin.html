@@ -247,6 +247,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
     <div class="topbar-right">
       <div class="db-indicator"><div class="dot" id="db-dot"></div><span id="db-label">Demo mode</span></div>
       <a href="about.html" class="admin-link"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> About</a>
+      <a href="locations.html" class="admin-link"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;flex-shrink:0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Locations</a>
       <a href="index.html" class="portal-link"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Client portal</a>
       <button class="btn sm" id="desktop-signout" onclick="signOut()">Sign out</button>
       <button class="hamburger" id="hamburger-btn" onclick="toggleMobileMenu()" aria-label="Menu">
@@ -6899,11 +6900,12 @@ function openOrgLocationPanel(company, btnEl) {
     </div>
     <div style="display:flex;gap:8px;margin-bottom:8px">
       <input class="fc" id="org-loc-address" type="text" placeholder="Street address…" value="${escH(existing?.address || '')}" style="flex:1;font-size:12px" onkeydown="if(event.key==='Enter'){event.preventDefault();geocodeOrgAddress();}"/>
-      <button class="btn sm" onclick="geocodeOrgAddress()" title="Look up address on map">
+      <button class="btn sm" id="org-loc-find-btn" onclick="geocodeOrgAddress()" title="Look up address on map">
         <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         Find
       </button>
     </div>
+    <div id="org-loc-results" style="display:none;flex-direction:column;gap:4px;margin-bottom:10px;max-height:140px;overflow-y:auto"></div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Or click the map to drop a pin, or drag the pin to fine-tune the exact spot.</div>
     <div id="org-loc-map" style="height:220px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border2);margin-bottom:10px"></div>
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;font-size:11px;color:var(--text3)">
@@ -6953,22 +6955,84 @@ function closeOrgLocationPanel() {
   _orgLocTarget = null;
 }
 
+let _orgLocCandidates = [];
+
+function buildGeocodeVariants(addr) {
+  const variants = [addr];
+  const hasGib = /gibraltar/i.test(addr);
+  const hasSpain = /spain|españa|la l[ií]nea|campo/i.test(addr);
+  // Add regional context if the person didn't already include it
+  if (!hasGib && !hasSpain) variants.push(`${addr}, Gibraltar`);
+  // Strip a leading house/unit number or suite text, which OSM often lacks for small local addresses
+  const stripped = addr.replace(/^\s*(unit|suite|flat|floor|no\.?|#)?\s*[\d\-\/]+[,\s]+/i, '').trim();
+  if (stripped && stripped !== addr) {
+    variants.push(hasGib || hasSpain ? stripped : `${stripped}, Gibraltar`);
+  }
+  // De-duplicate while preserving order
+  return [...new Set(variants)];
+}
+
 async function geocodeOrgAddress() {
   const input = document.getElementById('org-loc-address');
   const addr = (input?.value || '').trim();
   if (!addr) { toast('Enter an address first'); return; }
+  const btn = document.getElementById('org-loc-find-btn');
+  const resultsEl = document.getElementById('org-loc-results');
+  if (btn) { btn.disabled = true; btn.style.opacity = '.6'; }
+  if (resultsEl) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; }
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(addr)}`);
-    const rows = await res.json();
-    if (!rows?.length) { toast('Address not found — try dropping the pin manually'); return; }
-    const lat = parseFloat(rows[0].lat), lng = parseFloat(rows[0].lon);
-    if (_orgLocMap && _orgLocMarker) {
-      _orgLocMap.setView([lat, lng], 16);
-      _orgLocMarker.setLatLng([lat, lng]);
-      updateOrgLocCoords(lat, lng);
+    const variants = buildGeocodeVariants(addr);
+    let rows = [];
+    for (const q of variants) {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=5&q=${encodeURIComponent(q)}`, {
+        headers: { 'Accept-Language': 'en' }
+      });
+      if (!res.ok) continue;
+      rows = await res.json();
+      if (rows?.length) break;
+      // Nominatim usage policy: max ~1 request/sec — small delay between fallback attempts
+      await new Promise(r => setTimeout(r, 300));
     }
-    toast('Location found — adjust the pin if needed, then Save');
-  } catch(e) { toast('Lookup failed: ' + e.message); }
+    if (!rows?.length) {
+      toast('No match found — try a simpler address (just street + area) or drop the pin manually');
+      return;
+    }
+    _orgLocCandidates = rows;
+    if (rows.length === 1) {
+      applyGeoResult(0);
+    } else {
+      renderGeoResults(rows);
+    }
+  } catch(e) {
+    toast('Lookup failed: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  }
+}
+
+function renderGeoResults(rows) {
+  const resultsEl = document.getElementById('org-loc-results');
+  if (!resultsEl) return;
+  resultsEl.style.display = 'flex';
+  resultsEl.innerHTML = `<div style="font-size:10.5px;color:var(--text3);padding:2px 2px 0">${rows.length} matches — pick the right one:</div>` +
+    rows.map((r, i) => `
+      <button type="button" onclick="applyGeoResult(${i})" style="text-align:left;padding:6px 8px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);font-size:11.5px;color:var(--text1);cursor:pointer;font-family:var(--font)">
+        ${escH(r.display_name)}
+      </button>`).join('');
+}
+
+function applyGeoResult(i) {
+  const r = _orgLocCandidates[i];
+  if (!r) return;
+  const lat = parseFloat(r.lat), lng = parseFloat(r.lon);
+  if (_orgLocMap && _orgLocMarker) {
+    _orgLocMap.setView([lat, lng], 16);
+    _orgLocMarker.setLatLng([lat, lng]);
+    updateOrgLocCoords(lat, lng);
+  }
+  const resultsEl = document.getElementById('org-loc-results');
+  if (resultsEl) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; }
+  toast('Location found — adjust the pin if needed, then Save');
 }
 
 async function saveOrgLocation() {
