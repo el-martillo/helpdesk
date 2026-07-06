@@ -1085,6 +1085,24 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
             </div>
           </div>
 
+          <!-- Offices section -->
+          <div class="table-card" data-card-id="offices" style="padding:20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Offices</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+              Extra named locations that are <strong>not</strong> organisations — they never appear in the Directory or its dropdowns. Use these for your own branches, depots, or other sites you just want plotted on the <a href="locations.html" target="_blank" style="color:var(--accent)">locations map</a> alongside organisations.
+            </div>
+            <div id="office-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+              <div style="text-align:center;padding:16px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input class="fc" id="new-office-input" type="text" placeholder="Add office…" style="max-width:260px" onkeydown="if(event.key==='Enter')addOffice()"/>
+              <button class="btn primary" onclick="addOffice()">
+                <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                Add
+              </button>
+            </div>
+          </div>
+
           <!-- Session timeout section -->
           <div class="table-card" data-card-id="session" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Session timeout</div>
@@ -2526,7 +2544,7 @@ async function signIn() {
   const mobNm = document.getElementById('mob-name-admin');
   if (mobAv) { mobAv.textContent = initials(_mn); mobAv.className = 'avatar ' + avColor(prof?.id||''); }
   if (mobNm) mobNm.textContent = _mn;
-  loadTickets(); loadProfiles(); loadGeneralSettings(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart(); loadCategories(); loadCannedResponses(); loadSeenMap();
+  loadTickets(); loadProfiles(); loadGeneralSettings(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); loadOffices(); startRealtime(); startIdleTimeout(); loadReportStart(); loadCategories(); loadCannedResponses(); loadSeenMap();
 }
 async function signOut() { if(realtimeChannel && sbClient) sbClient.removeChannel(realtimeChannel); if(sbClient) await sbClient.auth.signOut(); location.reload(); }
 function clearCreds() { localStorage.removeItem('sb_key'); location.reload(); }
@@ -4957,7 +4975,7 @@ async function initSupabase() {
       if (rb) rb.textContent = prof?.role === 'super_admin' ? 'Super Admin' : 'Admin';
       applyRoleUI(prof?.role);
       document.getElementById('app').style.display = 'flex'; stopBeachCanvas(); requestAnimationFrame(reflowContent);
-      loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); startRealtime(); startIdleTimeout(); loadReportStart(); loadCategories(); loadCannedResponses(); loadSeenMap();
+      loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); loadOffices(); startRealtime(); startIdleTimeout(); loadReportStart(); loadCategories(); loadCannedResponses(); loadSeenMap();
     } else {
       document.getElementById('loading-screen').style.display = 'none';
       showAuthScreen();
@@ -6794,6 +6812,9 @@ let _orgColourTarget = null;
 function openOrgColourPanel(company, dotEl) {
   // Close any existing inline panel first
   closeOrgColourPanel();
+  closeOrgLocationPanel();
+  closeOfficeColourPanel();
+  closeOfficeLocationPanel();
   _orgColourTarget = company;
   const currentCol = (dirCoColors && dirCoColors[company]) || (_coColors && _coColors[company]) || '#185FA5';
   // Find the parent row and insert panel after it
@@ -6883,6 +6904,8 @@ async function persistOrgLocations() {
 function openOrgLocationPanel(company, btnEl) {
   closeOrgColourPanel();
   closeOrgLocationPanel();
+  closeOfficeColourPanel();
+  closeOfficeLocationPanel();
   _orgLocTarget = company;
   const row = btnEl ? btnEl.closest('[id^="org-row-"]') : null;
   if (!row) return;
@@ -7058,6 +7081,404 @@ async function clearOrgLocation() {
     toast('Location removed');
     closeOrgLocationPanel();
     renderOrgList();
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Offices — extra named locations for the map only.
+   These deliberately do NOT feed into the Directory, ticket dropdowns, or
+   any organisation logic. They're stored under their own app_settings keys
+   and only ever consumed by locations.html.
+   ══════════════════════════════════════════════════════════════════════════ */
+let officesList = [];
+const OFFICES_KEY = 'offices';
+
+async function loadOffices() {
+  officesList = [];
+  if (!sbClient) return;
+  try {
+    const { data, error } = await sbClient.from('app_settings').select('value').eq('key', OFFICES_KEY).maybeSingle();
+    if (!error && data?.value) officesList = JSON.parse(data.value);
+  } catch(e) { officesList = []; }
+  await loadOfficeColors();
+  await loadOfficeLocations();
+  renderOfficeList();
+}
+
+function renderOfficeList() {
+  const el = document.getElementById('office-list');
+  if (!el) return;
+  if (!officesList.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:4px 0">No offices yet. Add one below.</div>';
+    return;
+  }
+  el.innerHTML = officesList.map((c, i) => {
+    const col = (officeColors && officeColors[c]) || '#9e9a94';
+    const loc = officeLocations && officeLocations[c];
+    return `
+    <div style="display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)" id="office-row-${i}">
+      <div onclick="openOfficeColourPanel('${esc(c)}', this)"
+        style="width:14px;height:14px;border-radius:50%;background:${col};flex-shrink:0;cursor:pointer;border:2px solid ${col}44;transition:transform .12s" title="Edit colour"></div>
+      <span class="office-label" id="office-label-${i}" style="flex:1;font-size:13px">${esc(c)}</span>
+      <input class="fc office-input" id="office-input-${i}" type="text" value="${esc(c)}" style="flex:1;display:none;padding:4px 8px;font-size:13px" onkeydown="if(event.key==='Enter')saveOfficeEdit(${i});if(event.key==='Escape')cancelOfficeEdit(${i})"/>
+      <button class="btn sm" id="office-edit-btn-${i}" onclick="startOfficeEdit(${i})" title="Edit name" style="padding:3px 8px">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button class="btn sm" id="office-loc-btn-${i}" onclick="openOfficeLocationPanel('${esc(c)}', this)" title="${loc ? 'Edit location' : 'Set location'}" style="padding:3px 8px;${loc ? 'color:var(--accent);border-color:var(--accent-l);background:var(--accent-l)' : ''}">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      </button>
+      <button class="btn sm" id="office-save-btn-${i}" onclick="saveOfficeEdit(${i})" style="display:none;padding:3px 8px;background:var(--accent-l);color:var(--accent);border-color:var(--accent-l)">✓</button>
+      <button class="btn sm" id="office-cancel-btn-${i}" onclick="cancelOfficeEdit(${i})" style="display:none;padding:3px 8px">✕</button>
+      <button class="btn sm" id="office-del-btn-${i}" onclick="removeOffice(${i})" style="color:var(--danger);border-color:var(--danger-l);background:var(--danger-l);padding:3px 8px" title="Remove">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      </button>
+    </div>`; }).join('');
+}
+
+function startOfficeEdit(i) {
+  document.getElementById(`office-label-${i}`).style.display   = 'none';
+  document.getElementById(`office-input-${i}`).style.display   = 'block';
+  document.getElementById(`office-edit-btn-${i}`).style.display = 'none';
+  document.getElementById(`office-save-btn-${i}`).style.display = 'inline-flex';
+  document.getElementById(`office-cancel-btn-${i}`).style.display = 'inline-flex';
+  document.getElementById(`office-del-btn-${i}`).style.display  = 'none';
+  const input = document.getElementById(`office-input-${i}`);
+  input.focus(); input.select();
+}
+
+function cancelOfficeEdit(i) {
+  document.getElementById(`office-label-${i}`).style.display    = 'block';
+  document.getElementById(`office-input-${i}`).style.display    = 'none';
+  document.getElementById(`office-edit-btn-${i}`).style.display  = 'inline-flex';
+  document.getElementById(`office-save-btn-${i}`).style.display  = 'none';
+  document.getElementById(`office-cancel-btn-${i}`).style.display = 'none';
+  document.getElementById(`office-del-btn-${i}`).style.display   = 'inline-flex';
+  document.getElementById(`office-input-${i}`).value = officesList[i];
+}
+
+async function saveOfficeEdit(i) {
+  const val = (document.getElementById(`office-input-${i}`)?.value || '').trim();
+  if (!val) { toast('Name cannot be empty'); return; }
+  const duplicate = officesList.some((c, j) => j !== i && c.toLowerCase() === val.toLowerCase());
+  if (duplicate) { toast('Office already exists'); return; }
+  const oldName = officesList[i];
+  officesList[i] = val;
+  officesList.sort((a,b) => a.localeCompare(b));
+  // Carry colour/location over to the renamed key
+  if (oldName !== val) {
+    if (officeColors && officeColors[oldName] !== undefined) { officeColors[val] = officeColors[oldName]; delete officeColors[oldName]; await saveOfficeColors(); }
+    if (officeLocations && officeLocations[oldName] !== undefined) { officeLocations[val] = officeLocations[oldName]; delete officeLocations[oldName]; await persistOfficeLocations(); }
+  }
+  renderOfficeList();
+  await persistOffices();
+}
+
+async function addOffice() {
+  const input = document.getElementById('new-office-input');
+  const val = (input?.value || '').trim();
+  if (!val) return;
+  if (officesList.map(c=>c.toLowerCase()).includes(val.toLowerCase())) { toast('Office already exists'); return; }
+  officesList.push(val);
+  officesList.sort((a,b) => a.localeCompare(b));
+  renderOfficeList();
+  input.value = '';
+  await persistOffices();
+}
+
+async function removeOffice(i) {
+  if (!confirm(`Remove "${officesList[i]}"?`)) return;
+  const name = officesList[i];
+  officesList.splice(i, 1);
+  if (officeColors && officeColors[name] !== undefined) { delete officeColors[name]; await saveOfficeColors(); }
+  if (officeLocations && officeLocations[name] !== undefined) { delete officeLocations[name]; await persistOfficeLocations(); }
+  renderOfficeList();
+  await persistOffices();
+}
+
+async function persistOffices() {
+  const { error } = await sbClient.from('app_settings')
+    .upsert({ key: OFFICES_KEY, value: JSON.stringify(officesList) }, { onConflict: 'key' });
+  if (error) toast('Error saving offices: ' + error.message);
+  else { toast('Offices saved'); logSystemEvent('offices_updated', `${officesList.length} offices: ${officesList.join(', ')}`); }
+}
+
+/* ── Office colours ── */
+let officeColors = null;
+const OFFICE_COLORS_KEY = 'office_colors';
+let _officeColourTarget = null;
+
+async function loadOfficeColors() {
+  officeColors = {};
+  if (!sbClient) return;
+  try {
+    const res = await sbClient.from('app_settings').select('value').eq('key', OFFICE_COLORS_KEY).maybeSingle();
+    if (res?.data?.value) officeColors = JSON.parse(res.data.value);
+  } catch(e) { officeColors = {}; }
+}
+
+async function saveOfficeColors() {
+  const { error } = await sbClient.from('app_settings')
+    .upsert({ key: OFFICE_COLORS_KEY, value: JSON.stringify(officeColors) }, { onConflict: 'key' });
+  if (error) toast('Error saving colour: ' + error.message);
+}
+
+function openOfficeColourPanel(office, dotEl) {
+  closeOfficeColourPanel();
+  closeOfficeLocationPanel();
+  closeOrgColourPanel();
+  closeOrgLocationPanel();
+  _officeColourTarget = office;
+  const currentCol = (officeColors && officeColors[office]) || '#185FA5';
+  const row = dotEl ? dotEl.closest('[id^="office-row-"]') : null;
+  const list = document.getElementById('office-list');
+  if (!row || !list) return;
+  const panel = document.createElement('div');
+  panel.id = 'office-colour-panel';
+  panel.style.cssText = 'background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 14px;margin-top:4px;margin-bottom:2px';
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Colour — ${escH(office)}</span>
+      <button class="btn sm" onclick="closeOfficeColourPanel()" style="padding:2px 8px">Done</button>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px" id="office-colour-swatches">
+      ${DIR_CO_PRESET_COLORS.map(c => `<div onclick="selectOfficeColour('${c}')"
+        style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;
+               border:3px solid ${c===currentCol?'var(--accent)':'transparent'};
+               box-shadow:0 0 0 1px rgba(0,0,0,.15);transition:all .12s" title="${c}"></div>`).join('')}
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input id="office-custom-colour" type="color" value="${currentCol}"
+        style="width:34px;height:34px;border:1px solid var(--border2);border-radius:var(--radius);cursor:pointer;padding:2px;background:var(--surface)"/>
+      <span style="font-size:12px;color:var(--text2)">Custom colour</span>
+      <button class="btn sm" onclick="applyOfficeCustomColour()">Apply</button>
+    </div>`;
+  row.insertAdjacentElement('afterend', panel);
+}
+
+function closeOfficeColourPanel() {
+  const existing = document.getElementById('office-colour-panel');
+  if (existing) existing.remove();
+  _officeColourTarget = null;
+}
+
+async function selectOfficeColour(hex) {
+  if (!_officeColourTarget) return;
+  if (!officeColors) officeColors = {};
+  officeColors[_officeColourTarget] = hex;
+  const ci = document.getElementById('office-custom-colour');
+  if (ci) ci.value = hex;
+  const sw = document.getElementById('office-colour-swatches');
+  if (sw) sw.querySelectorAll('div').forEach(d => {
+    d.style.borderColor = d.title === hex ? 'var(--accent)' : 'transparent';
+  });
+  await saveOfficeColors();
+  renderOfficeList();
+  logSystemEvent('offices_updated', `Set colour for "${_officeColourTarget}": ${hex}`);
+  toast('Colour saved');
+}
+
+async function applyOfficeCustomColour() {
+  const hex = document.getElementById('office-custom-colour').value;
+  if (!_officeColourTarget || !hex) return;
+  await selectOfficeColour(hex);
+}
+
+/* ── Office locations (address + map pin) ── */
+let officeLocations = {};
+const OFFICE_LOC_KEY = 'office_locations';
+let _officeLocTarget = null;
+let _officeLocMap = null;
+let _officeLocMarker = null;
+let _officeLocCandidates = [];
+
+async function loadOfficeLocations() {
+  officeLocations = {};
+  if (!sbClient) return;
+  try {
+    const { data, error } = await sbClient.from('app_settings').select('value').eq('key', OFFICE_LOC_KEY).maybeSingle();
+    if (!error && data?.value) officeLocations = JSON.parse(data.value);
+  } catch(e) { officeLocations = {}; }
+}
+
+async function persistOfficeLocations() {
+  const { error } = await sbClient.from('app_settings')
+    .upsert({ key: OFFICE_LOC_KEY, value: JSON.stringify(officeLocations) }, { onConflict: 'key' });
+  if (error) toast('Error saving location: ' + error.message);
+  return !error;
+}
+
+function openOfficeLocationPanel(office, btnEl) {
+  closeOfficeColourPanel();
+  closeOfficeLocationPanel();
+  closeOrgColourPanel();
+  closeOrgLocationPanel();
+  _officeLocTarget = office;
+  const row = btnEl ? btnEl.closest('[id^="office-row-"]') : null;
+  if (!row) return;
+  const existing = officeLocations[office] || null;
+  const startLat = existing?.lat ?? 36.1408;
+  const startLng = existing?.lng ?? -5.3536;
+  const panel = document.createElement('div');
+  panel.id = 'office-location-panel';
+  panel.style.cssText = 'background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 14px;margin-top:4px;margin-bottom:2px';
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Location — ${escH(office)}</span>
+      <button class="btn sm" onclick="closeOfficeLocationPanel()" style="padding:2px 8px">Done</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input class="fc" id="office-loc-address" type="text" placeholder="Street address…" value="${escH(existing?.address || '')}" style="flex:1;font-size:12px" onkeydown="if(event.key==='Enter'){event.preventDefault();geocodeOfficeAddress();}"/>
+      <button class="btn sm" id="office-loc-find-btn" onclick="geocodeOfficeAddress()" title="Look up address on map">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Find
+      </button>
+    </div>
+    <div id="office-loc-results" style="display:none;flex-direction:column;gap:4px;margin-bottom:10px;max-height:140px;overflow-y:auto"></div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Or click the map to drop a pin, or drag the pin to fine-tune the exact spot.</div>
+    <div id="office-loc-map" style="height:220px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border2);margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;font-size:11px;color:var(--text3)">
+      <span>Lat: <span id="office-loc-lat" style="font-family:var(--mono);color:var(--text2)">${existing?.lat ?? '—'}</span></span>
+      <span>Lng: <span id="office-loc-lng" style="font-family:var(--mono);color:var(--text2)">${existing?.lng ?? '—'}</span></span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn sm primary" onclick="saveOfficeLocation()">Save location</button>
+      ${existing ? `<button class="btn sm" onclick="clearOfficeLocation()" style="color:var(--danger);border-color:var(--danger-l);background:var(--danger-l)">Clear</button>` : ''}
+    </div>
+  `;
+  row.insertAdjacentElement('afterend', panel);
+
+  setTimeout(() => {
+    if (typeof L === 'undefined') { toast('Map library failed to load'); return; }
+    _officeLocMap = L.map('office-loc-map').setView([startLat, startLng], existing ? 15 : 13);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+    }).addTo(_officeLocMap);
+    _officeLocMarker = L.marker([startLat, startLng], { draggable: true }).addTo(_officeLocMap);
+    _officeLocMarker.on('dragend', () => {
+      const pos = _officeLocMarker.getLatLng();
+      updateOfficeLocCoords(pos.lat, pos.lng);
+    });
+    _officeLocMap.on('click', (e) => {
+      _officeLocMarker.setLatLng(e.latlng);
+      updateOfficeLocCoords(e.latlng.lat, e.latlng.lng);
+    });
+    if (existing) updateOfficeLocCoords(existing.lat, existing.lng);
+  }, 0);
+}
+
+function updateOfficeLocCoords(lat, lng) {
+  const la = document.getElementById('office-loc-lat');
+  const ln = document.getElementById('office-loc-lng');
+  if (la) la.textContent = lat.toFixed(6);
+  if (ln) ln.textContent = lng.toFixed(6);
+}
+
+function closeOfficeLocationPanel() {
+  const existing = document.getElementById('office-location-panel');
+  if (existing) existing.remove();
+  if (_officeLocMap) { _officeLocMap.remove(); _officeLocMap = null; }
+  _officeLocMarker = null;
+  _officeLocTarget = null;
+}
+
+function buildOfficeGeocodeVariants(addr) {
+  const variants = [addr];
+  const hasGib = /gibraltar/i.test(addr);
+  const hasSpain = /spain|españa|la l[ií]nea|campo/i.test(addr);
+  if (!hasGib && !hasSpain) variants.push(`${addr}, Gibraltar`);
+  const stripped = addr.replace(/^\s*(unit|suite|flat|floor|no\.?|#)?\s*[\d\-\/]+[,\s]+/i, '').trim();
+  if (stripped && stripped !== addr) {
+    variants.push(hasGib || hasSpain ? stripped : `${stripped}, Gibraltar`);
+  }
+  return [...new Set(variants)];
+}
+
+async function geocodeOfficeAddress() {
+  const input = document.getElementById('office-loc-address');
+  const addr = (input?.value || '').trim();
+  if (!addr) { toast('Enter an address first'); return; }
+  const btn = document.getElementById('office-loc-find-btn');
+  const resultsEl = document.getElementById('office-loc-results');
+  if (btn) { btn.disabled = true; btn.style.opacity = '.6'; }
+  if (resultsEl) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; }
+  try {
+    const variants = buildOfficeGeocodeVariants(addr);
+    let rows = [];
+    for (const q of variants) {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=5&q=${encodeURIComponent(q)}`, {
+        headers: { 'Accept-Language': 'en' }
+      });
+      if (!res.ok) continue;
+      rows = await res.json();
+      if (rows?.length) break;
+      await new Promise(r => setTimeout(r, 300));
+    }
+    if (!rows?.length) {
+      toast('No match found — try a simpler address (just street + area) or drop the pin manually');
+      return;
+    }
+    _officeLocCandidates = rows;
+    if (rows.length === 1) {
+      applyOfficeGeoResult(0);
+    } else {
+      renderOfficeGeoResults(rows);
+    }
+  } catch(e) {
+    toast('Lookup failed: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  }
+}
+
+function renderOfficeGeoResults(rows) {
+  const resultsEl = document.getElementById('office-loc-results');
+  if (!resultsEl) return;
+  resultsEl.style.display = 'flex';
+  resultsEl.innerHTML = `<div style="font-size:10.5px;color:var(--text3);padding:2px 2px 0">${rows.length} matches — pick the right one:</div>` +
+    rows.map((r, i) => `
+      <button type="button" onclick="applyOfficeGeoResult(${i})" style="text-align:left;padding:6px 8px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);font-size:11.5px;color:var(--text1);cursor:pointer;font-family:var(--font)">
+        ${escH(r.display_name)}
+      </button>`).join('');
+}
+
+function applyOfficeGeoResult(i) {
+  const r = _officeLocCandidates[i];
+  if (!r) return;
+  const lat = parseFloat(r.lat), lng = parseFloat(r.lon);
+  if (_officeLocMap && _officeLocMarker) {
+    _officeLocMap.setView([lat, lng], 16);
+    _officeLocMarker.setLatLng([lat, lng]);
+    updateOfficeLocCoords(lat, lng);
+  }
+  const resultsEl = document.getElementById('office-loc-results');
+  if (resultsEl) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; }
+  toast('Location found — adjust the pin if needed, then Save');
+}
+
+async function saveOfficeLocation() {
+  if (!_officeLocTarget || !_officeLocMarker) return;
+  const pos = _officeLocMarker.getLatLng();
+  const address = (document.getElementById('office-loc-address')?.value || '').trim();
+  officeLocations[_officeLocTarget] = { address, lat: pos.lat, lng: pos.lng };
+  const ok = await persistOfficeLocations();
+  if (ok) {
+    toast('Location saved');
+    logSystemEvent('offices_updated', `Location set for "${_officeLocTarget}"`);
+    closeOfficeLocationPanel();
+    renderOfficeList();
+  }
+}
+
+async function clearOfficeLocation() {
+  if (!_officeLocTarget) return;
+  if (!confirm(`Remove the saved location for "${_officeLocTarget}"?`)) return;
+  delete officeLocations[_officeLocTarget];
+  const ok = await persistOfficeLocations();
+  if (ok) {
+    toast('Location removed');
+    closeOfficeLocationPanel();
+    renderOfficeList();
   }
 }
 
