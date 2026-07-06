@@ -58,6 +58,22 @@
 .loc-empty-note a:hover{text-decoration:underline}
 #loc-map{flex:1;height:100%}
 
+/* Map rotated 90° anticlockwise. The outer box keeps the normal flex footprint;
+   the actual Leaflet container is sized with swapped width/height (set in JS to
+   match the outer box) and rotated around its own center so it fills the same
+   visual space. Popup content and the zoom control are counter-rotated +90° so
+   they stay upright and readable despite the map underneath being turned. */
+.loc-map-outer{flex:1;height:100%;position:relative;overflow:hidden}
+.loc-map-outer #loc-map{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%) rotate(-90deg);
+  transform-origin:center center;
+}
+.loc-map-outer .leaflet-popup-content-wrapper,
+.loc-map-outer .leaflet-popup-tip{transform:rotate(90deg)}
+.loc-map-outer .leaflet-control-zoom{transform:rotate(90deg);transform-origin:center center}
+.loc-map-outer .leaflet-control-attribution{transform:rotate(90deg);transform-origin:center center}
+
 /* Leaflet popup theming */
 .leaflet-popup-content-wrapper{border-radius:var(--radius-l);box-shadow:var(--shadow)}
 .loc-popup-title{font-size:13px;font-weight:600;margin-bottom:2px}
@@ -222,7 +238,9 @@
           </div>
         </div>
 
-        <div id="loc-map"></div>
+        <div class="loc-map-outer" id="loc-map-outer">
+          <div id="loc-map"></div>
+        </div>
 
       </div>
     </div>
@@ -343,12 +361,27 @@ function sitePinIcon(color) {
   });
 }
 
+function sizeRotatedMap() {
+  const outer = document.getElementById('loc-map-outer');
+  const mapEl = document.getElementById('loc-map');
+  if (!outer || !mapEl) return;
+  // Swap dimensions: the container is rotated 90°, so give it the outer box's
+  // height as its width and vice versa — after rotation it visually fills
+  // the outer box exactly.
+  mapEl.style.width = outer.clientHeight + 'px';
+  mapEl.style.height = outer.clientWidth + 'px';
+  if (locMap) locMap.invalidateSize();
+}
+
 function initMap() {
+  sizeRotatedMap();
   locMap = L.map('loc-map', { zoomControl: true }).setView([36.1408, -5.3536], 13);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
   }).addTo(locMap);
+
+  window.addEventListener('resize', sizeRotatedMap);
 
   const bounds = [];
   places.forEach(p => {

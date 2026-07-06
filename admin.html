@@ -8,7 +8,7 @@
            script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.google.com https://www.gstatic.com;
            style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net;
            font-src https://fonts.gstatic.com;
-           connect-src 'self' https://gtcrmqbmlvtlyiwnshma.supabase.co https://corsproxy.io https://api.allorigins.win https://rss.app https://nominatim.openstreetmap.org;
+           connect-src 'self' https://gtcrmqbmlvtlyiwnshma.supabase.co wss://gtcrmqbmlvtlyiwnshma.supabase.co https://corsproxy.io https://api.allorigins.win https://rss.app https://nominatim.openstreetmap.org;
            img-src 'self' data: blob: https://ichef.bbci.co.uk https://gtcrmqbmlvtlyiwnshma.supabase.co https://tile.openstreetmap.org;
            frame-src https://www.google.com;"/>
 <title>El Martillo I.T. Ticketing System — Admin</title>
@@ -1130,7 +1130,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
           <div class="table-card" data-card-id="version" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Application version</div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Set the version number displayed in the footer across all pages.
+              Shown in the footer across all pages. This now auto-bumps by one (e.g. 3.5 → 3.6) every time <code style="font-size:11px">deploy-to-github.bat</code> pushes a change — you'll be prompted to accept or override the number at deploy time. You can also set it directly here whenever you like; either way just updates the same value.
             </div>
             <div class="fg">
               <label class="fl">Version string</label>
