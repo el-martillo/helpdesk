@@ -299,12 +299,10 @@ const _sb = window.supabase.createClient(SB_URL, SB_KEY, {auth:{storage:window.s
 
 async function loadVersion() {
   try {
-    const { data, error } = await _sb
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'app_version')
-      .single();
-    const v = (error || !data) ? '1.0.0' : data.value;
+    const res = await fetch(`${SB_URL}/rest/v1/app_settings?key=eq.app_version&select=value`,
+      { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
+    const rows = await res.json();
+    const v = rows?.[0]?.value || '1.0.0';
     const el = document.getElementById('footer-version');
     if (el) el.textContent = 'v' + v;
   } catch(e) {}
@@ -315,8 +313,10 @@ document.addEventListener('DOMContentLoaded', loadVersion);
 (async function startIdleTimeout() {
   let mins = 30;
   try {
-    const { data } = await _sb.from('app_settings').select('value').eq('key','session_timeout_minutes').maybeSingle();
-    if (data?.value) mins = Math.max(1, parseInt(data.value) || 30);
+    const res = await fetch(`${SB_URL}/rest/v1/app_settings?key=eq.session_timeout_minutes&select=value&limit=1`,
+      { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } });
+    const rows = await res.json();
+    if (rows?.[0]?.value) mins = Math.max(1, parseInt(rows[0].value) || 30);
   } catch(e) {}
   const ms = mins * 60 * 1000;
   let t;
