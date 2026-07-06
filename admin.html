@@ -6,14 +6,16 @@
 <meta http-equiv="Content-Security-Policy"
   content="default-src 'self';
            script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.google.com https://www.gstatic.com;
-           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com;
+           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net;
            font-src https://fonts.gstatic.com;
-           connect-src 'self' https://gtcrmqbmlvtlyiwnshma.supabase.co https://corsproxy.io https://api.allorigins.win https://rss.app;
-           img-src 'self' data: blob: https://ichef.bbci.co.uk https://gtcrmqbmlvtlyiwnshma.supabase.co;
+           connect-src 'self' https://gtcrmqbmlvtlyiwnshma.supabase.co https://corsproxy.io https://api.allorigins.win https://rss.app https://nominatim.openstreetmap.org;
+           img-src 'self' data: blob: https://ichef.bbci.co.uk https://gtcrmqbmlvtlyiwnshma.supabase.co https://tile.openstreetmap.org;
            frame-src https://www.google.com;"/>
 <title>El Martillo I.T. Ticketing System — Admin</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://www.google.com/recaptcha/api.js?render=explicit" async defer></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="icon" type="image/x-icon" href="favicon.ico"/>
 <link rel="icon" type="image/png" sizes="32x32" href="logo.png"/>
 <link rel="apple-touch-icon" href="logo.png"/>
@@ -283,6 +285,10 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
       <a href="directory.html" class="mobile-menu-item">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Directory
+      </a>
+      <a href="locations.html" class="mobile-menu-item">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Locations
       </a>
       <div class="mobile-menu-sep"></div>
       <div style="padding:10px 12px 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">Tickets</div>
@@ -1064,7 +1070,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
           <div class="table-card" data-card-id="organisations" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Organisations</div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Manage the list of organisations and their accent colours. Used in dropdowns, directory, and user profiles across the system.
+              Manage the list of organisations, their accent colours, and their map location (address &amp; pin). Used in dropdowns, directory, user profiles, and the <a href="locations.html" target="_blank" style="color:var(--accent)">company locations map</a> across the system.
             </div>
             <div id="org-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
               <div style="text-align:center;padding:16px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
@@ -6686,6 +6692,7 @@ async function loadCompanies() {
   // Ensure colour maps are loaded before rendering
   await loadDirCoColors();
   await loadCompanyColors();
+  await loadOrgLocations();
   renderOrgList();
   populateCompanySelects();
 }
@@ -6699,6 +6706,7 @@ function renderOrgList() {
   }
   el.innerHTML = companiesList.map((c, i) => {
     const col = (dirCoColors && dirCoColors[c]) || (_coColors && _coColors[c]) || '#9e9a94';
+    const loc = orgLocations && orgLocations[c];
     return `
     <div style="display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)" id="org-row-${i}">
       <div onclick="openOrgColourPanel('${esc(c)}', this)"
@@ -6707,6 +6715,9 @@ function renderOrgList() {
       <input class="fc org-input" id="org-input-${i}" type="text" value="${esc(c)}" style="flex:1;display:none;padding:4px 8px;font-size:13px" onkeydown="if(event.key==='Enter')saveOrgEdit(${i});if(event.key==='Escape')cancelOrgEdit(${i})"/>
       <button class="btn sm" id="org-edit-btn-${i}" onclick="startOrgEdit(${i})" title="Edit name" style="padding:3px 8px">
         <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button class="btn sm" id="org-loc-btn-${i}" onclick="openOrgLocationPanel('${esc(c)}', this)" title="${loc ? 'Edit location' : 'Set location'}" style="padding:3px 8px;${loc ? 'color:var(--accent);border-color:var(--accent-l);background:var(--accent-l)' : ''}">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
       </button>
       <button class="btn sm" id="org-save-btn-${i}" onclick="saveOrgEdit(${i})" style="display:none;padding:3px 8px;background:var(--accent-l);color:var(--accent);border-color:var(--accent-l)">✓</button>
       <button class="btn sm" id="org-cancel-btn-${i}" onclick="cancelOrgEdit(${i})" style="display:none;padding:3px 8px">✕</button>
@@ -6843,6 +6854,147 @@ async function applyOrgCustomColour() {
   const hex = document.getElementById('org-custom-colour').value;
   if (!_orgColourTarget || !hex) return;
   await selectOrgColour(hex);
+}
+
+/* ── Organisation locations (address + map pin) ── */
+let orgLocations = {}; // { companyName: { address, lat, lng } }
+const ORG_LOC_KEY = 'organisation_locations';
+let _orgLocTarget = null;
+let _orgLocMap = null;
+let _orgLocMarker = null;
+
+async function loadOrgLocations() {
+  orgLocations = {};
+  if (!sbClient) return;
+  try {
+    const { data, error } = await sbClient.from('app_settings').select('value').eq('key', ORG_LOC_KEY).maybeSingle();
+    if (!error && data?.value) orgLocations = JSON.parse(data.value);
+  } catch(e) { orgLocations = {}; }
+}
+
+async function persistOrgLocations() {
+  const { error } = await sbClient.from('app_settings')
+    .upsert({ key: ORG_LOC_KEY, value: JSON.stringify(orgLocations) }, { onConflict: 'key' });
+  if (error) toast('Error saving location: ' + error.message);
+  return !error;
+}
+
+function openOrgLocationPanel(company, btnEl) {
+  closeOrgColourPanel();
+  closeOrgLocationPanel();
+  _orgLocTarget = company;
+  const row = btnEl ? btnEl.closest('[id^="org-row-"]') : null;
+  if (!row) return;
+  const existing = orgLocations[company] || null;
+  // Default to Gibraltar if no saved location yet
+  const startLat = existing?.lat ?? 36.1408;
+  const startLng = existing?.lng ?? -5.3536;
+  const panel = document.createElement('div');
+  panel.id = 'org-location-panel';
+  panel.style.cssText = 'background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 14px;margin-top:4px;margin-bottom:2px';
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Location — ${escH(company)}</span>
+      <button class="btn sm" onclick="closeOrgLocationPanel()" style="padding:2px 8px">Done</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input class="fc" id="org-loc-address" type="text" placeholder="Street address…" value="${escH(existing?.address || '')}" style="flex:1;font-size:12px" onkeydown="if(event.key==='Enter'){event.preventDefault();geocodeOrgAddress();}"/>
+      <button class="btn sm" onclick="geocodeOrgAddress()" title="Look up address on map">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        Find
+      </button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Or click the map to drop a pin, or drag the pin to fine-tune the exact spot.</div>
+    <div id="org-loc-map" style="height:220px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border2);margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;font-size:11px;color:var(--text3)">
+      <span>Lat: <span id="org-loc-lat" style="font-family:var(--mono);color:var(--text2)">${existing?.lat ?? '—'}</span></span>
+      <span>Lng: <span id="org-loc-lng" style="font-family:var(--mono);color:var(--text2)">${existing?.lng ?? '—'}</span></span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn sm primary" onclick="saveOrgLocation()">Save location</button>
+      ${existing ? `<button class="btn sm" onclick="clearOrgLocation()" style="color:var(--danger);border-color:var(--danger-l);background:var(--danger-l)">Clear</button>` : ''}
+    </div>
+  `;
+  row.insertAdjacentElement('afterend', panel);
+
+  // Init Leaflet map on next tick so the container has a size
+  setTimeout(() => {
+    if (typeof L === 'undefined') { toast('Map library failed to load'); return; }
+    _orgLocMap = L.map('org-loc-map').setView([startLat, startLng], existing ? 15 : 13);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+    }).addTo(_orgLocMap);
+    _orgLocMarker = L.marker([startLat, startLng], { draggable: true }).addTo(_orgLocMap);
+    _orgLocMarker.on('dragend', () => {
+      const pos = _orgLocMarker.getLatLng();
+      updateOrgLocCoords(pos.lat, pos.lng);
+    });
+    _orgLocMap.on('click', (e) => {
+      _orgLocMarker.setLatLng(e.latlng);
+      updateOrgLocCoords(e.latlng.lat, e.latlng.lng);
+    });
+    if (existing) updateOrgLocCoords(existing.lat, existing.lng);
+  }, 0);
+}
+
+function updateOrgLocCoords(lat, lng) {
+  const la = document.getElementById('org-loc-lat');
+  const ln = document.getElementById('org-loc-lng');
+  if (la) la.textContent = lat.toFixed(6);
+  if (ln) ln.textContent = lng.toFixed(6);
+}
+
+function closeOrgLocationPanel() {
+  const existing = document.getElementById('org-location-panel');
+  if (existing) existing.remove();
+  if (_orgLocMap) { _orgLocMap.remove(); _orgLocMap = null; }
+  _orgLocMarker = null;
+  _orgLocTarget = null;
+}
+
+async function geocodeOrgAddress() {
+  const input = document.getElementById('org-loc-address');
+  const addr = (input?.value || '').trim();
+  if (!addr) { toast('Enter an address first'); return; }
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(addr)}`);
+    const rows = await res.json();
+    if (!rows?.length) { toast('Address not found — try dropping the pin manually'); return; }
+    const lat = parseFloat(rows[0].lat), lng = parseFloat(rows[0].lon);
+    if (_orgLocMap && _orgLocMarker) {
+      _orgLocMap.setView([lat, lng], 16);
+      _orgLocMarker.setLatLng([lat, lng]);
+      updateOrgLocCoords(lat, lng);
+    }
+    toast('Location found — adjust the pin if needed, then Save');
+  } catch(e) { toast('Lookup failed: ' + e.message); }
+}
+
+async function saveOrgLocation() {
+  if (!_orgLocTarget || !_orgLocMarker) return;
+  const pos = _orgLocMarker.getLatLng();
+  const address = (document.getElementById('org-loc-address')?.value || '').trim();
+  orgLocations[_orgLocTarget] = { address, lat: pos.lat, lng: pos.lng };
+  const ok = await persistOrgLocations();
+  if (ok) {
+    toast('Location saved');
+    logSystemEvent('orgs_updated', `Location set for "${_orgLocTarget}"`);
+    closeOrgLocationPanel();
+    renderOrgList();
+  }
+}
+
+async function clearOrgLocation() {
+  if (!_orgLocTarget) return;
+  if (!confirm(`Remove the saved location for "${_orgLocTarget}"?`)) return;
+  delete orgLocations[_orgLocTarget];
+  const ok = await persistOrgLocations();
+  if (ok) {
+    toast('Location removed');
+    closeOrgLocationPanel();
+    renderOrgList();
+  }
 }
 
 /* ── Ticket categories ── */
