@@ -5395,10 +5395,14 @@ function openEditUser(id) {
     }
   });
 
-  // Show verify row unless we positively know the account is already verified
-  const isVerified = authVerifiedMap[p.id] === true;
+  // Show verify row only when a real auth account exists for this profile
+  // and it isn't verified yet. A profile with no matching auth.users record
+  // (e.g. created via "Add user" and never invited) has nothing to verify —
+  // showing the button there just leads to a stuck/failing request.
+  const hasAuthAccount = p.id in authVerifiedMap;
+  const isVerified     = authVerifiedMap[p.id] === true;
   const verifyRow = document.getElementById('eu-verify-row');
-  if (verifyRow) verifyRow.style.display = isVerified ? 'none' : '';
+  if (verifyRow) verifyRow.style.display = (hasAuthAccount && !isVerified) ? '' : 'none';
 
   // Show WA section only for admin/super_admin
   const isStaff = p.role === 'admin' || p.role === 'super_admin';
@@ -5520,16 +5524,28 @@ async function manuallyVerifyUser() {
   const name  = document.getElementById('eu-name').value.trim();
   const btn   = document.getElementById('eu-verify-btn');
   if (!id) { toast('No user selected'); return; }
+  if (!(id in authVerifiedMap)) {
+    toast('This profile has no login account yet — send a registration invite first');
+    return;
+  }
   if (!confirm(`Mark ${name || email || 'this user'} as email-verified?\n\nThis bypasses the confirmation email.`)) return;
   if (btn) { btn.disabled = true; btn.textContent = 'Verifying…'; }
   try {
     const { data: { session } } = await sbClient.auth.getSession();
-    const res = await fetch('https://gtcrmqbmlvtlyiwnshma.supabase.co/functions/v1/admin-set-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
-      body: JSON.stringify({ user_id: id, email: email, action: 'verify_email' })
-    });
-    const json = await res.json();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000); // never let the button get stuck
+    let res;
+    try {
+      res = await fetch('https://gtcrmqbmlvtlyiwnshma.supabase.co/functions/v1/admin-set-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+        body: JSON.stringify({ user_id: id, email: email, action: 'verify_email' }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+    const json = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(json.error || res.statusText);
     authVerifiedMap[id] = true;
     const row = document.getElementById('eu-verify-row');
@@ -5539,7 +5555,8 @@ async function manuallyVerifyUser() {
     toast('✓ ' + (name || email || 'User') + ' marked as verified');
     logSystemEvent('user_verified', `Email manually verified for: ${name}${email ? ' <' + email + '>' : ''}`);
   } catch(e) {
-    toast('Error: ' + e.message);
+    toast(e.name === 'AbortError' ? 'Timed out waiting for a response — please try again' : 'Error: ' + e.message);
+  } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Verify'; }
   }
 }
