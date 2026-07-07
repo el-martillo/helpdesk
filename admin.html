@@ -1840,7 +1840,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
     <p style="font-size:12px;color:var(--text2);margin-bottom:4px;line-height:1.6">A profile row will be created. To also grant login access, invite the user via the Supabase Auth dashboard.</p>
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-add-user')">Cancel</button>
-      <button class="btn primary" onclick="addUser()">Add user</button>
+      <button class="btn primary" id="au-submit-btn" onclick="addUser()">Add user</button>
     </div>
   </div>
 </div>
@@ -2355,7 +2355,18 @@ function closeModal(id) {
   const modal = overlay.querySelector('.modal');
   if (modal) {
     modal.style.animation = 'modalOut .18s ease both';
-    setTimeout(() => { overlay.classList.remove('open'); modal.style.animation = ''; }, 170);
+    setTimeout(() => {
+      overlay.classList.remove('open');
+      modal.style.animation = '';
+      // Undo any drag repositioning so the modal re-centers via the overlay's
+      // normal flex layout (and its scrolling) next time it's opened.
+      modal.style.position   = '';
+      modal.style.margin     = '';
+      modal.style.left       = '';
+      modal.style.top        = '';
+      modal.style.maxHeight  = '';
+      modal.style.overflowY  = '';
+    }, 170);
   } else {
     overlay.classList.remove('open');
   }
@@ -2381,16 +2392,36 @@ function toggleClear(input) {
       const modal = head.closest('.modal');
       if (!modal) return;
       e.preventDefault();
-      // Use getBoundingClientRect so first drag doesn't jump from flexbox-centred position
+
+      const startClientX = e.clientX, startClientY = e.clientY;
       const rect = modal.getBoundingClientRect();
-      modal.style.position = 'fixed';
-      modal.style.margin   = '0';
-      modal.style.left     = rect.left + 'px';
-      modal.style.top      = rect.top  + 'px';
       const startX = e.clientX - rect.left;
       const startY = e.clientY - rect.top;
-      head.style.cursor = 'grabbing';
+      let dragging = false;
+      const DRAG_THRESHOLD = 4; // px — plain clicks on the header must not start a drag
+
+      function engageDrag() {
+        dragging = true;
+        // Use getBoundingClientRect so drag doesn't jump from flexbox-centred position
+        modal.style.position   = 'fixed';
+        modal.style.margin     = '0';
+        modal.style.left       = rect.left + 'px';
+        modal.style.top        = rect.top  + 'px';
+        // Cap height to the viewport and keep the modal internally scrollable —
+        // once fixed, it's out of the overlay's own scroll flow, so without
+        // this a tall modal (e.g. Edit user) would overflow the screen with
+        // no way to reach the rest of its content.
+        modal.style.maxHeight  = 'calc(100vh - 32px)';
+        modal.style.overflowY  = 'auto';
+        head.style.cursor = 'grabbing';
+      }
+
       function onMove(e) {
+        if (!dragging) {
+          if (Math.abs(e.clientX - startClientX) < DRAG_THRESHOLD &&
+              Math.abs(e.clientY - startClientY) < DRAG_THRESHOLD) return;
+          engageDrag();
+        }
         const vw = window.innerWidth, vh = window.innerHeight;
         modal.style.left = Math.max(0, Math.min(vw - modal.offsetWidth,  e.clientX - startX)) + 'px';
         modal.style.top  = Math.max(0, Math.min(vh - modal.offsetHeight, e.clientY - startY)) + 'px';
@@ -5308,7 +5339,7 @@ async function sendInviteEmail() {
 
 async function inviteAgent() {
   const name     = document.getElementById('ia-name').value.trim();
-  const email    = document.getElementById('ia-email').value.trim();
+  const email    = document.getElementById('ia-email').value.trim().toLowerCase();
   const role     = document.getElementById('ia-role').value;
   const waAlerts   = document.getElementById('ia-tg-alerts')?.checked || false;
   const waChatId   = document.getElementById('ia-tg-chatid')?.value.trim() || null;
@@ -5317,6 +5348,17 @@ async function inviteAgent() {
   if (!name || !email) { toast('Name and email are required'); return; }
   if (role === 'super_admin' && currentProfile?.role !== 'super_admin') {
     toast('Only super admins can assign the super_admin role'); return;
+  }
+
+  // Warn if a profile already exists for this email instead of silently
+  // re-purposing it (e.g. promoting an existing client to admin/tech).
+  const existing = await findProfileByEmail(email);
+  if (existing) {
+    const ok = confirm(
+      `A profile already exists for ${email} (${existing.full_name || 'unnamed'}, role: ${existing.role}).\n\n` +
+      `Continuing will send an invite for that same account and change its role to "${role}". Continue?`
+    );
+    if (!ok) return;
   }
 
   const btn = document.getElementById('ia-submit-btn');
@@ -5338,7 +5380,7 @@ async function inviteAgent() {
     // 2. Upsert profile with role + Telegram settings (the edge function may create the auth user;
     //    the profile row is created/updated here so Telegram fields are set from the start)
     const { data: authUser } = await sbClient
-      .from('profiles').select('id').eq('email', email).maybeSingle();
+      .from('profiles').select('id').ilike('email', escLike(email)).maybeSingle();
     if (authUser?.id) {
       const profileUpdates = { full_name: name, role, telegram_alerts: waAlerts };
       if (waChatId)   profileUpdates.telegram_chat_id  = waChatId;
@@ -5427,9 +5469,25 @@ async function deleteUser(id) {
   loadAllProfiles(); loadProfiles();
 }
 
+// Escapes ILIKE wildcard characters (%, _, \) so an email lookup can safely
+// use case-insensitive matching without accidentally treating underscores
+// or percent signs in the address as pattern wildcards.
+function escLike(str) {
+  return String(str ?? '').replace(/[\\%_]/g, ch => '\\' + ch);
+}
+
+// Case-insensitive existing-profile lookup by email, used to block
+// duplicate entries before insert.
+async function findProfileByEmail(email) {
+  if (!email) return null;
+  const { data } = await sbClient.from('profiles').select('id, full_name, role')
+    .ilike('email', escLike(email)).maybeSingle();
+  return data || null;
+}
+
 async function addUser() {
   const name    = document.getElementById('au-name').value.trim();
-  const email   = document.getElementById('au-email').value.trim();
+  const email   = document.getElementById('au-email').value.trim().toLowerCase();
   const phone   = document.getElementById('au-phone').value.trim();
   const company = document.getElementById('au-company').value.trim();
   const role    = document.getElementById('au-role').value;
@@ -5438,32 +5496,37 @@ async function addUser() {
   if (role === 'super_admin' && currentProfile?.role !== 'super_admin') {
     toast('Only super admins can assign the super_admin role'); return;
   }
-  const newId = crypto.randomUUID();
-  const payload = { id: newId, full_name: name, role };
-  if (email)   payload.email   = email;
-  if (phone)   payload.phone   = phone;
-  if (company) payload.company = company;
-  if (notes)   payload.notes   = notes;
-  function clearForm() {
+  const btn = document.getElementById('au-submit-btn');
+  if (btn) btn.disabled = true;
+  try {
+    // Check for an existing profile with this email (case-insensitive)
+    const existing = await findProfileByEmail(email);
+    if (existing) {
+      toast(`A user with this email already exists (${existing.full_name || 'unnamed'}, role: ${existing.role})`);
+      return;
+    }
+    const newId = crypto.randomUUID();
+    const payload = { id: newId, full_name: name, role };
+    if (email)   payload.email   = email;
+    if (phone)   payload.phone   = phone;
+    if (company) payload.company = company;
+    if (notes)   payload.notes   = notes;
+    const { error } = await sbClient.from('profiles').insert(payload);
+    if (error) {
+      // Belt-and-braces: if a unique constraint on email exists at the DB
+      // level, a race between two simultaneous "Add user" submissions will
+      // surface here instead of the pre-check above.
+      if (error.code === '23505') { toast('A user with this email already exists'); return; }
+      toast('Error: ' + error.message); return;
+    }
+    closeModal('modal-add-user');
     ['au-name','au-email','au-phone','au-company','au-notes'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('au-role').value = 'client';
+    loadAllProfiles(); loadCompanies(); toast('User profile created. To grant login access, invite them via Supabase Auth.');
+    logSystemEvent('user_created',`${payload.full_name} (${payload.email}) | Role: ${payload.role}${payload.company?' | Org: '+payload.company:''}`);
+  } finally {
+    if (btn) btn.disabled = false;
   }
-  // Check for existing profile with this email
-  const { data: existing } = await sbClient.from('profiles').select('id').eq('email', email).maybeSingle();
-  if (existing) { toast('A user with this email already exists'); return; }
-  const { error } = await sbClient.from('profiles').insert(payload);
-  if (error) { toast('Error: ' + error.message); return; }
-  closeModal('modal-add-user'); clearForm();
-  loadAllProfiles(); loadCompanies(); toast('User profile created. To grant login access, invite them via Supabase Auth.');
-  logSystemEvent('user_created',`${payload.full_name} (${payload.email}) | Role: ${payload.role}${payload.company?' | Org: '+payload.company:''}`);
-  // WA notification for new user
-  try {
-    await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ new_status: 'new_user', changed_by: currentProfile?.full_name || 'Admin', user_name: payload.full_name, user_email: payload.email })
-    });
-  } catch(e) { console.warn('WA new user notify failed:', e.message); }
 }
 
 async function testTelegram() {
