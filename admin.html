@@ -5384,9 +5384,16 @@ function renderUsersTable() {
       </td>
     </tr>`;
 
+  // The "Deleted User" placeholder (created when a user is permanently
+  // deleted, so their old tickets have somewhere to point) isn't a real
+  // staff member or client — keep it out of both groups and show it in
+  // its own section at the very end instead.
+  const isDeletedPlaceholder = p => (p.email||'').toLowerCase() === 'deleted@system.local';
+  const deletedRows = list.filter(isDeletedPlaceholder);
+
   // Sort within each section — column sort doesn't disturb the Staff/Clients grouping
-  const staff   = list.filter(p => p.role === 'super_admin' || p.role === 'admin').sort(compareUsers);
-  const clients = list.filter(p => p.role === 'client').sort(compareUsers);
+  const staff   = list.filter(p => !isDeletedPlaceholder(p) && (p.role === 'super_admin' || p.role === 'admin')).sort(compareUsers);
+  const clients = list.filter(p => !isDeletedPlaceholder(p) && p.role === 'client').sort(compareUsers);
 
   // Apply per-page to the combined flat list (staff first, then clients)
   const allRows  = [...staff, ...clients];
@@ -5412,6 +5419,12 @@ function renderUsersTable() {
      </td></tr>`;
   } else if (allRows.length > 25) {
     html += `<tr><td colspan="5" style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">All ${allRows.length} users shown</td></tr>`;
+  }
+  // Deleted-user placeholder always shown in full at the end, unpaginated —
+  // there's only ever one, and it should stay visible regardless of filters.
+  if (deletedRows.length) {
+    html += sectionHeader('Deleted', deletedRows.length);
+    html += deletedRows.map(renderRow).join('');
   }
   tbody.innerHTML = html;
   updateUsersSortHeaders();
