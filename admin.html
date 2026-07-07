@@ -745,12 +745,12 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
           <table>
             <thead>
               <tr>
-                <th>User</th>
-                <th>Organisation</th>
-                <th>Role</th>
-                <th>Open tickets</th>
-                <th>Total tickets</th>
-                <th>Verified</th>
+                <th class="sortable" data-sort="u_name" onclick="setUsersSort('u_name')">User</th>
+                <th class="sortable" data-sort="u_company" onclick="setUsersSort('u_company')">Organisation</th>
+                <th class="sortable" data-sort="u_role" onclick="setUsersSort('u_role')">Role</th>
+                <th class="sortable" data-sort="u_open" onclick="setUsersSort('u_open')">Open tickets</th>
+                <th class="sortable" data-sort="u_total" onclick="setUsersSort('u_total')">Total tickets</th>
+                <th class="sortable" data-sort="u_verified" onclick="setUsersSort('u_verified')">Verified</th>
               </tr>
             </thead>
             <tbody id="users-tbody"></tbody>
@@ -5298,11 +5298,26 @@ function exportUsersCSV() {
   toast(`Exported ${rows.length} ${rows.length===1?'user':'users'} to CSV`);
 }
 
+let usersSortKey = 'u_name', usersSortDir = 'asc';
+
+function setUsersSort(key) {
+  if (usersSortKey === key) usersSortDir = usersSortDir === 'asc' ? 'desc' : 'asc';
+  else { usersSortKey = key; usersSortDir = 'asc'; }
+  renderUsersTable();
+}
+
+function updateUsersSortHeaders() {
+  document.querySelectorAll('#page-users th.sortable').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    if (th.dataset.sort === usersSortKey) th.classList.add(usersSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+  });
+}
+
 function renderUsersTable() {
   let list = getFilteredUsers();
   const tbody = document.getElementById('users-tbody');
   if (!tbody) return;
-  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No users found</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No users found</td></tr>'; updateUsersSortHeaders(); return; }
 
   const roleBadge = r => ({
     super_admin: '<span class="sb" style="background:var(--danger-l);color:var(--danger)">Super Admin</span>',
@@ -5315,9 +5330,35 @@ function renderUsersTable() {
       ? '<span class="sb s-resolved">✓ Verified</span>'
       : '<span class="sb s-waiting">Pending</span>';
   };
+
+  // Precompute ticket counts once — reused by both the sort comparator and row rendering
+  const openCountOf  = {};
+  const totalCountOf = {};
+  list.forEach(p => {
+    openCountOf[p.id]  = tickets.filter(t => t.requester_id === p.id && !['resolved','closed'].includes(t.status)).length;
+    totalCountOf[p.id] = tickets.filter(t => t.requester_id === p.id).length;
+  });
+  const ROLE_ORDER = { super_admin: 0, admin: 1, client: 2 };
+  const verifiedRank = id => !(id in authVerifiedMap) ? 0 : (authVerifiedMap[id] ? 2 : 1);
+
+  const compareUsers = (a, b) => {
+    let av, bv;
+    switch (usersSortKey) {
+      case 'u_company':  av = (a.company||'').toLowerCase();  bv = (b.company||'').toLowerCase(); break;
+      case 'u_role':      av = ROLE_ORDER[a.role] ?? 9;         bv = ROLE_ORDER[b.role] ?? 9; break;
+      case 'u_open':      av = openCountOf[a.id];                bv = openCountOf[b.id]; break;
+      case 'u_total':     av = totalCountOf[a.id];               bv = totalCountOf[b.id]; break;
+      case 'u_verified':  av = verifiedRank(a.id);               bv = verifiedRank(b.id); break;
+      default:            av = (a.full_name||'').toLowerCase();  bv = (b.full_name||'').toLowerCase();
+    }
+    if (av < bv) return usersSortDir === 'asc' ? -1 : 1;
+    if (av > bv) return usersSortDir === 'asc' ?  1 : -1;
+    return 0;
+  };
+
   const renderRow = p => {
-    const openCount  = tickets.filter(t => t.requester_id === p.id && !['resolved','closed'].includes(t.status)).length;
-    const totalCount = tickets.filter(t => t.requester_id === p.id).length;
+    const openCount  = openCountOf[p.id];
+    const totalCount = totalCountOf[p.id];
     return `<tr onclick="openEditUser('${p.id}')" style="cursor:pointer">
       <td>
         <div class="flex-c">
@@ -5343,8 +5384,9 @@ function renderUsersTable() {
       </td>
     </tr>`;
 
-  const staff   = list.filter(p => p.role === 'super_admin' || p.role === 'admin');
-  const clients = list.filter(p => p.role === 'client');
+  // Sort within each section — column sort doesn't disturb the Staff/Clients grouping
+  const staff   = list.filter(p => p.role === 'super_admin' || p.role === 'admin').sort(compareUsers);
+  const clients = list.filter(p => p.role === 'client').sort(compareUsers);
 
   // Apply per-page to the combined flat list (staff first, then clients)
   const allRows  = [...staff, ...clients];
@@ -5372,6 +5414,7 @@ function renderUsersTable() {
     html += `<tr><td colspan="5" style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">All ${allRows.length} users shown</td></tr>`;
   }
   tbody.innerHTML = html;
+  updateUsersSortHeaders();
 }
 
 function openEditUser(id) {
