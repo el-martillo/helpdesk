@@ -246,6 +246,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
     </div>
     <div class="topbar-right">
       <div class="db-indicator"><div class="dot" id="db-dot"></div><span id="db-label">Demo mode</span></div>
+      <button class="admin-link" style="background:none;font:inherit;cursor:pointer" onclick="adminNav(document.getElementById('nav-messaging'),'messaging');loadMessagingPage()"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;flex-shrink:0"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Messaging</button>
       <a href="about.html" class="admin-link"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> About</a>
       <a href="locations.html" class="admin-link"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;flex-shrink:0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Locations</a>
       <a href="index.html" class="portal-link"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Client portal</a>
@@ -318,6 +319,10 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
       <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[5],'users');loadAllProfiles();closeMobileMenu()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         Users
+      </button>
+      <button class="mobile-menu-item" onclick="adminNav(document.getElementById('nav-messaging'),'messaging');loadMessagingPage();closeMobileMenu()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Messaging
       </button>
       <button class="mobile-menu-item" onclick="adminNav(document.querySelectorAll('.nav-item')[7],'reports');closeMobileMenu()">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="4" height="11"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="3" width="4" height="18"/></svg>
@@ -490,6 +495,10 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
   </svg>
   Directory
 </div>
+      <div class="nav-item" id="nav-messaging" onclick="adminNav(this,'messaging');loadMessagingPage()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Messaging
+      </div>
       <div class="nav-item" onclick="adminNav(this,'emailingest')">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
         Email ingest
@@ -1665,6 +1674,10 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="4"/><rect x="14" y="3" width="7" height="4"/><rect x="3" y="10" width="7" height="4"/><rect x="14" y="10" width="7" height="4"/><rect x="3" y="17" width="7" height="4"/><rect x="14" y="17" width="7" height="4"/></svg>
         Companies
       </button>
+      <button class="btn" onclick="exportDirectoryCSV()">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export CSV
+      </button>
       <button class="btn primary" onclick="openDirModal(null)">
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
         Add entry
@@ -1722,6 +1735,135 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
           <tr><td colspan="7" style="padding:32px;text-align:center;color:var(--text3);font-size:13px"><div class="loader"></div></td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- Messaging page -->
+<div class="page" id="page-messaging">
+  <div class="page-header">
+    <div>
+      <h1>Messaging</h1>
+      <p>Compose and send announcements to your users</p>
+    </div>
+  </div>
+
+  <!-- Composer -->
+  <div class="table-card" style="padding:20px;margin-bottom:20px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:14px">Compose message</div>
+
+    <div class="form-row">
+      <div class="fg">
+        <label class="fl">Recipients</label>
+        <select id="msg-recipients" class="fc" onchange="updateMsgPreview()">
+          <option value="all">All users (—)</option>
+          <option value="admins">Admins (—)</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Subject</label>
+        <input id="msg-subject" class="fc" type="text" placeholder="Subject line" oninput="updateMsgPreview()"/>
+      </div>
+    </div>
+
+    <div class="fg">
+      <label class="fl">Message <span style="font-weight:400;color:var(--text3)">(HTML allowed)</span></label>
+      <textarea id="msg-body" class="fc" style="min-height:160px;font-family:var(--mono);font-size:12px;resize:vertical" oninput="updateMsgPreview()" placeholder="Write your message…"></textarea>
+    </div>
+
+    <!-- Attachments -->
+    <div class="fg">
+      <label class="fl">Attachments <span style="font-weight:400;color:var(--text3)">(max 5 files, 8MB each)</span></label>
+      <button class="btn sm" onclick="document.getElementById('msg-file-input').click()">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        Attach files
+      </button>
+      <input id="msg-file-input" type="file" multiple style="display:none" onchange="msgAddFiles(this)"/>
+      <div id="msg-attach-list" style="margin-top:8px;display:flex;flex-direction:column;gap:4px"></div>
+    </div>
+
+    <!-- Live preview (togglable) -->
+    <div style="margin:16px 0 0">
+      <button class="btn sm" id="msg-preview-toggle" onclick="toggleMsgPreview()">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Show preview
+      </button>
+    </div>
+    <div id="msg-preview-panel" style="display:none;margin:14px 0 16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:8px">Live preview</div>
+      <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+        <div style="background:var(--surface2);padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">
+          <div><strong style="color:var(--text2)">Subject:</strong> <span id="msg-preview-subject" style="color:var(--text1)"></span></div>
+          <div style="margin-top:2px"><strong style="color:var(--text2)">To:</strong> <span id="msg-preview-to"></span></div>
+        </div>
+        <div style="padding:16px;background:var(--surface)">
+          <div id="msg-preview-body" style="font-size:13px;color:var(--text2);line-height:1.7"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px">
+      <button class="btn primary" id="msg-send-btn" onclick="sendBroadcastMessage()">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Send message
+      </button>
+      <button class="btn" onclick="clearMsgComposer()">Clear</button>
+      <span id="msg-send-status" style="font-size:12px;color:var(--text3)"></span>
+    </div>
+  </div>
+
+  <!-- Sent communications -->
+  <div class="table-card">
+    <div class="table-toolbar" style="display:flex;align-items:center;gap:8px">
+      <span id="msg-sent-meta" style="font-size:12px;color:var(--text3)">Loading…</span>
+      <button class="btn sm" style="margin-left:auto" onclick="loadSentMessages()">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Refresh
+      </button>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="background:var(--surface2)">
+            <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Subject</th>
+            <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Recipients</th>
+            <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Attachments</th>
+            <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Sent by</th>
+            <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Sent</th>
+            <th style="padding:9px 14px;text-align:right;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);width:130px"></th>
+          </tr>
+        </thead>
+        <tbody id="msg-sent-tbody">
+          <tr><td colspan="6" style="padding:32px;text-align:center;color:var(--text3);font-size:13px"><div class="loader"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- View sent message modal -->
+<div class="overlay" id="modal-msg-view">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Sent message</div>
+        <div class="modal-sub" id="msgv-sub">—</div>
+      </div>
+      <button class="close-x" data-tip="Close  Esc" onclick="closeModal('modal-msg-view')">✕</button>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px">
+      <div style="background:var(--surface2);padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">
+        <div><strong style="color:var(--text2)">Subject:</strong> <span id="msgv-subject" style="color:var(--text1)"></span></div>
+        <div style="margin-top:2px"><strong style="color:var(--text2)">To:</strong> <span id="msgv-to"></span></div>
+        <div style="margin-top:2px"><strong style="color:var(--text2)">Attachments:</strong> <span id="msgv-attachments"></span></div>
+      </div>
+      <div style="padding:16px;background:var(--surface);max-height:50vh;overflow-y:auto">
+        <div id="msgv-body" style="font-size:13px;color:var(--text2);line-height:1.7"></div>
+      </div>
+    </div>
+    <div class="form-footer">
+      <button class="btn" onclick="closeModal('modal-msg-view')">Close</button>
+      <button class="btn primary" onclick="cloneBroadcastFromModal()">Clone to new message</button>
     </div>
   </div>
 </div>
@@ -8862,11 +9004,11 @@ function loadDirStats() {
   if(s('dir-stat-queues')) s('dir-stat-queues').textContent = queues;
 }
 
-function renderAdminDir() {
+function getFilteredDirEntries() {
   const q = (document.getElementById('dir-admin-search')?.value||'').toLowerCase().trim();
   const co = document.getElementById('dir-admin-co-filter')?.value||'';
 
-  const filtered = dirEntries.filter(e => {
+  return dirEntries.filter(e => {
     if (co && e.company !== co) return false;
     if (!q) return true;
     return (e.name||'').toLowerCase().includes(q) ||
@@ -8875,6 +9017,10 @@ function renderAdminDir() {
            (e.department||'').toLowerCase().includes(q) ||
            (e.extension||'').toLowerCase().includes(q);
   });
+}
+
+function renderAdminDir() {
+  const filtered = getFilteredDirEntries();
 
   const meta = document.getElementById('dir-admin-meta');
   if (meta) meta.textContent = `${filtered.length} of ${dirEntries.length} entries`;
@@ -8906,6 +9052,276 @@ function renderAdminDir() {
       </td>
     </tr>`;
   }).join('');
+}
+
+function exportDirectoryCSV() {
+  const rows = getFilteredDirEntries().map(e => ({
+    name:       e.name || '',
+    company:    e.company || '',
+    department: e.department || '',
+    email:      e.email || '',
+    extension:  e.extension || '',
+    type:       e.is_queue ? 'Queue' : 'Person',
+  }));
+
+  if (!rows.length) { toast('No directory entries to export'); return; }
+
+  const date = new Date().toISOString().slice(0,10);
+  downloadCSV(rows, [
+    ['name',       'Name'],
+    ['company',    'Company'],
+    ['department', 'Department'],
+    ['email',      'Email'],
+    ['extension',  'Extension'],
+    ['type',       'Type'],
+  ], `elmartillo-staff-directory-${date}.csv`);
+
+  toast(`Exported ${rows.length} ${rows.length===1?'entry':'entries'} to CSV`);
+}
+
+/* ── Messaging ─────────────────────────────────────────────
+   Compose & send broadcast emails to all users or admins only.
+   Sent via the `broadcast-email` Edge Function (Resend), logged
+   to the `broadcasts` table. Attachments go to the
+   `broadcast-attachments` Storage bucket.                    */
+let msgPendingFiles       = [];  // File objects staged for upload
+let msgClonedAttachments  = [];  // [{name,url}] carried over from a cloned message
+let sentMessages          = [];  // cache of loaded broadcasts
+let msgViewingId          = null;
+
+function msgRecipientCounts() {
+  const hasEmail = p => !!(p.email && p.email.includes('@'));
+  const list = allProfiles || [];
+  return {
+    all:    list.filter(hasEmail).length,
+    admins: list.filter(p => hasEmail(p) && (p.role === 'admin' || p.role === 'super_admin')).length,
+  };
+}
+
+function updateMsgRecipientOptions() {
+  const sel = document.getElementById('msg-recipients');
+  if (!sel) return;
+  const { all, admins } = msgRecipientCounts();
+  const current = sel.value || 'all';
+  sel.innerHTML = `<option value="all">All users (${all})</option><option value="admins">Admins (${admins})</option>`;
+  sel.value = current;
+}
+
+async function loadMessagingPage() {
+  if (!allProfiles || !allProfiles.length) await loadAllProfiles();
+  updateMsgRecipientOptions();
+  updateMsgPreview();
+  await loadSentMessages();
+}
+
+function updateMsgPreview() {
+  updateMsgRecipientOptions();
+  const subject = document.getElementById('msg-subject')?.value.trim() || '(no subject)';
+  const body    = document.getElementById('msg-body')?.value || '';
+  const recSel  = document.getElementById('msg-recipients');
+  const { all, admins } = msgRecipientCounts();
+  const label = recSel?.value === 'admins' ? `Admins (${admins})` : `All users (${all})`;
+  const subjEl = document.getElementById('msg-preview-subject'); if (subjEl) subjEl.textContent = subject;
+  const toEl   = document.getElementById('msg-preview-to');      if (toEl)   toEl.textContent   = label;
+  const bodyEl = document.getElementById('msg-preview-body');
+  if (bodyEl) bodyEl.innerHTML = body.trim() ? body : '<span style="color:var(--text3)">Nothing to preview yet</span>';
+}
+
+function toggleMsgPreview() {
+  const panel = document.getElementById('msg-preview-panel');
+  const btn   = document.getElementById('msg-preview-toggle');
+  if (!panel) return;
+  const show = panel.style.display === 'none';
+  panel.style.display = show ? '' : 'none';
+  if (btn) btn.innerHTML = show
+    ? '<svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Hide preview'
+    : '<svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Show preview';
+  if (show) updateMsgPreview();
+}
+
+/* Attachments */
+function msgAddFiles(input) {
+  const files = Array.from(input.files || []);
+  const MAX_FILES = 5;
+  const MAX_SIZE  = 8 * 1024 * 1024; // 8MB per file — keeps total email size sane
+  for (const file of files) {
+    if (msgPendingFiles.length + msgClonedAttachments.length >= MAX_FILES) { toast(`Maximum ${MAX_FILES} attachments allowed`); break; }
+    if (file.size > MAX_SIZE) { toast(`"${file.name}" is too large (max 8MB)`); continue; }
+    if (msgPendingFiles.some(f => f.name === file.name && f.size === file.size)) continue;
+    msgPendingFiles.push(file);
+  }
+  input.value = '';
+  renderMsgAttachments();
+}
+function removeMsgPendingFile(i)      { msgPendingFiles.splice(i,1); renderMsgAttachments(); }
+function removeMsgClonedAttachment(i) { msgClonedAttachments.splice(i,1); renderMsgAttachments(); }
+function clearMsgAttachments()        { msgPendingFiles = []; msgClonedAttachments = []; renderMsgAttachments(); }
+
+function renderMsgAttachments() {
+  const list = document.getElementById('msg-attach-list');
+  if (!list) return;
+  const rows = [];
+  msgClonedAttachments.forEach((a,i) => rows.push(`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);font-size:12px">
+      <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0;color:var(--text3)"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+      <a href="${esc(a.url)}" target="_blank" style="color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escH(a.name)}</a>
+      <span style="color:var(--text3);font-size:10px;flex-shrink:0">(existing)</span>
+      <button onclick="removeMsgClonedAttachment(${i})" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text3);flex-shrink:0">✕</button>
+    </div>`));
+  msgPendingFiles.forEach((f,i) => rows.push(`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);font-size:12px">
+      <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0;color:var(--text3)"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escH(f.name)}</span>
+      <span style="color:var(--text3);font-size:10px;flex-shrink:0">${(f.size/1024).toFixed(0)}KB</span>
+      <button onclick="removeMsgPendingFile(${i})" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text3);flex-shrink:0">✕</button>
+    </div>`));
+  list.innerHTML = rows.join('');
+}
+
+function clearMsgComposer() {
+  const s = document.getElementById('msg-subject'); if (s) s.value = '';
+  const b = document.getElementById('msg-body');     if (b) b.value = '';
+  const r = document.getElementById('msg-recipients'); if (r) r.value = 'all';
+  clearMsgAttachments();
+  updateMsgPreview();
+  const status = document.getElementById('msg-send-status'); if (status) status.textContent = '';
+}
+
+async function sendBroadcastMessage() {
+  const subject = document.getElementById('msg-subject').value.trim();
+  const body    = document.getElementById('msg-body').value.trim();
+  const recipientType = document.getElementById('msg-recipients').value;
+  if (!subject || !body) { toast('Subject and message are required'); return; }
+
+  const { all, admins } = msgRecipientCounts();
+  const targetCount = recipientType === 'admins' ? admins : all;
+  if (!targetCount) { toast('No recipients match this selection'); return; }
+  if (!confirm(`Send this message to ${targetCount} recipient${targetCount===1?'':'s'}?`)) return;
+
+  const btn    = document.getElementById('msg-send-btn');
+  const status = document.getElementById('msg-send-status');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  if (status) status.textContent = '';
+
+  try {
+    // Carry over any cloned attachments, then upload newly-attached files
+    const attachments = [...msgClonedAttachments];
+    if (msgPendingFiles.length) {
+      const ts = Date.now();
+      for (let i = 0; i < msgPendingFiles.length; i++) {
+        const file = msgPendingFiles[i];
+        const ext  = (file.name.split('.').pop() || 'bin').toLowerCase();
+        const path = `${currentUser.id}/${ts}_${i}.${ext}`;
+        const { error: upErr } = await sbClient.storage.from('broadcast-attachments').upload(path, file, { contentType: file.type, upsert: false });
+        if (upErr) throw new Error('Attachment upload failed: ' + upErr.message);
+        const { data: urlData } = sbClient.storage.from('broadcast-attachments').getPublicUrl(path);
+        attachments.push({ name: file.name, url: urlData.publicUrl });
+      }
+    }
+
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session?.access_token) throw new Error('Not authenticated');
+
+    const resp = await fetch(`${SB_URL}/functions/v1/broadcast-email`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject, html: body, recipient_type: recipientType, attachments })
+    });
+    const result = await resp.json();
+    if (!resp.ok) throw new Error(result?.error || result?.message || 'Unknown error');
+
+    toast(`Message sent to ${result.recipient_count ?? targetCount} recipient${(result.recipient_count ?? targetCount)===1?'':'s'}`);
+    logSystemEvent('broadcast_sent', `"${subject}" → ${recipientType} (${result.recipient_count ?? targetCount} recipients)${attachments.length ? ' · ' + attachments.length + ' attachment(s)' : ''}`);
+    clearMsgComposer();
+    await loadSentMessages();
+
+  } catch (e) {
+    toast('Error: ' + e.message);
+    if (status) status.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send message';
+  }
+}
+
+async function loadSentMessages() {
+  const tbody = document.getElementById('msg-sent-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="padding:32px;text-align:center;color:var(--text3)"><div class="loader"></div></td></tr>';
+  const { data, error } = await sbClient.from('broadcasts').select('*').order('created_at', { ascending: false });
+  if (error) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--text3);font-size:13px">Couldn't load sent messages: ${escH(error.message)}</td></tr>`;
+    return;
+  }
+  sentMessages = data || [];
+  renderSentMessages();
+}
+
+function msgAttachmentsOf(m) {
+  if (Array.isArray(m.attachments)) return m.attachments;
+  try { return JSON.parse(m.attachments || '[]'); } catch { return []; }
+}
+
+function renderSentMessages() {
+  const meta = document.getElementById('msg-sent-meta');
+  if (meta) meta.textContent = `${sentMessages.length} sent message${sentMessages.length===1?'':'s'}`;
+  const tbody = document.getElementById('msg-sent-tbody');
+  if (!tbody) return;
+  if (!sentMessages.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:32px;text-align:center;color:var(--text3);font-size:13px">No messages sent yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = sentMessages.map(m => {
+    const atts = msgAttachmentsOf(m);
+    const recLabel = m.recipient_type === 'admins' ? 'Admins' : 'All users';
+    return `<tr>
+      <td style="font-weight:500">${escH(m.subject)}</td>
+      <td>${recLabel} <span style="color:var(--text3)">(${m.recipient_count ?? 0})</span></td>
+      <td style="color:var(--text2)">${atts.length ? atts.length + ' file' + (atts.length===1?'':'s') : '—'}</td>
+      <td style="color:var(--text2)">${escH(m.sent_by_name || '—')}</td>
+      <td style="color:var(--text3);font-size:12px;white-space:nowrap">${timeAgo(m.created_at)}</td>
+      <td>
+        <div class="row-actions">
+          <button class="ia ia-edit" onclick="viewBroadcast('${m.id}')">👁 View</button>
+          <button class="ia" onclick="cloneBroadcast('${m.id}')">⧉ Clone</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function viewBroadcast(id) {
+  const m = sentMessages.find(x => String(x.id) === String(id));
+  if (!m) return;
+  msgViewingId = id;
+  const atts = msgAttachmentsOf(m);
+  document.getElementById('msgv-sub').textContent      = `Sent ${timeAgo(m.created_at)} by ${m.sent_by_name || 'Unknown'}`;
+  document.getElementById('msgv-subject').textContent   = m.subject || '';
+  document.getElementById('msgv-to').textContent        = `${m.recipient_type === 'admins' ? 'Admins' : 'All users'} (${m.recipient_count ?? 0})`;
+  document.getElementById('msgv-attachments').innerHTML = atts.length
+    ? atts.map(a => `<a href="${esc(a.url)}" target="_blank" style="color:var(--accent);text-decoration:none;margin-right:10px">${escH(a.name)}</a>`).join('')
+    : '—';
+  document.getElementById('msgv-body').innerHTML = m.body_html || '';
+  openModal('modal-msg-view');
+}
+
+function cloneBroadcastFromModal() {
+  if (msgViewingId == null) return;
+  closeModal('modal-msg-view');
+  cloneBroadcast(msgViewingId);
+}
+
+function cloneBroadcast(id) {
+  const m = sentMessages.find(x => String(x.id) === String(id));
+  if (!m) return;
+  document.getElementById('msg-subject').value = m.subject || '';
+  document.getElementById('msg-body').value    = m.body_html || '';
+  document.getElementById('msg-recipients').value = m.recipient_type === 'admins' ? 'admins' : 'all';
+  msgPendingFiles      = [];
+  msgClonedAttachments = msgAttachmentsOf(m).map(a => ({ name: a.name, url: a.url }));
+  renderMsgAttachments();
+  updateMsgPreview();
+  toast('Loaded into composer — edit and send');
+  document.getElementById('page-messaging')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function openDirModal(id) {
