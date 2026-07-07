@@ -5576,6 +5576,7 @@ async function resendAuthEmail() {
 }
 
 async function sendInviteEmail() {
+  const id    = document.getElementById('eu-id').value;
   const email = document.getElementById('eu-email').value.trim();
   const name  = document.getElementById('eu-name').value.trim();
   const btn   = document.getElementById('eu-invite-btn');
@@ -5591,6 +5592,21 @@ async function sendInviteEmail() {
     });
     const result = await resp.json();
     if (!resp.ok) throw new Error(result?.error || result?.message || 'Unknown error');
+
+    // The invite creates (or reuses) a real auth account for this profile,
+    // so "Manually verify email" should become available immediately —
+    // no need to reload the page to see it.
+    const targetId = result?.user_id || id;
+    if (targetId) {
+      if (authVerifiedMap[targetId] !== true) authVerifiedMap[targetId] = false;
+      const verifyRow = document.getElementById('eu-verify-row');
+      if (verifyRow && document.getElementById('eu-id').value === targetId) {
+        verifyRow.style.display = authVerifiedMap[targetId] === true ? 'none' : '';
+      }
+      renderUsersTable();
+      renderAgents();
+    }
+
     toast('Invite email sent to ' + email);
     logSystemEvent('user_invite_sent', `Registration invite sent to: ${email}`);
   } catch(e) {
@@ -5658,9 +5674,25 @@ async function inviteAgent() {
     const waSlider = document.getElementById('ia-wa-slider'); if (waSlider) waSlider.style.background = '';
     document.getElementById('ia-role').value = 'admin';
 
-    loadProfiles(); loadAllProfiles();
+    // Reflect the new/updated tech on the Users page immediately — an
+    // invite was just sent, so the account exists but is unverified.
+    if (authUser?.id) {
+      if (authVerifiedMap[authUser.id] !== true) authVerifiedMap[authUser.id] = false;
+      const idx = allProfiles.findIndex(p => p.id === authUser.id);
+      const patch = { id: authUser.id, full_name: name, email, role, telegram_alerts: waAlerts };
+      if (waChatId)   patch.telegram_chat_id  = waChatId;
+      if (waUsername) patch.telegram_username = waUsername;
+      if (idx !== -1) allProfiles[idx] = { ...allProfiles[idx], ...patch };
+      else allProfiles.push(patch);
+      renderUsersTable();
+      renderAgents();
+    }
+
     toast('Invitation sent to ' + email);
     logSystemEvent('user_invite_sent', `Tech invite sent to: ${email} | Role: ${role}${waAlerts ? ' | Telegram alerts enabled' : ''}`);
+
+    // Reconcile with the server in the background
+    loadProfiles(); loadAllProfiles();
 
   } catch(e) {
     toast('Error: ' + e.message);
