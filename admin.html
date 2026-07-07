@@ -246,7 +246,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
     </div>
     <div class="topbar-right">
       <div class="db-indicator"><div class="dot" id="db-dot"></div><span id="db-label">Demo mode</span></div>
-      <button class="admin-link" style="background:none;font:inherit;cursor:pointer" onclick="adminNav(document.getElementById('nav-messaging'),'messaging');loadMessagingPage()"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;flex-shrink:0"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Messaging</button>
+      <a href="#" class="admin-link" onclick="event.preventDefault();adminNav(document.getElementById('nav-messaging'),'messaging');loadMessagingPage()"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;flex-shrink:0"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Messaging</a>
       <a href="about.html" class="admin-link"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> About</a>
       <a href="locations.html" class="admin-link"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;flex-shrink:0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Locations</a>
       <a href="index.html" class="portal-link"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Client portal</a>
@@ -500,7 +500,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
         Messaging
       </div>
       <div class="nav-item" onclick="adminNav(this,'emailingest')">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
         Email ingest
       </div>
 
@@ -1322,7 +1322,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
           <div class="table-card" data-card-id="email-templates" style="padding:20px">
             <div style="font-size:13px;font-weight:600;margin-bottom:4px">Email templates</div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
-              Customise the subject line and body text for each outbound email type. Use <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{name}}</code>, <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{ticket_number}}</code>, <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{subject}}</code>, <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{agent}}</code> as placeholders.
+              Customise the subject line and body text for each outbound email type. Use <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{name}}</code>, <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{ticket_number}}</code>, <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{subject}}</code>, <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{agent}}</code>, <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{message}}</code> (broadcast only) as placeholders.
             </div>
 
             <div class="fg">
@@ -1338,6 +1338,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
                 <option value="escalated">⚠️ Ticket escalated → helpdesk</option>
                 <option value="new_user">👤 New user registered → helpdesk</option>
                 <option value="password_reset">🔑 Password reset → client</option>
+                <option value="broadcast">📢 Messaging broadcast → wrapper format</option>
               </select>
             </div>
 
@@ -1347,7 +1348,13 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
               Use <code style="background:var(--warn-l);border:1px solid var(--warn);padding:1px 4px;border-radius:3px">{{ .ConfirmationURL }}</code> as the reset link placeholder.
             </div>
 
-            <div class="fg">
+            <div id="tpl-broadcast-notice" style="display:none;padding:10px 14px;background:var(--accent-l);border:1px solid var(--accent);border-radius:var(--radius);font-size:12px;color:var(--accent);line-height:1.6;margin-bottom:14px">
+              <strong>📢 Broadcast wrapper, not a single email</strong> — Subject and message text are written per-broadcast in <strong>Messaging</strong>, so there's no subject field here. This template controls the branded HTML shell (header banner, footer) that every broadcast is wrapped in. Use
+              <code style="background:var(--accent-l);border:1px solid var(--accent);padding:1px 4px;border-radius:3px">{{message}}</code>
+              where the composed message should be inserted.
+            </div>
+
+            <div class="fg" id="tpl-subject-fg">
               <label class="fl">Subject line</label>
               <input id="tpl-subject" class="fc" type="text" oninput="updateTemplatePreview()"/>
             </div>
@@ -2994,6 +3001,29 @@ const EMAIL_TEMPLATE_DEFAULTS = {
     to_label: '→ client',
     _supabase_managed: true,
   },
+  broadcast: {
+    subject: '',
+    body: [
+      '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f4;padding:40px 16px;"><tr><td align="center">',
+      '<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">',
+      '<tr><td style="background:#185FA5;border-radius:10px 10px 0 0;padding:24px 32px;">',
+      '<span style="font-size:18px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">El Martillo I.T.</span><br/>',
+      '<span style="font-size:12px;color:rgba(255,255,255,0.75);margin-top:2px;display:block;">Support Portal</span>',
+      '</td></tr>',
+      '<tr><td style="background:#ffffff;padding:28px 32px;border-left:1px solid #e5e5e3;border-right:1px solid #e5e5e3;">',
+      '<div style="font-size:14px;color:#1a1917;line-height:1.7;">{{message}}</div>',
+      '</td></tr>',
+      '<tr><td style="background:#f9f9f8;border:1px solid #e5e5e3;border-top:none;border-radius:0 0 10px 10px;padding:18px 32px;">',
+      '<div style="font-size:11px;color:#9e9a94;line-height:1.6;">',
+      '<strong style="color:#6b6963;">El Martillo I.T.</strong><br/>',
+      'Tel: <a href="tel:+35020050630" style="color:#185FA5;text-decoration:none;">+350 200 50630</a> &nbsp;&middot;&nbsp;',
+      '<a href="mailto:helpdesk@el-martillo.com" style="color:#185FA5;text-decoration:none;">helpdesk@el-martillo.com</a>',
+      '</div></td></tr>',
+      '</table></td></tr></table>',
+    ].join(''),
+    to_label: 'All users / Admins (set per message)',
+    _no_subject: true,
+  },
 };
 
 let _emailTemplates = {}; // loaded from app_settings
@@ -3015,6 +3045,11 @@ function loadTemplateIntoEditor() {
   // Show Supabase-managed notice for password_reset
   const notice = document.getElementById('tpl-supabase-notice');
   if (notice) notice.style.display = defaults._supabase_managed ? '' : 'none';
+  // Broadcast template has no per-message subject field — it's set in Messaging instead
+  const bNotice = document.getElementById('tpl-broadcast-notice');
+  if (bNotice) bNotice.style.display = defaults._no_subject ? '' : 'none';
+  const subjectFg = document.getElementById('tpl-subject-fg');
+  if (subjectFg) subjectFg.style.display = defaults._no_subject ? 'none' : '';
   updateTemplatePreview();
 }
 
@@ -3025,19 +3060,20 @@ function updateTemplatePreview() {
   const defaults = EMAIL_TEMPLATE_DEFAULTS[key] || {};
 
   // Sample values for placeholder substitution
-  const sample = { name: 'Jane Smith', ticket_number: '42', subject: 'Cannot export PDF', agent: 'Marco Rossi' };
+  const sample = { name: 'Jane Smith', ticket_number: '42', subject: 'Cannot export PDF', agent: 'Marco Rossi', message: '<p>This is a sample announcement — the actual message is written per-broadcast in Messaging.</p>' };
   const interpolate = s => s
     .replace(/\{\{name\}\}/g,          sample.name)
     .replace(/\{\{ticket_number\}\}/g, sample.ticket_number)
     .replace(/\{\{subject\}\}/g,       sample.subject)
-    .replace(/\{\{agent\}\}/g,         sample.agent);
+    .replace(/\{\{agent\}\}/g,         sample.agent)
+    .replace(/\{\{message\}\}/g,       sample.message);
 
   const previewSubj = document.getElementById('tpl-preview-subject');
   const previewTo   = document.getElementById('tpl-preview-to');
   const previewBody = document.getElementById('tpl-preview-body');
   const previewSig  = document.getElementById('tpl-preview-sig');
 
-  if (previewSubj) previewSubj.textContent = interpolate(subject);
+  if (previewSubj) previewSubj.textContent = defaults._no_subject ? '(set per broadcast in Messaging)' : interpolate(subject);
   if (previewTo)   previewTo.textContent   = defaults.to_label || '';
 
   if (previewBody) {
@@ -3101,25 +3137,45 @@ async function sendTestTemplateEmail() {
     const { data: { session } } = await sbClient.auth.getSession();
     if (!session?.access_token) throw new Error('Not authenticated');
 
-    const res = await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        _sig_test:  true,
-        to_email:   to,
-        changed_by: currentProfile?.full_name || 'Admin',
-        _tpl_key:   key,
-      }),
-    });
-
-    const data = await res.json().catch(() => ({}));
-    if (res.ok && data.sent) {
-      status.style.display = 'block';
-      status.style.color   = 'var(--success)';
-      const labels = { resolved: 'Ticket resolved', reopened: 'Ticket reopened (helpdesk)', client_reopened: 'Ticket reopened (client)', closed_helpdesk: 'Ticket closed' };
-      status.textContent = `✓ Test email sent to ${to} using "${labels[key] || key}" template`;
+    let res, data;
+    if (key === 'broadcast') {
+      // Broadcast has no fixed subject/body of its own — send a sample
+      // message through the wrapper template being edited, to one address,
+      // without touching the real recipient list or the sent-messages log.
+      const sampleMessage = '<p>This is a sample announcement — the actual message is written per-broadcast in Messaging.</p>';
+      res = await fetch(`${SB_URL}/functions/v1/broadcast-email`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ _test: true, to_email: to, subject: 'Test broadcast — wrapper preview', html: sampleMessage }),
+      });
+      data = await res.json().catch(() => ({}));
+      if (res.ok && data.sent) {
+        status.style.display = 'block';
+        status.style.color   = 'var(--success)';
+        status.textContent   = `✓ Test broadcast sent to ${to} using the current wrapper format`;
+      } else {
+        throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
+      }
     } else {
-      throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
+      res = await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          _sig_test:  true,
+          to_email:   to,
+          changed_by: currentProfile?.full_name || 'Admin',
+          _tpl_key:   key,
+        }),
+      });
+      data = await res.json().catch(() => ({}));
+      if (res.ok && data.sent) {
+        status.style.display = 'block';
+        status.style.color   = 'var(--success)';
+        const labels = { resolved: 'Ticket resolved', reopened: 'Ticket reopened (helpdesk)', client_reopened: 'Ticket reopened (client)', closed_helpdesk: 'Ticket closed' };
+        status.textContent = `✓ Test email sent to ${to} using "${labels[key] || key}" template`;
+      } else {
+        throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
+      }
     }
   } catch(e) {
     status.style.display = 'block';
