@@ -1482,38 +1482,12 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
           <div class="table-card" data-card-id="backup" style="padding:20px">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Database backup</div><label class="wa-toggle settings-admin-toggle" data-card-id="backup" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="backup" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('backup', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Export all tickets, profiles, and comments as a JSON file. The backup is generated directly from your Supabase database and downloaded to your browser.
+              Exports every table in the database as a JSON file, generated directly from Supabase and downloaded to your browser. New tables are picked up automatically — nothing to configure when the schema grows.
+              <br/><strong style="color:var(--text1)">Not included:</strong> Auth accounts (emails/passwords), Storage files (attachments — only their URLs are captured), and the database schema itself (RLS policies, functions, triggers). For full disaster-recovery coverage, pair this with Supabase's own project backups or a periodic <code style="font-family:var(--mono);background:var(--border);padding:1px 4px;border-radius:3px">pg_dump</code>.
             </div>
 
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px" id="backup-stats">
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-                <div style="font-size:22px;font-weight:600;color:var(--accent)" id="bk-tickets">—</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">Tickets</div>
-              </div>
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-                <div style="font-size:22px;font-weight:600;color:var(--purple)" id="bk-comments">—</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">Comments</div>
-              </div>
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-                <div style="font-size:22px;font-weight:600;color:var(--success)" id="bk-profiles">—</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">Profiles</div>
-              </div>
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-                <div style="font-size:22px;font-weight:600;color:var(--warn)" id="bk-settings">—</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">Settings</div>
-              </div>
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-                <div style="font-size:22px;font-weight:600;color:var(--text2)" id="bk-syslog">—</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">System log</div>
-              </div>
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-                <div style="font-size:22px;font-weight:600;color:var(--text2)" id="bk-activity">—</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">Activity log</div>
-              </div>
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-                <div style="font-size:22px;font-weight:600;color:var(--text2)" id="bk-directory">—</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:2px">Directory</div>
-              </div>
+              <div style="grid-column:1/-1;text-align:center;padding:12px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
             </div>
 
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -6569,28 +6543,55 @@ function initSettingsDrag() {
 }
 
 /* ── Backup ── */
+// Fallback list used only if the list_public_tables() RPC hasn't been
+// created yet in Supabase (see list_public_tables.sql). Keeps the feature
+// working before that migration is run, though new tables won't be
+// auto-discovered until the RPC exists.
+const BACKUP_TABLE_FALLBACK = ['tickets','comments','profiles','app_settings','system_log','user_activity','directory_entries','audit_log','broadcasts','ticket_views'];
+const BACKUP_STAT_COLORS = ['var(--accent)','var(--purple)','var(--success)','var(--warn)','var(--danger)','var(--text2)'];
+
+async function getBackupTableList() {
+  try {
+    const { data, error } = await sbClient.rpc('list_public_tables');
+    if (error) throw error;
+    if (data && data.length) return data.map(r => r.table_name);
+  } catch(e) {
+    console.warn('list_public_tables RPC unavailable, using fallback table list:', e.message);
+  }
+  return BACKUP_TABLE_FALLBACK;
+}
+
+function friendlyTableLabel(name) {
+  return name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
 async function loadBackupStats() {
-  const [t, c, p, sl, ua, de] = await Promise.all([
-    sbClient.from('tickets').select('*',          {count:'exact', head:true}),
-    sbClient.from('comments').select('*',         {count:'exact', head:true}),
-    sbClient.from('profiles').select('*',         {count:'exact', head:true}),
-    sbClient.from('system_log').select('*',       {count:'exact', head:true}),
-    sbClient.from('user_activity').select('*',    {count:'exact', head:true}),
-    sbClient.from('directory_entries').select('*',{count:'exact', head:true}),
-  ]);
-  document.getElementById('bk-tickets').textContent   = t.count  ?? '—';
-  document.getElementById('bk-comments').textContent  = c.count  ?? '—';
-  document.getElementById('bk-profiles').textContent  = p.count  ?? '—';
-  document.getElementById('bk-settings').textContent  = '✓';
-  document.getElementById('bk-syslog').textContent    = sl.count ?? '—';
-  document.getElementById('bk-activity').textContent  = ua.count ?? '—';
-  document.getElementById('bk-directory').textContent = de.count ?? '—';
+  const grid = document.getElementById('backup-stats');
+  if (!grid) return;
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:12px;color:var(--text3);font-size:12px"><div class="loader"></div></div>';
+
+  const tables = await getBackupTableList();
+  const results = await Promise.all(tables.map(name =>
+    sbClient.from(name).select('*', { count: 'exact', head: true })
+      .then(r => ({ name, count: r.count, error: r.error }))
+      .catch(e => ({ name, count: null, error: e }))
+  ));
+
+  grid.innerHTML = results.map((r, i) => {
+    const color = BACKUP_STAT_COLORS[i % BACKUP_STAT_COLORS.length];
+    const value = r.error ? '—' : (r.count ?? '—');
+    const tip = r.error ? ' title="Could not read this table (check RLS policy for authenticated users)"' : '';
+    return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center"${tip}>
+      <div style="font-size:22px;font-weight:600;color:${color}">${value}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">${esc(friendlyTableLabel(r.name))}</div>
+    </div>`;
+  }).join('');
 }
 
 async function runBackup() {
 
   try {
-    await requireReauth('Download a full database backup including all profiles, tickets, and comments.');
+    await requireReauth('Download a full database backup including every table in the database.');
   } catch(e) { return; }
   const btn = document.getElementById('btn-backup');
   const progress = document.getElementById('backup-progress');
@@ -6601,34 +6602,23 @@ async function runBackup() {
   const setMsg = m => { msg.textContent = m; };
 
   try {
+    const tables = await getBackupTableList();
+    const tableData = {};
+    const summary = {};
+    const failedTables = [];
 
-    setMsg('Fetching tickets…');
-    const { data: ticketData, error: te } = await sbClient.from('tickets').select('*').order('created_at');
-    if (te) throw te;
-
-    setMsg('Fetching comments…');
-    const { data: commentData, error: ce } = await sbClient.from('comments').select('*').order('created_at');
-    if (ce) throw ce;
-
-    setMsg('Fetching profiles…');
-    const { data: profileData, error: pe } = await sbClient.from('profiles').select('*');
-    if (pe) throw pe;
-
-    setMsg('Fetching app settings…');
-    const { data: settingsData, error: se } = await sbClient.from('app_settings').select('*');
-    if (se) throw se;
-
-    setMsg('Fetching system log…');
-    const { data: syslogData, error: sle } = await sbClient.from('system_log').select('*').order('created_at');
-    if (sle) { console.warn('system_log fetch failed:', sle.message); }
-
-    setMsg('Fetching activity log…');
-    const { data: activityData, error: ale } = await sbClient.from('user_activity').select('*').order('created_at');
-    if (ale) { console.warn('user_activity fetch failed:', ale.message); }
-
-    setMsg('Fetching directory…');
-    const { data: directoryData, error: dle } = await sbClient.from('directory_entries').select('*');
-    if (dle) { console.warn('directory_entries fetch failed:', dle.message); }
+    for (const name of tables) {
+      setMsg(`Fetching ${friendlyTableLabel(name).toLowerCase()}…`);
+      try {
+        const { data, error } = await sbClient.from(name).select('*');
+        if (error) throw error;
+        tableData[name] = data || [];
+        summary[name] = (data || []).length;
+      } catch(e) {
+        console.warn(`Backup: could not fetch table "${name}":`, e.message);
+        failedTables.push(name);
+      }
+    }
 
     setMsg('Building backup file…');
     await new Promise(r => setTimeout(r, 300));
@@ -6636,32 +6626,21 @@ async function runBackup() {
     const backup = {
       exported_at: new Date().toISOString(),
       project_url: SB_URL,
-      summary: {
-        tickets:          ticketData.length,
-        comments:         commentData.length,
-        profiles:         profileData.length,
-        app_settings:     settingsData.length,
-        system_log:       syslogData?.length    ?? 0,
-        user_activity:    activityData?.length  ?? 0,
-        directory_entries: directoryData?.length ?? 0,
-      },
-      tables: {
-        tickets:          ticketData,
-        comments:         commentData,
-        profiles:         profileData,
-        app_settings:     settingsData,
-        system_log:       syslogData    ?? [],
-        user_activity:    activityData  ?? [],
-        directory_entries: directoryData ?? [],
-      }
+      tables_included: Object.keys(tableData),
+      tables_failed: failedTables,
+      summary,
+      tables: tableData,
     };
 
     downloadJSON(backup);
     const now = new Date().toLocaleTimeString();
     document.getElementById('backup-last').textContent = 'Last backup: ' + now;
-    toast('Backup downloaded successfully');
+    toast(failedTables.length
+      ? `Backup downloaded (${failedTables.length} table${failedTables.length===1?'':'s'} skipped — see console)`
+      : 'Backup downloaded successfully');
     loadBackupStats();
-    logSystemEvent('backup_created',`${ticketData.length} tickets · ${commentData.length} comments · ${profileData.length} profiles · ${syslogData?.length??0} syslog · ${activityData?.length??0} activity · ${directoryData?.length??0} directory entries`);
+    const summaryStr = Object.entries(summary).map(([k, v]) => `${v} ${k}`).join(' · ');
+    logSystemEvent('backup_created', summaryStr + (failedTables.length ? ` · failed: ${failedTables.join(', ')}` : ''));
 
   } catch(e) {
     toast('Backup failed: ' + (e.message || JSON.stringify(e)));
@@ -8680,6 +8659,11 @@ function startRealtime() {
       } else if (key === 'organisations') {
         loadCompanies();
       }
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'directory_entries' }, () => {
+      // Full reload covers add/edit/delete from this admin session or any
+      // other admin's session — cheap enough since the directory is small.
+      loadDirPage();
     })
     .subscribe((status) => {
       const dot   = document.getElementById('db-dot');
