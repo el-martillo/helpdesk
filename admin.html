@@ -1668,10 +1668,10 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
         Add entry
       </button>
-      <a href="directory.html" target="_blank" class="btn">
+      <button class="btn" onclick="openLiveDirectory()">
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
         View live
-      </a>
+      </button>
     </div>
   </div>
 
@@ -9321,6 +9321,26 @@ function updateDirSortHeaders() {
     th.classList.remove('sort-asc','sort-desc');
     if (th.dataset.sort === dirSortKey) th.classList.add(dirSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
   });
+}
+
+// directory.html reads its login session from sessionStorage, which is
+// scoped per-tab — a plain target="_blank" link opens a tab with empty
+// sessionStorage, so it can never see an admin's session and bounces to
+// the client login page. Passing the access token + user id via a URL
+// hash fragment (never sent to the server, unlike a query string) lets
+// directory.html authenticate itself in the new tab before falling back
+// to its normal sessionStorage check.
+async function openLiveDirectory() {
+  try {
+    const { data } = await sbClient.auth.getSession();
+    const token = data?.session?.access_token;
+    const uid   = data?.session?.user?.id || currentUser?.id;
+    if (token && uid) {
+      window.open(`directory.html#admin_token=${encodeURIComponent(token)}&admin_uid=${encodeURIComponent(uid)}`, '_blank');
+      return;
+    }
+  } catch(e) { console.warn('openLiveDirectory: could not read session, opening without handoff:', e.message); }
+  window.open('directory.html', '_blank');
 }
 
 function getFilteredDirEntries() {

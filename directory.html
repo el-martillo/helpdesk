@@ -701,15 +701,30 @@ async function initSharedNav() {
     }
     // Read session from sessionStorage — Supabase SDK stores as sb-[project-ref]-auth-token
     const SUPABASE_SESSION_KEY = 'sb-gtcrmqbmlvtlyiwnshma-auth-token';
-    const storageKey = sessionStorage.getItem(SUPABASE_SESSION_KEY) 
-      ? SUPABASE_SESSION_KEY 
-      : Object.keys(sessionStorage).find(k => k.includes('auth-token'));
-    if (!storageKey) { window.location.replace('index.html'); return; }
-    let session;
-    try { session = JSON.parse(sessionStorage.getItem(storageKey)); } catch(e) { window.location.replace('index.html'); return; }
-    const accessToken = session?.access_token;
-    const userId = session?.user?.id;
-    if (!accessToken || !userId) { window.location.replace('index.html'); return; }
+    let accessToken, userId;
+    // Session handoff from admin.html's "View live" button: sessionStorage
+    // is per-tab, so a fresh tab can't see the admin's session there. If
+    // present, use the token passed via URL hash instead (hash fragments
+    // are never sent to the server, unlike query strings) and strip it
+    // from the address bar immediately after reading it.
+    const hashParams = new URLSearchParams(location.hash.slice(1));
+    const handoffToken = hashParams.get('admin_token');
+    const handoffUid   = hashParams.get('admin_uid');
+    if (handoffToken && handoffUid) {
+      accessToken = handoffToken;
+      userId = handoffUid;
+      history.replaceState(null, '', location.pathname + location.search);
+    } else {
+      const storageKey = sessionStorage.getItem(SUPABASE_SESSION_KEY) 
+        ? SUPABASE_SESSION_KEY 
+        : Object.keys(sessionStorage).find(k => k.includes('auth-token'));
+      if (!storageKey) { window.location.replace('index.html'); return; }
+      let session;
+      try { session = JSON.parse(sessionStorage.getItem(storageKey)); } catch(e) { window.location.replace('index.html'); return; }
+      accessToken = session?.access_token;
+      userId = session?.user?.id;
+      if (!accessToken || !userId) { window.location.replace('index.html'); return; }
+    }
     // Fetch profile via REST
     const res = await fetch(
       `${SB_URL}/rest/v1/profiles?id=eq.${userId}&select=full_name,role&limit=1`,
