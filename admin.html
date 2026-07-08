@@ -3465,6 +3465,13 @@ async function bulkApply(field, value) {
 
   const assigneeId = field === 'assignee' ? (value === '__unassign__' ? null : value) : undefined;
 
+  // Capture prior priorities BEFORE updating/reloading — loadTickets() below
+  // refreshes the local `tickets` array from the server, so reading old
+  // priority values afterwards would just return the new ones.
+  const prevPriorities = field === 'priority'
+    ? new Map(ids.map(id => [id, tickets.find(x => x.id === id)?.priority]))
+    : null;
+
   try {
     const update = {};
     if (field === 'status')   update.status = value;
@@ -3481,16 +3488,16 @@ async function bulkApply(field, value) {
       const PRANK = { low: 0, medium: 1, high: 2, critical: 3 };
       try {
         for (const id of ids) {
-          const t = tickets.find(x => x.id === id);
-          if (!t) continue;
-          const oldRank = PRANK[t.priority] ?? 0;
-          const newRank = PRANK[value]      ?? 0;
+          const oldPriority = prevPriorities.get(id);
+          if (!oldPriority) continue;
+          const oldRank = PRANK[oldPriority] ?? 0;
+          const newRank = PRANK[value]       ?? 0;
           if (newRank > oldRank) {
             const trigger = value === 'critical' ? 'critical' : 'escalated';
             await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ticket_id: id, new_status: trigger, changed_by: currentProfile?.full_name || 'Admin' })
+              body: JSON.stringify({ ticket_id: id, new_status: trigger, changed_by: currentProfile?.full_name || 'Admin', priority: value })
             });
           }
         }
@@ -4179,14 +4186,6 @@ async function updateStatus(id, status) {
       }
     } catch(e) { console.warn('Notification failed:', e.message); }
   }
-  // WA alert on any status change, all priorities
-  try {
-    await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
-      method:'POST',
-      headers:{'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
-      body:JSON.stringify({ticket_id:id,new_status:status,changed_by:currentProfile?.full_name||'Admin'})
-    });
-  } catch(e) { console.warn('WA status notify failed:',e.message); }
 }
 async function updateAssignee(id, assigneeId) {
   await sbClient.from('tickets').update({assignee_id:assigneeId||null}).eq('id',id);
@@ -4227,8 +4226,9 @@ async function updateRequester(id, requesterId) {
 }
 
 async function updatePriority(id, priority) {
-  await sbClient.from('tickets').update({ priority }).eq('id', id);
   const t = tickets.find(x => x.id === id);
+  const prevPriority = t?.priority; // capture BEFORE mutating, so we can tell escalation from demotion
+  await sbClient.from('tickets').update({ priority }).eq('id', id);
   if (t) t.priority = priority;
   // Update priority pill in title
   const priPill = document.getElementById('detail-pri-pill');
@@ -4239,14 +4239,28 @@ async function updatePriority(id, priority) {
   await loadTickets(); refreshCurrentPage();
   toast('Priority updated');
   logSystemEvent('ticket_updated', `#${t?.ticket_number||id} priority → ${priority}`);
-  // WA notification
-  try {
-    await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ticket_id: id, new_status: priority === 'critical' ? 'critical' : 'escalated', changed_by: currentProfile?.full_name || 'Admin' })
-    });
-  } catch(e) { console.warn('WA priority notify failed:', e.message); }
+  // Telegram notification — only fire on an actual escalation (priority
+  // rank increasing in urgency), not on a demotion, and always send the
+  // real new priority so the alert text isn't misleading.
+  // PRIORITY_ORDER: lower number = more urgent (critical:0 ... low:3)
+  const rank = { critical: 0, high: 1, medium: 2, low: 3 };
+  const prevRank = rank[prevPriority] ?? 9;
+  const newRank  = rank[priority] ?? 9;
+  const isEscalation = newRank < prevRank; // moved to a MORE urgent priority
+  if (isEscalation) {
+    try {
+      await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticket_id: id,
+          new_status: priority === 'critical' ? 'critical' : 'escalated',
+          changed_by: currentProfile?.full_name || 'Admin',
+          priority,
+        })
+      });
+    } catch(e) { console.warn('WA priority notify failed:', e.message); }
+  }
 }
 
 async function updateCategory(id, category) {
