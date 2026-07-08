@@ -4649,7 +4649,11 @@ function renderAgents() {
   const source = (allProfiles && allProfiles.length) ? allProfiles : profiles;
   const agents = source.filter(p => p.role === 'admin' || p.role === 'super_admin');
   const openByAgent = {};
-  tickets.forEach(t => { if (t.assignee_id && t.status !== 'resolved') openByAgent[t.assignee_id] = (openByAgent[t.assignee_id] || 0) + 1; });
+  tickets.forEach(t => { if (t.assignee_id && t.status === 'open') openByAgent[t.assignee_id] = (openByAgent[t.assignee_id] || 0) + 1; });
+  const inProgressByAgent = {};
+  tickets.forEach(t => { if (t.assignee_id && t.status === 'in_progress') inProgressByAgent[t.assignee_id] = (inProgressByAgent[t.assignee_id] || 0) + 1; });
+  const waitingByAgent = {};
+  tickets.forEach(t => { if (t.assignee_id && t.status === 'waiting') waitingByAgent[t.assignee_id] = (waitingByAgent[t.assignee_id] || 0) + 1; });
   const resolvedByAgent = {};
   tickets.forEach(t => { if (t.assignee_id && t.status === 'resolved') resolvedByAgent[t.assignee_id] = (resolvedByAgent[t.assignee_id] || 0) + 1; });
   if (!agents.length) {
@@ -4658,20 +4662,29 @@ function renderAgents() {
   }
   grid.innerHTML = agents.map(p => {
     const lastSeen = lastSignInMap[p.id] ? 'Active ' + timeAgo(lastSignInMap[p.id]) : 'Never signed in';
+    const counts = [
+      { n: openByAgent[p.id]        || 0, label: 'open' },
+      { n: inProgressByAgent[p.id]  || 0, label: 'in progress' },
+      { n: waitingByAgent[p.id]     || 0, label: 'waiting' },
+      { n: resolvedByAgent[p.id]    || 0, label: 'resolved' },
+    ];
+    const countChips = counts.map(c =>
+      `<span class="chip" style="font-size:10px;padding:2px 7px">${c.n} ${c.label}</span>`
+    ).join('');
     return `
-    <div class="table-card" style="display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;transition:box-shadow .15s"
+    <div class="table-card" style="display:flex;flex-direction:column;gap:10px;padding:14px 16px;cursor:pointer;transition:box-shadow .15s"
          onclick="openEditUser('${p.id}')"
          onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'"
          onmouseout="this.style.boxShadow=''">
-      <div class="avatar ${avColor(p.id)}" style="width:40px;height:40px;font-size:14px;flex-shrink:0">${initials(p.full_name)}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.full_name)}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:2px">${p.role === 'super_admin' ? 'Super Admin' : 'Admin'} · ${openByAgent[p.id] || 0} open · ${resolvedByAgent[p.id] || 0} resolved</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="avatar ${avColor(p.id)}" style="width:40px;height:40px;font-size:14px;flex-shrink:0">${initials(p.full_name)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;line-height:1.3;overflow-wrap:break-word">${esc(p.full_name)}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${p.role === 'super_admin' ? 'Super Admin' : 'Admin'}</div>
+        </div>
+        <span style="font-size:11px;color:var(--text3);white-space:nowrap;flex-shrink:0">${esc(lastSeen)}</span>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-        <span style="font-size:11px;color:var(--text3);text-align:right">${esc(lastSeen)}</span>
-        <span style="font-size:10px;color:var(--text3)">click to edit</span>
-      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${countChips}</div>
     </div>`;
   }).join('');
 }
