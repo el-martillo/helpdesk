@@ -1212,6 +1212,55 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
                   </div>
                 </div>
               </div>
+
+              <div class="map-amb-row" data-amb-row="ripples" style="padding-top:16px;border-top:1px solid var(--border)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
+                    <input type="checkbox" id="amb-ripples-enabled" checked/> 〰️ Ripples
+                  </label>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Intensity <span id="amb-ripples-intensity-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-ripples-intensity" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-ripples-intensity-val').textContent = this.value + '%'"/>
+                  </div>
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Frequency <span id="amb-ripples-frequency-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-ripples-frequency" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-ripples-frequency-val').textContent = this.value + '%'"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="map-amb-row" data-amb-row="dolphins" style="padding-top:16px;border-top:1px solid var(--border)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
+                    <input type="checkbox" id="amb-dolphins-enabled" checked/> 🐬 Dolphins
+                  </label>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Intensity <span id="amb-dolphins-intensity-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-dolphins-intensity" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-dolphins-intensity-val').textContent = this.value + '%'"/>
+                  </div>
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Frequency <span id="amb-dolphins-frequency-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-dolphins-frequency" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-dolphins-frequency-val').textContent = this.value + '%'"/>
+                  </div>
+                </div>
+              </div>
+
+              <div style="padding-top:16px;border-top:1px solid var(--border)">
+                <div style="font-size:13px;font-weight:500;margin-bottom:6px">🌊 Water region</div>
+                <div style="font-size:11.5px;color:var(--text3);margin-bottom:10px;line-height:1.6">
+                  Boats, ripples, and dolphins are confined to this lat/lng box rather than actual water pixels — browsers block reading pixel colour data from OpenStreetMap's tiles (a CORS security restriction, not something configurable). Adjust these to roughly match the coastline on <a href="locations.html" target="_blank" style="color:var(--accent)">the live map</a>.
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <div class="fg" style="margin-bottom:0"><label class="fl">Min latitude</label><input class="fc" id="amb-water-minlat" type="number" step="0.001"/></div>
+                  <div class="fg" style="margin-bottom:0"><label class="fl">Max latitude</label><input class="fc" id="amb-water-maxlat" type="number" step="0.001"/></div>
+                  <div class="fg" style="margin-bottom:0"><label class="fl">Min longitude</label><input class="fc" id="amb-water-minlng" type="number" step="0.001"/></div>
+                  <div class="fg" style="margin-bottom:0"><label class="fl">Max longitude</label><input class="fc" id="amb-water-maxlng" type="number" step="0.001"/></div>
+                </div>
+              </div>
             </div>
 
             <button class="btn primary" style="margin-top:18px" onclick="saveMapAmbienceSettings()">Save map settings</button>
@@ -8823,9 +8872,15 @@ async function saveVersion() {
 
 /* ── Map ambience settings ── */
 const MAP_AMBIENCE_DEFAULTS = {
-  clouds: { enabled: true, intensity: 50, frequency: 50 },
-  boats:  { enabled: true, intensity: 50, frequency: 50 },
-  planes: { enabled: true, intensity: 50, frequency: 50 },
+  clouds:   { enabled: true, intensity: 50, frequency: 50 },
+  boats:    { enabled: true, intensity: 50, frequency: 50 },
+  planes:   { enabled: true, intensity: 50, frequency: 50 },
+  ripples:  { enabled: true, intensity: 50, frequency: 50 },
+  dolphins: { enabled: true, intensity: 50, frequency: 50 },
+  // Rough default box for Gibraltar's bay/harbour — deliberately approximate;
+  // tune against the live map. Used because reading actual water pixels
+  // from OpenStreetMap's tiles is blocked by CORS.
+  water_bounds: { minLat: 36.100, maxLat: 36.175, minLng: -5.420, maxLng: -5.330 },
 };
 
 async function loadMapAmbienceSettings() {
@@ -8835,7 +8890,7 @@ async function loadMapAmbienceSettings() {
     if (data?.value) settings = { ...MAP_AMBIENCE_DEFAULTS, ...JSON.parse(data.value) };
   } catch(e) { /* fall back to defaults */ }
 
-  ['clouds', 'boats', 'planes'].forEach(el => {
+  ['clouds', 'boats', 'planes', 'ripples', 'dolphins'].forEach(el => {
     const s = settings[el] || MAP_AMBIENCE_DEFAULTS[el];
     const enabledCb = document.getElementById(`amb-${el}-enabled`);
     const intensityInput = document.getElementById(`amb-${el}-intensity`);
@@ -8844,17 +8899,33 @@ async function loadMapAmbienceSettings() {
     if (intensityInput) { intensityInput.value = s.intensity ?? 50; document.getElementById(`amb-${el}-intensity-val`).textContent = (s.intensity ?? 50) + '%'; }
     if (frequencyInput) { frequencyInput.value = s.frequency ?? 50; document.getElementById(`amb-${el}-frequency-val`).textContent = (s.frequency ?? 50) + '%'; }
   });
+
+  const wb = settings.water_bounds || MAP_AMBIENCE_DEFAULTS.water_bounds;
+  const minLatEl = document.getElementById('amb-water-minlat');
+  const maxLatEl = document.getElementById('amb-water-maxlat');
+  const minLngEl = document.getElementById('amb-water-minlng');
+  const maxLngEl = document.getElementById('amb-water-maxlng');
+  if (minLatEl) minLatEl.value = wb.minLat;
+  if (maxLatEl) maxLatEl.value = wb.maxLat;
+  if (minLngEl) minLngEl.value = wb.minLng;
+  if (maxLngEl) maxLngEl.value = wb.maxLng;
 }
 
 async function saveMapAmbienceSettings() {
   const settings = {};
-  ['clouds', 'boats', 'planes'].forEach(el => {
+  ['clouds', 'boats', 'planes', 'ripples', 'dolphins'].forEach(el => {
     settings[el] = {
       enabled:   document.getElementById(`amb-${el}-enabled`)?.checked !== false,
       intensity: parseInt(document.getElementById(`amb-${el}-intensity`)?.value, 10) || 0,
       frequency: parseInt(document.getElementById(`amb-${el}-frequency`)?.value, 10) || 0,
     };
   });
+  settings.water_bounds = {
+    minLat: parseFloat(document.getElementById('amb-water-minlat')?.value) || MAP_AMBIENCE_DEFAULTS.water_bounds.minLat,
+    maxLat: parseFloat(document.getElementById('amb-water-maxlat')?.value) || MAP_AMBIENCE_DEFAULTS.water_bounds.maxLat,
+    minLng: parseFloat(document.getElementById('amb-water-minlng')?.value) || MAP_AMBIENCE_DEFAULTS.water_bounds.minLng,
+    maxLng: parseFloat(document.getElementById('amb-water-maxlng')?.value) || MAP_AMBIENCE_DEFAULTS.water_bounds.maxLng,
+  };
   const { error } = await sbClient.from('app_settings')
     .upsert({ key: 'map_ambience', value: JSON.stringify(settings) }, { onConflict: 'key' });
   if (error) { toast('Error saving map settings: ' + error.message); return; }

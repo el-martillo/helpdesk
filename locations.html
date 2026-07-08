@@ -515,23 +515,40 @@ function installRotationDragFix(mapEl) {
 // UNROTATED sibling of the (rotated) Leaflet container, so movement reads
 // naturally left-to-right on screen regardless of the map's 90deg CSS
 // rotation. Purely decorative — pointer-events:none, never blocks clicks.
-function initMapAmbience(canvasId, settings) {
+// Lightweight ambient overlay: drifting clouds (with soft shadows on the
+// map below), planes on diagonal paths, and — confined to a configurable
+// water region — boats, ripples, and jumping dolphins. Lives in
+// loc-map-outer as an UNROTATED sibling of the (rotated) Leaflet
+// container, so movement reads naturally on screen regardless of the
+// map's 90deg CSS rotation. Purely decorative — pointer-events:none.
+//
+// Water confinement: browsers block reading pixel colour data from
+// OpenStreetMap's tiles (no CORS headers on the tile server), so real
+// "is this pixel water" detection isn't possible. Instead, two invisible
+// markers are placed at the configured water_bounds corners; their ACTUAL
+// rendered screen position (via getBoundingClientRect, same technique as
+// the info-card positioning) is read each frame to build a screen-space
+// rectangle that correctly follows the map's rotation, pan, and zoom
+// without needing to reason about the rotation transform directly.
+function initMapAmbience(canvasId, settings, map) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return () => {};
   const ctx = canvas.getContext('2d');
   let W, H, raf, running = true;
 
   const DEFAULTS = {
-    clouds: { enabled: true, intensity: 50, frequency: 50 },
-    boats:  { enabled: true, intensity: 50, frequency: 50 },
-    planes: { enabled: true, intensity: 50, frequency: 50 },
+    clouds:   { enabled: true, intensity: 50, frequency: 50 },
+    boats:    { enabled: true, intensity: 50, frequency: 50 },
+    planes:   { enabled: true, intensity: 50, frequency: 50 },
+    ripples:  { enabled: true, intensity: 50, frequency: 50 },
+    dolphins: { enabled: true, intensity: 50, frequency: 50 },
+    water_bounds: { minLat: 36.100, maxLat: 36.175, minLng: -5.420, maxLng: -5.330 },
   };
   settings = { ...DEFAULTS, ...(settings || {}) };
-  ['clouds', 'boats', 'planes'].forEach(k => { settings[k] = { ...DEFAULTS[k], ...(settings[k] || {}) }; });
+  ['clouds', 'boats', 'planes', 'ripples', 'dolphins'].forEach(k => { settings[k] = { ...DEFAULTS[k], ...(settings[k] || {}) }; });
+  const wb = { ...DEFAULTS.water_bounds, ...(settings.water_bounds || {}) };
 
-  // intensity 0-100 -> size/opacity multiplier (50 = the original baseline sizing)
   const scaleFor = key => 0.2 + (settings[key].intensity / 100) * 1.6;
-  // frequency 0-100 -> spawn-interval multiplier (50 = original baseline timing, 100 = fastest, 0 = slowest)
   const intervalFactorFor = key => Math.max(0.15, 2 - settings[key].frequency / 50);
 
   function resize() {
@@ -543,24 +560,58 @@ function initMapAmbience(canvasId, settings) {
   resize();
   window.addEventListener('resize', resize);
 
-  const clouds = [], boats = [], planes = [];
+  // ── Zoom-linked scaling: elements grow/shrink with the map's own zoom ──
+  const baselineZoom = map ? map.getZoom() : 13;
+  let zoomScale = 1;
+  function updateZoomScale() {
+    if (!map) return;
+    zoomScale = Math.min(3, Math.max(0.4, Math.pow(1.3, map.getZoom() - baselineZoom)));
+  }
+  if (map) map.on('zoom', updateZoomScale);
+
+  // ── Water region corner markers (invisible; used only to measure real screen position) ──
+  let waterMarkers = null;
+  if (map) {
+    const invisibleIcon = L.divIcon({ className: '', html: '', iconSize: [0, 0] });
+    waterMarkers = {
+      a: L.marker([wb.minLat, wb.minLng], { icon: invisibleIcon, interactive: false }).addTo(map),
+      b: L.marker([wb.maxLat, wb.maxLng], { icon: invisibleIcon, interactive: false }).addTo(map),
+    };
+  }
+
+  function getWaterRect() {
+    const outer = document.getElementById('loc-map-outer');
+    if (!waterMarkers || !outer) return { x0: 0, y0: H * 0.55, x1: W, y1: H }; // fallback band if no map ref
+    const elA = waterMarkers.a.getElement(), elB = waterMarkers.b.getElement();
+    if (!elA || !elB) return { x0: 0, y0: H * 0.55, x1: W, y1: H };
+    const oRect = outer.getBoundingClientRect();
+    const rA = elA.getBoundingClientRect(), rB = elB.getBoundingClientRect();
+    const ax = rA.left - oRect.left, ay = rA.top - oRect.top;
+    const bx = rB.left - oRect.left, by = rB.top - oRect.top;
+    return { x0: Math.min(ax, bx), y0: Math.min(ay, by), x1: Math.max(ax, bx), y1: Math.max(ay, by) };
+  }
+
+  function randomInWaterRect(r) {
+    return { x: r.x0 + Math.random() * (r.x1 - r.x0), y: r.y0 + Math.random() * (r.y1 - r.y0) };
+  }
+
+  const clouds = [], boats = [], planes = [], ripples = [], dolphins = [];
 
   function spawnCloud() {
     const baseScale = 0.6 + Math.random() * 1.1;
-    const scale = baseScale * scaleFor('clouds');
+    const scale = baseScale * scaleFor('clouds') * zoomScale;
     const puffs = [
       { dx: 0,   dy: 0,   r: 22 },
       { dx: 26,  dy: 6,   r: 16 },
       { dx: -24, dy: 8,   r: 15 },
       { dx: 10,  dy: -10, r: 14 },
     ].map(p => ({ dx: p.dx * scale, dy: p.dy * scale, r: p.r * scale }));
-    clouds.push({ x: -80, y: 16 + Math.random() * (H * 0.35), scale, speed: (7 + Math.random() * 9) * baseScale, puffs });
+    clouds.push({ x: -80, y: 16 + Math.random() * (H * 0.35), speed: (7 + Math.random() * 9) * baseScale, puffs });
   }
 
   function drawCloud(c) {
-    const op = 0.10 * scaleFor('clouds');
     ctx.save();
-    ctx.globalAlpha = Math.min(0.4, op);
+    ctx.globalAlpha = Math.min(0.4, 0.10 * scaleFor('clouds'));
     ctx.fillStyle = '#000';
     c.puffs.forEach(p => {
       ctx.beginPath();
@@ -580,25 +631,57 @@ function initMapAmbience(canvasId, settings) {
     ctx.restore();
   }
 
+  // ── Boats: confined to the water rect, drift horizontally within it ──
   function spawnBoat() {
-    boats.push({ x: -30, y: H * (0.55 + Math.random() * 0.35), speed: 7 + Math.random() * 5, bob: Math.random() * Math.PI * 2, scale: scaleFor('boats') });
+    const r = getWaterRect();
+    boats.push({
+      x: r.x0 - 30,
+      y: r.y0 + Math.random() * (r.y1 - r.y0),
+      speed: 7 + Math.random() * 5,
+      bob: Math.random() * Math.PI * 2,
+      exitX: r.x1 + 30,
+    });
   }
 
   function drawBoat(b) {
+    const scale = scaleFor('boats') * zoomScale;
     ctx.save();
     ctx.globalAlpha = Math.min(1, 0.5 + settings.boats.intensity / 100);
-    ctx.font = `${Math.round(20 * b.scale)}px serif`;
+    ctx.font = `${Math.max(8, Math.round(20 * scale))}px serif`;
     ctx.textBaseline = 'middle';
     ctx.fillText('⛵', b.x, b.y + Math.sin(b.bob) * 2);
     ctx.restore();
   }
 
+  // ── Planes: enter from any screen edge, travel in a straight diagonal
+  //    line toward a point beyond the opposite side, and are drawn as a
+  //    simple vector shape (not an emoji, whose "nose" direction can't be
+  //    relied on across fonts) rotated to match the real travel angle. ──
   function spawnPlane() {
-    const dir = Math.random() < 0.5 ? 1 : -1;
-    planes.push({ x: dir === 1 ? -30 : W + 30, y: 10 + Math.random() * (H * 0.28), dir, speed: 55 + Math.random() * 35, trail: [], scale: scaleFor('planes') });
+    const edge = Math.floor(Math.random() * 4); // 0=top,1=right,2=bottom,3=left
+    let sx, sy;
+    if (edge === 0) { sx = Math.random() * W; sy = -30; }
+    else if (edge === 1) { sx = W + 30; sy = Math.random() * H; }
+    else if (edge === 2) { sx = Math.random() * W; sy = H + 30; }
+    else { sx = -30; sy = Math.random() * H; }
+
+    // Aim roughly across the view (opposite-ish region) with some randomness
+    // so paths vary rather than always crossing dead-center.
+    const tx = W * (0.15 + Math.random() * 0.7);
+    const ty = H * (0.05 + Math.random() * 0.35); // planes stay in the upper sky band
+    const angle = Math.atan2(ty - sy, tx - sx);
+    const speed = 55 + Math.random() * 35;
+    planes.push({
+      x: sx, y: sy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      angle,
+      trail: [],
+    });
   }
 
   function drawPlane(p) {
+    const scale = scaleFor('planes') * zoomScale;
     p.trail.push({ x: p.x, y: p.y });
     if (p.trail.length > 22) p.trail.shift();
     ctx.save();
@@ -612,14 +695,97 @@ function initMapAmbience(canvasId, settings) {
     ctx.save();
     ctx.globalAlpha = Math.min(1, 0.5 + settings.planes.intensity / 100);
     ctx.translate(p.x, p.y);
-    if (p.dir < 0) ctx.scale(-1, 1);
-    ctx.font = `${Math.round(15 * p.scale)}px serif`;
-    ctx.textBaseline = 'middle';
-    ctx.fillText('✈️', 0, 0);
+    ctx.rotate(p.angle); // shape below is drawn nose-first along +X, so this aligns it with actual travel direction
+    ctx.scale(scale, scale);
+    ctx.fillStyle = '#e8eef2';
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(9, 0);      // nose
+    ctx.lineTo(-3, -2.4);  // upper body
+    ctx.lineTo(-2, -7);    // wingtip (top)
+    ctx.lineTo(-5, -6.4);
+    ctx.lineTo(-6, -1.6);
+    ctx.lineTo(-9, -1.6);  // tailplane tip
+    ctx.lineTo(-9, 1.6);
+    ctx.lineTo(-6, 1.6);
+    ctx.lineTo(-5, 6.4);
+    ctx.lineTo(-2, 7);     // wingtip (bottom)
+    ctx.lineTo(-3, 2.4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
     ctx.restore();
   }
 
-  let lastCloud = 0, lastBoat = 0, lastPlane = 0, lastT = performance.now();
+  // ── Ripples: brief expanding rings, confined to the water rect ──
+  function spawnRipple() {
+    const r = getWaterRect();
+    if (r.x1 <= r.x0 || r.y1 <= r.y0) return;
+    const p = randomInWaterRect(r);
+    ripples.push({ x: p.x, y: p.y, age: 0, life: 1.6 + Math.random() * 0.8 });
+  }
+
+  function drawRipple(rp) {
+    const scale = scaleFor('ripples') * zoomScale;
+    const t = rp.age / rp.life;
+    const radius = (6 + t * 26) * scale;
+    const alpha = (1 - t) * Math.min(0.5, 0.25 + settings.ripples.intensity / 200);
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, alpha);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = Math.max(0.5, 1.4 * (1 - t));
+    ctx.beginPath();
+    ctx.arc(rp.x, rp.y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── Dolphins: a short parabolic leap within the water rect ──
+  function spawnDolphin() {
+    const r = getWaterRect();
+    if (r.x1 - r.x0 < 40 || r.y1 <= r.y0) return;
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    const jumpLen = 30 + Math.random() * 30;
+    const startX = r.x0 + Math.random() * Math.max(1, (r.x1 - r.x0) - jumpLen);
+    const y = r.y0 + Math.random() * (r.y1 - r.y0);
+    dolphins.push({
+      x0: dir === 1 ? startX : startX + jumpLen,
+      x1: dir === 1 ? startX + jumpLen : startX,
+      y, dir, age: 0, life: 1.1,
+    });
+  }
+
+  function drawDolphin(d) {
+    const scale = scaleFor('dolphins') * zoomScale;
+    const t = Math.min(1, d.age / d.life);
+    const x = d.x0 + (d.x1 - d.x0) * t;
+    const arc = Math.sin(Math.PI * t) * 16; // height of the leap
+    const y = d.y - arc;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, 0.55 + settings.dolphins.intensity / 100) * Math.sin(Math.PI * Math.min(1, t + 0.05));
+    ctx.translate(x, y);
+    ctx.scale(d.dir < 0 ? -scale : scale, scale);
+    ctx.rotate(Math.max(-0.6, Math.min(0.6, -Math.cos(Math.PI * t) * 0.6)));
+    ctx.fillStyle = '#5c7a8a';
+    ctx.beginPath();
+    ctx.moveTo(-10, 2);
+    ctx.quadraticCurveTo(-4, -6, 6, -2);
+    ctx.quadraticCurveTo(10, -1, 12, 2);
+    ctx.quadraticCurveTo(4, 1, -10, 2);
+    ctx.closePath();
+    ctx.fill();
+    // dorsal fin
+    ctx.beginPath();
+    ctx.moveTo(-1, -3);
+    ctx.lineTo(2, -9);
+    ctx.lineTo(4, -3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  let lastCloud = 0, lastBoat = 0, lastPlane = 0, lastRipple = 0, lastDolphin = 0, lastT = performance.now();
 
   function loop(t) {
     if (!running) return;
@@ -628,9 +794,12 @@ function initMapAmbience(canvasId, settings) {
     ctx.clearRect(0, 0, W, H);
 
     const cf = intervalFactorFor('clouds'), bf = intervalFactorFor('boats'), pf = intervalFactorFor('planes');
-    if (settings.clouds.enabled && t - lastCloud > (9000  + Math.random() * 6000)  * cf) { spawnCloud(); lastCloud = t; }
-    if (settings.boats.enabled  && t - lastBoat  > (22000 + Math.random() * 20000) * bf) { spawnBoat();  lastBoat  = t; }
-    if (settings.planes.enabled && t - lastPlane > (16000 + Math.random() * 14000) * pf) { spawnPlane(); lastPlane = t; }
+    const rf = intervalFactorFor('ripples'), df = intervalFactorFor('dolphins');
+    if (settings.clouds.enabled   && t - lastCloud   > (9000  + Math.random() * 6000)  * cf) { spawnCloud();   lastCloud   = t; }
+    if (settings.boats.enabled    && t - lastBoat    > (22000 + Math.random() * 20000) * bf) { spawnBoat();    lastBoat    = t; }
+    if (settings.planes.enabled   && t - lastPlane   > (16000 + Math.random() * 14000) * pf) { spawnPlane();   lastPlane   = t; }
+    if (settings.ripples.enabled  && t - lastRipple  > (4000  + Math.random() * 5000)  * rf) { spawnRipple();  lastRipple  = t; }
+    if (settings.dolphins.enabled && t - lastDolphin > (18000 + Math.random() * 22000) * df) { spawnDolphin(); lastDolphin = t; }
 
     for (let i = clouds.length - 1; i >= 0; i--) {
       const c = clouds[i]; c.x += c.speed * dt; drawCloud(c);
@@ -638,11 +807,19 @@ function initMapAmbience(canvasId, settings) {
     }
     for (let i = boats.length - 1; i >= 0; i--) {
       const b = boats[i]; b.x += b.speed * dt; b.bob += dt * 2; drawBoat(b);
-      if (b.x - 30 > W) boats.splice(i, 1);
+      if (b.x - 30 > b.exitX) boats.splice(i, 1);
     }
     for (let i = planes.length - 1; i >= 0; i--) {
-      const p = planes[i]; p.x += p.speed * dt * p.dir; drawPlane(p);
-      if ((p.dir > 0 && p.x - 30 > W) || (p.dir < 0 && p.x + 30 < 0)) planes.splice(i, 1);
+      const p = planes[i]; p.x += p.vx * dt; p.y += p.vy * dt; drawPlane(p);
+      if (p.x < -60 || p.x > W + 60 || p.y < -60 || p.y > H + 60) planes.splice(i, 1);
+    }
+    for (let i = ripples.length - 1; i >= 0; i--) {
+      const r = ripples[i]; r.age += dt; drawRipple(r);
+      if (r.age >= r.life) ripples.splice(i, 1);
+    }
+    for (let i = dolphins.length - 1; i >= 0; i--) {
+      const d = dolphins[i]; d.age += dt; drawDolphin(d);
+      if (d.age >= d.life) dolphins.splice(i, 1);
     }
 
     raf = requestAnimationFrame(loop);
@@ -655,6 +832,8 @@ function initMapAmbience(canvasId, settings) {
     running = false;
     if (raf) cancelAnimationFrame(raf);
     window.removeEventListener('resize', resize);
+    if (map) map.off('zoom', updateZoomScale);
+    if (waterMarkers) { map.removeLayer(waterMarkers.a); map.removeLayer(waterMarkers.b); }
   };
 }
 
@@ -698,7 +877,7 @@ function initMap() {
 
   document.getElementById('loc-empty-note').style.display = bounds.length ? 'none' : 'block';
 
-  loadMapAmbienceSettings().then(settings => initMapAmbience('loc-ambience-canvas', settings));
+  loadMapAmbienceSettings().then(settings => initMapAmbience('loc-ambience-canvas', settings, locMap));
 }
 
 function renderLocList() {
