@@ -1058,7 +1058,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
           <div class="stab-panel" id="stab-general">
           <!-- General settings -->
           <div class="table-card" data-card-id="general" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:14px">General</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px"><div style="font-size:13px;font-weight:600">General</div><label class="wa-toggle settings-admin-toggle" data-card-id="general" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="general" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('general', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label></div>
             <div class="fg"><label class="fl">Company name</label><input class="fc" value="El Martillo I.T." type="text"/></div>
             <div class="fg"><label class="fl">Support email</label><input class="fc" value="helpdesk@el-martillo.com" type="email"/></div>
             <div class="fg">
@@ -1082,7 +1082,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
 
           <!-- Organisations section -->
           <div class="table-card" data-card-id="organisations" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Organisations</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Organisations</div><label class="wa-toggle settings-admin-toggle" data-card-id="organisations" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="organisations" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('organisations', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Manage the list of organisations, their accent colours, and their map location (address &amp; pin). Used in dropdowns, directory, user profiles, and the <a href="locations.html" target="_blank" style="color:var(--accent)">company locations map</a> across the system.
             </div>
@@ -1100,7 +1100,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
 
           <!-- Sites section -->
           <div class="table-card" data-card-id="sites" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Sites</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Sites</div><label class="wa-toggle settings-admin-toggle" data-card-id="sites" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="sites" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('sites', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Extra named locations that are <strong>not</strong> organisations — they never appear in the Directory or its dropdowns. Use these for your own branches, depots, or other sites you just want plotted on the <a href="locations.html" target="_blank" style="color:var(--accent)">locations map</a> alongside organisations.
             </div>
@@ -1118,7 +1118,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
 
           <!-- Session timeout section -->
           <div class="table-card" data-card-id="session" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Session timeout</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Session timeout</div><label class="wa-toggle settings-admin-toggle" data-card-id="session" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="session" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('session', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Automatically sign out inactive users after this many minutes. Applies to both the admin panel and the client portal. Changes take effect on the next login.
             </div>
@@ -1141,7 +1141,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
 
           <!-- Version section -->
           <div class="table-card" data-card-id="version" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Application version</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Application version</div><label class="wa-toggle settings-admin-toggle" data-card-id="version" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="version" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('version', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Shown in the footer across all pages. This now auto-bumps by one (e.g. 3.5 → 3.6) every time <code style="font-size:11px">deploy-to-github.bat</code> pushes a change — you'll be prompted to accept or override the number at deploy time. You can also set it directly here whenever you like; either way just updates the same value.
             </div>
@@ -1157,7 +1157,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
 
           <div class="stab-panel" id="stab-tickets">
           <div class="table-card" data-card-id="ticket-seq" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Next ticket number</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Next ticket number</div><label class="wa-toggle settings-admin-toggle" data-card-id="ticket-seq" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="ticket-seq" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('ticket-seq', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Set the next ticket number to be assigned. Use this to reset or continue a sequence after a migration or data import.
             </div>
@@ -1177,7 +1177,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
 
           <!-- Categories section -->
           <div class="table-card" data-card-id="categories" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Ticket categories</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Ticket categories</div><label class="wa-toggle settings-admin-toggle" data-card-id="categories" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="categories" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('categories', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Manage categories available when submitting tickets on both the client portal and admin panel. Changes are saved to the database immediately.
             </div>
@@ -1195,7 +1195,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
 
           <!-- Canned responses -->
           <div class="table-card" data-card-id="canned" style="padding:20px;overflow:visible">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Canned responses</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Canned responses</div><label class="wa-toggle settings-admin-toggle" data-card-id="canned" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="canned" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('canned', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Predefined reply templates available when responding to tickets. Drag to reorder.
             </div>
@@ -1214,7 +1214,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
 
           <!-- Ticket deletion section -->
           <div class="table-card" data-card-id="ticket-delete" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Delete tickets</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Delete tickets</div><label class="wa-toggle settings-admin-toggle" data-card-id="ticket-delete" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="ticket-delete" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('ticket-delete', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Permanently delete a single ticket or a range of tickets by ticket number. Associated comments and attachments are also removed. This action cannot be undone.
             </div>
@@ -1259,7 +1259,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
           <div class="stab-panel" id="stab-email">
           <!-- Email signature -->
           <div class="table-card" data-card-id="email-signature" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Email signature</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Email signature</div><label class="wa-toggle settings-admin-toggle" data-card-id="email-signature" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="email-signature" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('email-signature', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
               Appended to all outbound Resend emails. Supports basic HTML. The El Martillo logo is automatically included above this signature.
             </div>
@@ -1324,7 +1324,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
 
           <!-- Email templates -->
           <div class="table-card" data-card-id="email-templates" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Email templates</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Email templates</div><label class="wa-toggle settings-admin-toggle" data-card-id="email-templates" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="email-templates" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('email-templates', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
               Customise the subject line and body text for each outbound email type. Use <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{name}}</code>, <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{ticket_number}}</code>, <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{subject}}</code>, <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{agent}}</code>, <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:11px">{{message}}</code> (broadcast only) as placeholders.
             </div>
@@ -1428,7 +1428,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color:#26A5E4"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.568 8.16c-.169 1.858-.896 6.728-1.267 8.928-.157.933-.463 1.245-.76 1.276-.646.06-1.136-.427-1.762-.837-.98-.643-1.534-1.043-2.485-1.671-1.1-.724-.387-1.122.24-1.774.164-.17 3.007-2.757 3.062-2.992a.216.216 0 00-.052-.192c-.06-.05-.145-.033-.207-.02-.088.02-1.485.944-4.192 2.77-.397.273-.756.406-1.078.399-.355-.008-1.038-.2-1.546-.365-.623-.202-1.118-.31-1.075-.653.023-.18.269-.363.741-.55 2.9-1.264 4.833-2.097 5.8-2.5 2.762-1.148 3.334-1.347 3.708-1.354.082-.001.267.019.386.114.1.08.128.187.14.267.014.096.032.284.018.437z"/></svg>
                 <div style="font-size:13px;font-weight:600">Telegram notifications</div>
               </div>
-              <span class="sb s-closed" style="font-size:10px" id="wa-status-badge">—</span>
+              <div style="display:flex;align-items:center;gap:10px"><span class="sb s-closed" style="font-size:10px" id="wa-status-badge">—</span><label class="wa-toggle settings-admin-toggle" data-card-id="whatsapp" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="whatsapp" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('whatsapp', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label></div>
             </div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Configure which events send Telegram alerts and manage recipient chat IDs for all admins and agents.
@@ -1480,7 +1480,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
           <div class="stab-panel" id="stab-data">
           <!-- Backup section -->
           <div class="table-card" data-card-id="backup" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Database backup</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Database backup</div><label class="wa-toggle settings-admin-toggle" data-card-id="backup" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="backup" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('backup', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Export all tickets, profiles, and comments as a JSON file. The backup is generated directly from your Supabase database and downloaded to your browser.
             </div>
@@ -1543,7 +1543,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
 
           <!-- Logs download section -->
           <div class="table-card" data-card-id="logs" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Download logs</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Download logs</div><label class="wa-toggle settings-admin-toggle" data-card-id="logs" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="logs" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('logs', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Export activity, system, and audit logs as CSV files for auditing or offline analysis.
             </div>
@@ -1585,7 +1585,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
           <div class="table-card" data-card-id="rate-limits" style="padding:20px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
               <div style="font-size:13px;font-weight:600">Rate limiting</div>
-              <span class="sb s-open" style="font-size:10px" id="rl-status-badge">—</span>
+              <div style="display:flex;align-items:center;gap:10px"><span class="sb s-open" style="font-size:10px" id="rl-status-badge">—</span><label class="wa-toggle settings-admin-toggle" data-card-id="rate-limits" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="rate-limits" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('rate-limits', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label></div>
             </div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:18px;line-height:1.6">
               Maximum requests per IP per hour, enforced by the Edge Function. Saved to <code style="font-family:var(--mono);background:var(--border);padding:1px 4px;border-radius:3px">app_settings</code>.
@@ -1633,6 +1633,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
                 <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
                 Refresh
               </button>
+              <label class="wa-toggle settings-admin-toggle" data-card-id="orphaned" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="orphaned" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('orphaned', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label>
             </div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
               Auth accounts that exist in Supabase Auth but have no matching profile row. These can't sign in properly and should be cleaned up.
@@ -1644,7 +1645,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
 
           <!-- Reports start ticket -->
           <div class="table-card" data-card-id="reports-start" style="padding:20px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Reports baseline</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Reports baseline</div><label class="wa-toggle settings-admin-toggle" data-card-id="reports-start" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0"><input type="checkbox" data-admin-access-cb="reports-start" style="opacity:0;width:0;height:0;position:absolute" onchange="onAdminAccessToggle('reports-start', this.checked)"/><span style="position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:20px;transition:.2s"></span></span></label></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
               Set the starting ticket number for all reports. Tickets with a lower number will be excluded from charts and statistics. Useful for ignoring test or legacy tickets.
             </div>
@@ -1733,12 +1734,12 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
       <table style="width:100%;border-collapse:collapse">
         <thead>
           <tr style="background:var(--surface2)">
-            <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Name</th>
-            <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Company</th>
-            <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Department</th>
-            <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Email</th>
-            <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Extension</th>
-            <th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);width:80px">Type</th>
+            <th class="sortable" data-sort="d_name" onclick="setDirSort('d_name')" style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Name</th>
+            <th class="sortable" data-sort="d_company" onclick="setDirSort('d_company')" style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Company</th>
+            <th class="sortable" data-sort="d_department" onclick="setDirSort('d_department')" style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Department</th>
+            <th class="sortable" data-sort="d_email" onclick="setDirSort('d_email')" style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Email</th>
+            <th class="sortable" data-sort="d_extension" onclick="setDirSort('d_extension')" style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)">Extension</th>
+            <th class="sortable" data-sort="d_type" onclick="setDirSort('d_type')" style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);width:80px">Type</th>
             <th style="padding:9px 14px;text-align:right;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);width:90px"></th>
           </tr>
         </thead>
@@ -2720,6 +2721,7 @@ async function signIn() {
   document.getElementById('db-label').textContent = 'Supabase connected';
   document.getElementById('topbar-user').textContent = prof?.full_name||email;
   const rb = document.getElementById('topbar-role-badge'); if(rb) rb.textContent = prof?.role==='super_admin'?'Super Admin':'Admin';
+  await loadAdminSettingsAccess();
   applyRoleUI(prof?.role);
   document.getElementById('settings-url').value = SB_URL;
   // Sync mobile hamburger pill
@@ -2804,6 +2806,7 @@ function filterSettingsCards(q) {
   const term = q.trim().toLowerCase();
   const cards = document.querySelectorAll('#settings-grid [data-card-id]');
   let anyVisible = false;
+  const isSuperAdmin = currentProfile?.role === 'super_admin';
 
   if (term) {
     // Show all content panels when searching
@@ -2816,7 +2819,9 @@ function filterSettingsCards(q) {
 
   cards.forEach(card => {
     const text = card.textContent.toLowerCase();
-    const show = !term || text.includes(term);
+    const matchesSearch = !term || text.includes(term);
+    const hasAccess = isSuperAdmin || adminSettingsAccess.includes(card.dataset.cardId);
+    const show = matchesSearch && hasAccess;
     card.style.display = show ? '' : 'none';
     if (show) anyVisible = true;
   });
@@ -3688,7 +3693,8 @@ function navTo(page) {
 /* ── Navigation ── */
 function adminNav(el, page) {
   const superAdminOnly = ['reports','activity','syslog','auditlog','settings'];
-  if (superAdminOnly.includes(page) && currentProfile?.role !== 'super_admin') {
+  const settingsGrantedForAdmin = page === 'settings' && currentProfile?.role === 'admin' && adminSettingsAccess.length > 0;
+  if (superAdminOnly.includes(page) && currentProfile?.role !== 'super_admin' && !settingsGrantedForAdmin) {
     toast('Access restricted to Super Admins.');
     return;
   }
@@ -5239,6 +5245,7 @@ async function initSupabase() {
       if (mobNm2) mobNm2.textContent = _mn2;
       const rb = document.getElementById('topbar-role-badge');
       if (rb) rb.textContent = prof?.role === 'super_admin' ? 'Super Admin' : 'Admin';
+      await loadAdminSettingsAccess();
       applyRoleUI(prof?.role);
       document.getElementById('app').style.display = 'flex'; stopBeachCanvas(); requestAnimationFrame(reflowContent);
       loadTickets(); loadProfiles(); loadAllProfiles(); loadVersion(); loadUserCount(); loadCompanies(); loadSites(); startRealtime(); startIdleTimeout(); loadReportStart(); loadCategories(); loadCannedResponses(); loadSeenMap();
@@ -5279,8 +5286,9 @@ async function loadAllProfiles() {
   await loadCompanyColors();
   renderUsersTable();
   renderAgents();
-  const sub = document.getElementById('users-count-sub'); if(sub) sub.textContent = allProfiles.length + ' registered profiles';
-  const fuc = document.getElementById('footer-user-count'); if(fuc) fuc.textContent = allProfiles.length;
+  const realProfileCount = allProfiles.filter(p => (p.email || '').toLowerCase() !== 'deleted@system.local').length;
+  const sub = document.getElementById('users-count-sub'); if(sub) sub.textContent = realProfileCount + ' registered profiles';
+  const fuc = document.getElementById('footer-user-count'); if(fuc) fuc.textContent = realProfileCount;
 }
 
 function getFilteredUsers() {
@@ -6198,6 +6206,69 @@ const WA_TRIGGER_DEFS = [
 
 let waEnabledTriggers = [];
 
+/* ── Settings section access for admin-role users ──────────────────────────
+   Super admins always see every Settings card. By default, admin-role
+   users see none — a super_admin grants access per-card via the "Admin
+   access" toggle shown beside each card title (visible to super_admins
+   only). Grants are stored as a JSON array of card-ids under the
+   'admin_settings_access' app_settings key. */
+let adminSettingsAccess = [];
+
+async function loadAdminSettingsAccess() {
+  try {
+    const { data } = await sbClient.from('app_settings').select('value').eq('key', 'admin_settings_access').maybeSingle();
+    adminSettingsAccess = data?.value ? JSON.parse(data.value) : [];
+  } catch { adminSettingsAccess = []; }
+}
+
+async function onAdminAccessToggle(cardId, enabled) {
+  if (enabled) {
+    if (!adminSettingsAccess.includes(cardId)) adminSettingsAccess.push(cardId);
+  } else {
+    adminSettingsAccess = adminSettingsAccess.filter(id => id !== cardId);
+  }
+  const { error } = await sbClient.from('app_settings')
+    .upsert({ key: 'admin_settings_access', value: JSON.stringify(adminSettingsAccess) }, { onConflict: 'key' });
+  if (error) { toast('Error saving access: ' + error.message); return; }
+  toast(enabled ? 'Admins can now view this section' : 'Admin access removed for this section');
+}
+
+// Called whenever the Settings page is (re)rendered. Shows/hides the
+// per-card toggles (super_admin only) and, for admin-role users, hides
+// any card that hasn't been explicitly granted.
+function applySettingsSectionAccess(role) {
+  const isSuperAdmin = role === 'super_admin';
+  document.querySelectorAll('.settings-admin-toggle').forEach(el => {
+    el.style.display = isSuperAdmin ? 'flex' : 'none';
+  });
+  const searchWrap = document.querySelector('#page-settings .search-wrap');
+  const tabBar = document.querySelector('#page-settings .stab-bar');
+  if (isSuperAdmin) {
+    document.querySelectorAll('.settings-admin-toggle input[data-admin-access-cb]').forEach(cb => {
+      cb.checked = adminSettingsAccess.includes(cb.dataset.adminAccessCb);
+    });
+    document.querySelectorAll('#settings-grid .table-card[data-card-id]').forEach(card => { card.style.display = ''; });
+    if (searchWrap) searchWrap.style.display = '';
+    if (tabBar) tabBar.style.display = '';
+    return;
+  }
+  document.querySelectorAll('#settings-grid .table-card[data-card-id]').forEach(card => {
+    card.style.display = adminSettingsAccess.includes(card.dataset.cardId) ? '' : 'none';
+  });
+  // Admins with exactly one granted section: skip the tab bar and search
+  // entirely (nothing to filter between) and land straight on that card.
+  if (adminSettingsAccess.length === 1) {
+    if (searchWrap) searchWrap.style.display = 'none';
+    if (tabBar) tabBar.style.display = 'none';
+    switchSettingsTab('all'); // ensure the panel containing the one card is active, regardless of which tab it lives in
+    const onlyCard = document.querySelector(`#settings-grid .table-card[data-card-id="${adminSettingsAccess[0]}"]`);
+    if (onlyCard) requestAnimationFrame(() => onlyCard.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  } else {
+    if (searchWrap) searchWrap.style.display = '';
+    if (tabBar) tabBar.style.display = '';
+  }
+}
+
 let waAdminProfiles = [];
 
 async function loadWaTriggers() {
@@ -6948,7 +7019,7 @@ async function loadBBCNews() {
 /* ── User count ── */
 async function loadUserCount() {
   if (!sbClient) return;
-  const { count } = await sbClient.from('profiles').select('*', { count: 'exact', head: true });
+  const { count } = await sbClient.from('profiles').select('*', { count: 'exact', head: true }).not('email', 'ilike', 'deleted@system.local');
   const fuc = document.getElementById('footer-user-count');
   if (fuc && count !== null) fuc.textContent = count;
   const muc = document.getElementById('mob-user-count');
@@ -9253,11 +9324,26 @@ function loadDirStats() {
   if(s('dir-stat-queues')) s('dir-stat-queues').textContent = queues;
 }
 
+let dirSortKey = 'd_name', dirSortDir = 'asc';
+
+function setDirSort(key) {
+  if (dirSortKey === key) dirSortDir = dirSortDir === 'asc' ? 'desc' : 'asc';
+  else { dirSortKey = key; dirSortDir = 'asc'; }
+  renderAdminDir();
+}
+
+function updateDirSortHeaders() {
+  document.querySelectorAll('#page-directory th.sortable').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    if (th.dataset.sort === dirSortKey) th.classList.add(dirSortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+  });
+}
+
 function getFilteredDirEntries() {
   const q = (document.getElementById('dir-admin-search')?.value||'').toLowerCase().trim();
   const co = document.getElementById('dir-admin-co-filter')?.value||'';
 
-  return dirEntries.filter(e => {
+  const filtered = dirEntries.filter(e => {
     if (co && e.company !== co) return false;
     if (!q) return true;
     return (e.name||'').toLowerCase().includes(q) ||
@@ -9266,6 +9352,36 @@ function getFilteredDirEntries() {
            (e.department||'').toLowerCase().includes(q) ||
            (e.extension||'').toLowerCase().includes(q);
   });
+
+  // Numeric-aware compare for extension (so "9" sorts before "10"); falls
+  // back to a plain string compare for anything non-numeric.
+  const extVal = v => {
+    const n = parseFloat(v);
+    return !isNaN(n) && /^\s*\d+\s*$/.test(v||'') ? n : null;
+  };
+
+  filtered.sort((a, b) => {
+    let av, bv;
+    switch (dirSortKey) {
+      case 'd_company':    av = (a.company||'').toLowerCase();    bv = (b.company||'').toLowerCase();    break;
+      case 'd_department': av = (a.department||'').toLowerCase(); bv = (b.department||'').toLowerCase(); break;
+      case 'd_email':      av = (a.email||'').toLowerCase();      bv = (b.email||'').toLowerCase();      break;
+      case 'd_extension': {
+        const an = extVal(a.extension), bn = extVal(b.extension);
+        if (an !== null && bn !== null) { av = an; bv = bn; }
+        else { av = (a.extension||'').toLowerCase(); bv = (b.extension||'').toLowerCase(); }
+        break;
+      }
+      case 'd_type':        av = a.is_queue ? 1 : 0;                bv = b.is_queue ? 1 : 0;                break;
+      case 'd_name':
+      default:              av = (a.name||'').toLowerCase();       bv = (b.name||'').toLowerCase();
+    }
+    if (av < bv) return dirSortDir === 'asc' ? -1 : 1;
+    if (av > bv) return dirSortDir === 'asc' ?  1 : -1;
+    return 0;
+  });
+
+  return filtered;
 }
 
 function renderAdminDir() {
@@ -9276,6 +9392,8 @@ function renderAdminDir() {
 
   const tbody = document.getElementById('dir-admin-tbody');
   if (!tbody) return;
+
+  updateDirSortHeaders();
 
   if (!filtered.length) {
     tbody.innerHTML = '<tr><td colspan="7" style="padding:32px;text-align:center;color:var(--text3);font-size:13px">No entries found</td></tr>';
@@ -9340,7 +9458,8 @@ let msgViewingId          = null;
 
 function msgRecipientCounts() {
   const hasEmail = p => !!(p.email && p.email.includes('@'));
-  const list = allProfiles || [];
+  const isDeletedPlaceholder = p => (p.email || '').toLowerCase() === 'deleted@system.local';
+  const list = (allProfiles || []).filter(p => !isDeletedPlaceholder(p));
   return {
     all:    list.filter(hasEmail).length,
     admins: list.filter(p => hasEmail(p) && (p.role === 'admin' || p.role === 'super_admin')).length,
@@ -9696,6 +9815,7 @@ function navToSettingsTab(tab) {
   loadCategories(); loadCannedResponses(); loadRateLimits(); loadSessionTimeout();
   loadReportStart(); loadOrphanedAccounts(); loadWaTriggers();
   loadEmailSignature(); loadAllEmailTemplates(); initSettingsDrag();
+  applySettingsSectionAccess(currentProfile?.role);
   if (tab) requestAnimationFrame(() => switchSettingsTab(tab));
 }
 
@@ -9727,10 +9847,13 @@ function toggleMobGroup(group) {
 
 function applyRoleUI(role) {
   const isSuperAdmin = role === 'super_admin';
-  ['nav-logs', 'nav-auditlog', 'nav-settings-group', 'nav-reports', 'nav-reports-group'].forEach(id => {
+  const hasPartialSettingsAccess = role === 'admin' && adminSettingsAccess.length > 0;
+  ['nav-logs', 'nav-auditlog', 'nav-reports', 'nav-reports-group'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = isSuperAdmin ? '' : 'none';
   });
+  const settingsGroup = document.getElementById('nav-settings-group');
+  if (settingsGroup) settingsGroup.style.display = (isSuperAdmin || hasPartialSettingsAccess) ? '' : 'none';
   // Users page: visible to admin and super_admin
   const navUsers = document.getElementById('nav-users');
   if (navUsers) navUsers.style.display = (isSuperAdmin || role === 'admin') ? '' : 'none';
@@ -9739,9 +9862,8 @@ function applyRoleUI(role) {
   if (mobLogs) mobLogs.style.display = isSuperAdmin ? '' : 'none';
   document.querySelectorAll('.mobile-menu-item').forEach(btn => {
     const txt = btn.textContent.trim();
-    if (['Reports','Settings'].includes(txt)) {
-      btn.style.display = isSuperAdmin ? '' : 'none';
-    }
+    if (txt === 'Reports') btn.style.display = isSuperAdmin ? '' : 'none';
+    if (txt === 'Settings') btn.style.display = (isSuperAdmin || hasPartialSettingsAccess) ? '' : 'none';
   });
   // Hide super_admin option in role dropdowns for non-super-admins
   ['au-role', 'eu-role'].forEach(id => {
