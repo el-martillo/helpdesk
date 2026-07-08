@@ -1252,13 +1252,18 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
               <div style="padding-top:16px;border-top:1px solid var(--border)">
                 <div style="font-size:13px;font-weight:500;margin-bottom:6px">🌊 Water region</div>
                 <div style="font-size:11.5px;color:var(--text3);margin-bottom:10px;line-height:1.6">
-                  Boats, ripples, and dolphins are confined to this lat/lng box rather than actual water pixels — browsers block reading pixel colour data from OpenStreetMap's tiles (a CORS security restriction, not something configurable). Adjust these to roughly match the coastline on <a href="locations.html" target="_blank" style="color:var(--accent)">the live map</a>.
+                  Boats, ripples, and dolphins are confined to this box rather than actual water pixels — browsers block reading pixel colour data from OpenStreetMap's tiles (a CORS security restriction, not something configurable). Click "Redraw region" below, then drag on the map to reposition the box.
+                </div>
+                <div id="water-region-map" style="height:220px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:10px"></div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                  <button class="btn sm" type="button" id="water-region-draw-btn" onclick="toggleWaterRegionDrawMode()">✎ Redraw region</button>
+                  <span id="water-region-draw-hint" style="font-size:11px;color:var(--text3);display:none">Click and drag on the map to draw the new region…</span>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                  <div class="fg" style="margin-bottom:0"><label class="fl">Min latitude</label><input class="fc" id="amb-water-minlat" type="number" step="0.001"/></div>
-                  <div class="fg" style="margin-bottom:0"><label class="fl">Max latitude</label><input class="fc" id="amb-water-maxlat" type="number" step="0.001"/></div>
-                  <div class="fg" style="margin-bottom:0"><label class="fl">Min longitude</label><input class="fc" id="amb-water-minlng" type="number" step="0.001"/></div>
-                  <div class="fg" style="margin-bottom:0"><label class="fl">Max longitude</label><input class="fc" id="amb-water-maxlng" type="number" step="0.001"/></div>
+                  <div class="fg" style="margin-bottom:0"><label class="fl">Min latitude</label><input class="fc" id="amb-water-minlat" type="number" step="0.001" oninput="syncWaterRegionMapFromInputs()"/></div>
+                  <div class="fg" style="margin-bottom:0"><label class="fl">Max latitude</label><input class="fc" id="amb-water-maxlat" type="number" step="0.001" oninput="syncWaterRegionMapFromInputs()"/></div>
+                  <div class="fg" style="margin-bottom:0"><label class="fl">Min longitude</label><input class="fc" id="amb-water-minlng" type="number" step="0.001" oninput="syncWaterRegionMapFromInputs()"/></div>
+                  <div class="fg" style="margin-bottom:0"><label class="fl">Max longitude</label><input class="fc" id="amb-water-maxlng" type="number" step="0.001" oninput="syncWaterRegionMapFromInputs()"/></div>
                 </div>
               </div>
             </div>
@@ -8909,6 +8914,96 @@ async function loadMapAmbienceSettings() {
   if (maxLatEl) maxLatEl.value = wb.maxLat;
   if (minLngEl) minLngEl.value = wb.minLng;
   if (maxLngEl) maxLngEl.value = wb.maxLng;
+
+  requestAnimationFrame(() => {
+    if (!waterRegionMap) initWaterRegionMap();
+    else { syncWaterRegionMapFromInputs(); waterRegionMap.invalidateSize(); }
+  });
+}
+
+/* ── Water region mini-map: visual + drag-to-select calibration ── */
+let waterRegionMap = null;
+let waterRegionRect = null;
+let waterRegionDrawMode = false;
+let waterRegionDrawStart = null;
+
+function initWaterRegionMap() {
+  const el = document.getElementById('water-region-map');
+  if (!el || waterRegionMap || typeof L === 'undefined') return;
+
+  const minLat = parseFloat(document.getElementById('amb-water-minlat')?.value) || MAP_AMBIENCE_DEFAULTS.water_bounds.minLat;
+  const maxLat = parseFloat(document.getElementById('amb-water-maxlat')?.value) || MAP_AMBIENCE_DEFAULTS.water_bounds.maxLat;
+  const minLng = parseFloat(document.getElementById('amb-water-minlng')?.value) || MAP_AMBIENCE_DEFAULTS.water_bounds.minLng;
+  const maxLng = parseFloat(document.getElementById('amb-water-maxlng')?.value) || MAP_AMBIENCE_DEFAULTS.water_bounds.maxLng;
+
+  waterRegionMap = L.map('water-region-map', { zoomControl: true, attributionControl: false }).setView([36.140, -5.353], 13);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(waterRegionMap);
+
+  waterRegionRect = L.rectangle([[minLat, minLng], [maxLat, maxLng]], { color: '#185FA5', weight: 2, fillOpacity: 0.15 }).addTo(waterRegionMap);
+  try { waterRegionMap.fitBounds(waterRegionRect.getBounds().pad(0.6)); } catch(e) {}
+
+  waterRegionMap.on('mousedown', onWaterRegionMouseDown);
+  waterRegionMap.on('mousemove', onWaterRegionMouseMove);
+  waterRegionMap.on('mouseup', onWaterRegionMouseUp);
+
+  setTimeout(() => waterRegionMap.invalidateSize(), 100);
+}
+
+function toggleWaterRegionDrawMode() {
+  if (!waterRegionMap) return;
+  waterRegionDrawMode = !waterRegionDrawMode;
+  const btn = document.getElementById('water-region-draw-btn');
+  const hint = document.getElementById('water-region-draw-hint');
+  const mapEl = document.getElementById('water-region-map');
+  if (waterRegionDrawMode) {
+    waterRegionMap.dragging.disable();
+    if (mapEl) mapEl.style.cursor = 'crosshair';
+    if (btn) btn.textContent = '✕ Cancel';
+    if (hint) hint.style.display = 'inline';
+  } else {
+    waterRegionMap.dragging.enable();
+    if (mapEl) mapEl.style.cursor = '';
+    if (btn) btn.innerHTML = '✎ Redraw region';
+    if (hint) hint.style.display = 'none';
+    waterRegionDrawStart = null;
+  }
+}
+
+function onWaterRegionMouseDown(e) {
+  if (!waterRegionDrawMode) return;
+  waterRegionDrawStart = e.latlng;
+}
+
+function onWaterRegionMouseMove(e) {
+  if (!waterRegionDrawMode || !waterRegionDrawStart) return;
+  const bounds = L.latLngBounds(waterRegionDrawStart, e.latlng);
+  if (waterRegionRect) waterRegionMap.removeLayer(waterRegionRect);
+  waterRegionRect = L.rectangle(bounds, { color: '#185FA5', weight: 2, fillOpacity: 0.15 }).addTo(waterRegionMap);
+}
+
+function onWaterRegionMouseUp(e) {
+  if (!waterRegionDrawMode || !waterRegionDrawStart) return;
+  const bounds = L.latLngBounds(waterRegionDrawStart, e.latlng);
+  updateWaterInputsFromBounds(bounds);
+  toggleWaterRegionDrawMode(); // exit draw mode after one drag
+}
+
+function updateWaterInputsFromBounds(bounds) {
+  document.getElementById('amb-water-minlat').value = bounds.getSouth().toFixed(4);
+  document.getElementById('amb-water-maxlat').value = bounds.getNorth().toFixed(4);
+  document.getElementById('amb-water-minlng').value = bounds.getWest().toFixed(4);
+  document.getElementById('amb-water-maxlng').value = bounds.getEast().toFixed(4);
+}
+
+function syncWaterRegionMapFromInputs() {
+  if (!waterRegionMap) return;
+  const minLat = parseFloat(document.getElementById('amb-water-minlat')?.value);
+  const maxLat = parseFloat(document.getElementById('amb-water-maxlat')?.value);
+  const minLng = parseFloat(document.getElementById('amb-water-minlng')?.value);
+  const maxLng = parseFloat(document.getElementById('amb-water-maxlng')?.value);
+  if ([minLat, maxLat, minLng, maxLng].some(isNaN)) return;
+  if (waterRegionRect) waterRegionMap.removeLayer(waterRegionRect);
+  waterRegionRect = L.rectangle([[minLat, minLng], [maxLat, maxLng]], { color: '#185FA5', weight: 2, fillOpacity: 0.15 }).addTo(waterRegionMap);
 }
 
 async function saveMapAmbienceSettings() {
