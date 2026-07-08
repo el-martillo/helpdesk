@@ -2360,6 +2360,21 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
 <div id="toast"></div>
 
 <script>
+/* Leaflet's default marker icon auto-detects its image path from its own
+   <script> tag, which is unreliable when loaded from a CDN rather than a
+   bundler — the marker-icon.png/marker-shadow.png files 404, showing a
+   broken-image icon instead of a pin. Point them at the same CDN version
+   explicitly so every plain L.marker() (site/org location pickers) gets
+   a working icon. */
+if (typeof L !== 'undefined') {
+  delete L.Icon.Default.prototype._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl:       'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl:     'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-shadow.png',
+  });
+}
+
 /* ── State ── */
 let sbClient = null, currentUser = null, currentProfile = null;
 let adminPerPage = 25;

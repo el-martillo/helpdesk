@@ -70,7 +70,16 @@
   transform-origin:center center;
 }
 .loc-map-outer .leaflet-popup-content-wrapper,
-.loc-map-outer .leaflet-popup-tip{transform:rotate(90deg)}
+.loc-map-outer .leaflet-popup-tip{
+  transform:rotate(90deg);
+  /* The map underneath is rotated -90deg; without an isolated, opaque
+     layer here, some browsers' compositors bleed the rotated tiles
+     through the popup's rounded corners during the double transform. */
+  isolation:isolate;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  background-color:#fff;
+}
 .loc-map-outer .leaflet-control-zoom{transform:rotate(90deg);transform-origin:center center}
 .loc-map-outer .leaflet-control-attribution{transform:rotate(90deg);transform-origin:center center}
 /* Marker artwork counter-rotated so pins stay upright; Leaflet still positions
@@ -81,6 +90,22 @@
 .leaflet-popup-content-wrapper{border-radius:var(--radius-l);box-shadow:var(--shadow)}
 .loc-popup-title{font-size:13px;font-weight:600;margin-bottom:2px}
 .loc-popup-addr{font-size:11.5px;color:#555}
+
+/* Custom info card shown on pin click, positioned via measured screen
+   coordinates rather than Leaflet's native popup system — the map's 90deg
+   rotation makes Leaflet's own popupAnchor offset math unreliable to
+   reason about, so this reads the pin's actual rendered position instead. */
+.loc-info-card{
+  position:absolute;z-index:500;background:#fff;border-radius:var(--radius-l);
+  box-shadow:var(--shadow);padding:10px 14px;max-width:220px;display:none;
+  pointer-events:none;
+}
+.loc-info-card::before{
+  content:'';position:absolute;left:-6px;top:50%;
+  transform:translateY(-50%) rotate(45deg);
+  width:12px;height:12px;background:#fff;
+  box-shadow:-2px 2px 2px rgba(0,0,0,.04);
+}
 
 /* Empty state (no locations at all) */
 .loc-full-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text3);text-align:center;padding:40px}
@@ -494,15 +519,14 @@ function initMap() {
 
   installRotationDragFix(document.getElementById('loc-map'));
   window.addEventListener('resize', sizeRotatedMap);
+  locMap.on('click', hideInfoCard); // Leaflet stops this firing on marker clicks by default
 
   const bounds = [];
   places.forEach(p => {
     if (typeof p.lat !== 'number' || typeof p.lng !== 'number') return;
     const icon = p.type === 'site' ? sitePinIcon(p.color) : pinIcon(p.color);
     const marker = L.marker([p.lat, p.lng], { icon }).addTo(locMap);
-    const typeTag = p.type === 'site' ? '<div style="font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#999;margin-bottom:1px">Site</div>' : '';
-    marker.bindPopup(`${typeTag}<div class="loc-popup-title">${esc(p.name)}</div>${p.address ? `<div class="loc-popup-addr">${esc(p.address)}</div>` : ''}`);
-    marker.on('click', () => setActiveLocItem(p.key, false));
+    marker.on('click', () => setActiveLocItem(p.key, true));
     locMarkers[p.key] = marker;
     bounds.push([p.lat, p.lng]);
   });
@@ -550,14 +574,74 @@ function renderLocList() {
   list.innerHTML = renderGroup('Companies', orgs) + renderGroup('Sites', sites);
 }
 
+let activeInfoMarkerKey = null;
+
+function ensureInfoCard() {
+  let el = document.getElementById('loc-info-card');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loc-info-card';
+    el.className = 'loc-info-card';
+    document.getElementById('loc-map-outer').appendChild(el);
+  }
+  return el;
+}
+
+// Positions the info card to the right of the pin's ACTUAL rendered screen
+// position (via getBoundingClientRect, which reflects the map's rotation
+// transform automatically) rather than relying on Leaflet's own popup
+// offset math, which is unreliable to reason about through the rotation.
+function positionInfoCard() {
+  if (!activeInfoMarkerKey) return;
+  const marker = locMarkers[activeInfoMarkerKey];
+  const card = document.getElementById('loc-info-card');
+  const outer = document.getElementById('loc-map-outer');
+  const markerEl = marker && marker.getElement();
+  if (!marker || !card || !outer || !markerEl) return;
+  const mRect = markerEl.getBoundingClientRect();
+  const oRect = outer.getBoundingClientRect();
+  const gap = 14;
+  const left = mRect.right - oRect.left + gap;
+  const top  = (mRect.top + mRect.height / 2) - oRect.top - (card.offsetHeight / 2);
+  card.style.left = left + 'px';
+  card.style.top  = Math.max(4, top) + 'px';
+}
+
+function showInfoCardFor(key) {
+  const marker = locMarkers[key];
+  const p = places.find(pl => pl.key === key);
+  if (!marker || !p) return;
+  const card = ensureInfoCard();
+  const typeTag = p.type === 'site' ? '<div style="font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#999;margin-bottom:1px">Site</div>' : '';
+  card.innerHTML = `${typeTag}<div class="loc-popup-title">${esc(p.name)}</div>${p.address ? `<div class="loc-popup-addr">${esc(p.address)}</div>` : ''}`;
+  card.style.display = 'block';
+  activeInfoMarkerKey = key;
+  positionInfoCard();
+  locMap.on('move zoom', positionInfoCard);
+}
+
+function hideInfoCard() {
+  const card = document.getElementById('loc-info-card');
+  if (card) card.style.display = 'none';
+  activeInfoMarkerKey = null;
+  if (locMap) locMap.off('move zoom', positionInfoCard);
+}
+
 function setActiveLocItem(key, flyTo) {
   activeLocKey = key;
   renderLocList();
   const marker = locMarkers[key];
   const p = places.find(pl => pl.key === key);
   if (marker && p && typeof p.lat === 'number') {
-    if (flyTo) locMap.flyTo([p.lat, p.lng], 16, { duration: 0.6 });
-    marker.openPopup();
+    if (flyTo) {
+      locMap.flyTo([p.lat, p.lng], 16, { duration: 0.6 });
+      // Wait for the animation to finish before measuring the pin's
+      // resting screen position — mid-flight coordinates would place the
+      // card wrong.
+      locMap.once('moveend', () => showInfoCardFor(key));
+    } else {
+      showInfoCardFor(key);
+    }
   }
   // Close mobile sidebar after selecting an item on small screens
   if (window.innerWidth <= 768) {
