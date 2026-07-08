@@ -268,6 +268,7 @@
 
         <div class="loc-map-outer" id="loc-map-outer">
           <div id="loc-map"></div>
+          <canvas id="loc-ambience-canvas" style="position:absolute;inset:0;pointer-events:none;z-index:2"></canvas>
         </div>
 
       </div>
@@ -509,6 +510,166 @@ function installRotationDragFix(mapEl) {
   document.addEventListener('touchend', onTouchEnd, { capture: true, passive: true });
 }
 
+// Lightweight ambient overlay: drifting clouds (with soft shadows on the
+// map below), occasional boats and planes. Lives in loc-map-outer as an
+// UNROTATED sibling of the (rotated) Leaflet container, so movement reads
+// naturally left-to-right on screen regardless of the map's 90deg CSS
+// rotation. Purely decorative — pointer-events:none, never blocks clicks.
+function initMapAmbience(canvasId, settings) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return () => {};
+  const ctx = canvas.getContext('2d');
+  let W, H, raf, running = true;
+
+  const DEFAULTS = {
+    clouds: { enabled: true, intensity: 50, frequency: 50 },
+    boats:  { enabled: true, intensity: 50, frequency: 50 },
+    planes: { enabled: true, intensity: 50, frequency: 50 },
+  };
+  settings = { ...DEFAULTS, ...(settings || {}) };
+  ['clouds', 'boats', 'planes'].forEach(k => { settings[k] = { ...DEFAULTS[k], ...(settings[k] || {}) }; });
+
+  // intensity 0-100 -> size/opacity multiplier (50 = the original baseline sizing)
+  const scaleFor = key => 0.2 + (settings[key].intensity / 100) * 1.6;
+  // frequency 0-100 -> spawn-interval multiplier (50 = original baseline timing, 100 = fastest, 0 = slowest)
+  const intervalFactorFor = key => Math.max(0.15, 2 - settings[key].frequency / 50);
+
+  function resize() {
+    const outer = document.getElementById('loc-map-outer');
+    if (!outer) return;
+    W = canvas.width  = outer.clientWidth;
+    H = canvas.height = outer.clientHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const clouds = [], boats = [], planes = [];
+
+  function spawnCloud() {
+    const baseScale = 0.6 + Math.random() * 1.1;
+    const scale = baseScale * scaleFor('clouds');
+    const puffs = [
+      { dx: 0,   dy: 0,   r: 22 },
+      { dx: 26,  dy: 6,   r: 16 },
+      { dx: -24, dy: 8,   r: 15 },
+      { dx: 10,  dy: -10, r: 14 },
+    ].map(p => ({ dx: p.dx * scale, dy: p.dy * scale, r: p.r * scale }));
+    clouds.push({ x: -80, y: 16 + Math.random() * (H * 0.35), scale, speed: (7 + Math.random() * 9) * baseScale, puffs });
+  }
+
+  function drawCloud(c) {
+    const op = 0.10 * scaleFor('clouds');
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.4, op);
+    ctx.fillStyle = '#000';
+    c.puffs.forEach(p => {
+      ctx.beginPath();
+      ctx.ellipse(c.x + p.dx + 10, c.y + p.dy + 34, p.r * 1.05, p.r * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, 0.85 * (0.6 + settings.clouds.intensity / 100));
+    ctx.fillStyle = '#fff';
+    c.puffs.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(c.x + p.dx, c.y + p.dy, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  function spawnBoat() {
+    boats.push({ x: -30, y: H * (0.55 + Math.random() * 0.35), speed: 7 + Math.random() * 5, bob: Math.random() * Math.PI * 2, scale: scaleFor('boats') });
+  }
+
+  function drawBoat(b) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, 0.5 + settings.boats.intensity / 100);
+    ctx.font = `${Math.round(20 * b.scale)}px serif`;
+    ctx.textBaseline = 'middle';
+    ctx.fillText('⛵', b.x, b.y + Math.sin(b.bob) * 2);
+    ctx.restore();
+  }
+
+  function spawnPlane() {
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    planes.push({ x: dir === 1 ? -30 : W + 30, y: 10 + Math.random() * (H * 0.28), dir, speed: 55 + Math.random() * 35, trail: [], scale: scaleFor('planes') });
+  }
+
+  function drawPlane(p) {
+    p.trail.push({ x: p.x, y: p.y });
+    if (p.trail.length > 22) p.trail.shift();
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    p.trail.forEach((pt, i) => { i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y); });
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, 0.5 + settings.planes.intensity / 100);
+    ctx.translate(p.x, p.y);
+    if (p.dir < 0) ctx.scale(-1, 1);
+    ctx.font = `${Math.round(15 * p.scale)}px serif`;
+    ctx.textBaseline = 'middle';
+    ctx.fillText('✈️', 0, 0);
+    ctx.restore();
+  }
+
+  let lastCloud = 0, lastBoat = 0, lastPlane = 0, lastT = performance.now();
+
+  function loop(t) {
+    if (!running) return;
+    const dt = Math.min(0.05, (t - lastT) / 1000);
+    lastT = t;
+    ctx.clearRect(0, 0, W, H);
+
+    const cf = intervalFactorFor('clouds'), bf = intervalFactorFor('boats'), pf = intervalFactorFor('planes');
+    if (settings.clouds.enabled && t - lastCloud > (9000  + Math.random() * 6000)  * cf) { spawnCloud(); lastCloud = t; }
+    if (settings.boats.enabled  && t - lastBoat  > (22000 + Math.random() * 20000) * bf) { spawnBoat();  lastBoat  = t; }
+    if (settings.planes.enabled && t - lastPlane > (16000 + Math.random() * 14000) * pf) { spawnPlane(); lastPlane = t; }
+
+    for (let i = clouds.length - 1; i >= 0; i--) {
+      const c = clouds[i]; c.x += c.speed * dt; drawCloud(c);
+      if (c.x - 70 > W) clouds.splice(i, 1);
+    }
+    for (let i = boats.length - 1; i >= 0; i--) {
+      const b = boats[i]; b.x += b.speed * dt; b.bob += dt * 2; drawBoat(b);
+      if (b.x - 30 > W) boats.splice(i, 1);
+    }
+    for (let i = planes.length - 1; i >= 0; i--) {
+      const p = planes[i]; p.x += p.speed * dt * p.dir; drawPlane(p);
+      if ((p.dir > 0 && p.x - 30 > W) || (p.dir < 0 && p.x + 30 < 0)) planes.splice(i, 1);
+    }
+
+    raf = requestAnimationFrame(loop);
+  }
+
+  if (settings.clouds.enabled) spawnCloud();
+  raf = requestAnimationFrame(loop);
+
+  return function cleanup() {
+    running = false;
+    if (raf) cancelAnimationFrame(raf);
+    window.removeEventListener('resize', resize);
+  };
+}
+
+async function loadMapAmbienceSettings() {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/app_settings?key=eq.map_ambience&select=value`,
+      { headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` } }
+    );
+    const rows = await res.json();
+    if (rows?.[0]?.value) return JSON.parse(rows[0].value);
+  } catch(e) { /* fall back to defaults inside initMapAmbience */ }
+  return null;
+}
+
 function initMap() {
   sizeRotatedMap();
   locMap = L.map('loc-map', { zoomControl: true }).setView([36.1408, -5.3536], 13);
@@ -536,6 +697,8 @@ function initMap() {
   }
 
   document.getElementById('loc-empty-note').style.display = bounds.length ? 'none' : 'block';
+
+  loadMapAmbienceSettings().then(settings => initMapAmbience('loc-ambience-canvas', settings));
 }
 
 function renderLocList() {

@@ -1151,6 +1151,72 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
             <button class="btn primary" onclick="saveVersion()">Save version</button>
           </div>
 
+          <!-- Map ambience -->
+          <div class="table-card" data-card-id="map" style="padding:20px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Map</div><label class="settings-admin-toggle" data-card-id="map" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0;background:var(--border2);border-radius:20px;transition:background .2s" data-admin-toggle-track="map"><input type="checkbox" data-admin-access-cb="map" style="opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer" onchange="onAdminAccessToggle('map', this.checked); syncAdminToggleVisual(this)"/><span style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s;pointer-events:none" data-admin-toggle-knob="map"></span></span></label></div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+              Controls the ambient clouds, boats, and planes that drift across the company locations map. Intensity affects their size/visibility; Frequency affects how often each one appears. Applies live on <code style="font-size:11px">locations.html</code> — no deploy needed.
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div class="map-amb-row" data-amb-row="clouds">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
+                    <input type="checkbox" id="amb-clouds-enabled" checked/> ☁️ Clouds
+                  </label>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Intensity <span id="amb-clouds-intensity-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-clouds-intensity" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-clouds-intensity-val').textContent = this.value + '%'"/>
+                  </div>
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Frequency <span id="amb-clouds-frequency-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-clouds-frequency" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-clouds-frequency-val').textContent = this.value + '%'"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="map-amb-row" data-amb-row="boats" style="padding-top:16px;border-top:1px solid var(--border)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
+                    <input type="checkbox" id="amb-boats-enabled" checked/> ⛵ Boats
+                  </label>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Intensity <span id="amb-boats-intensity-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-boats-intensity" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-boats-intensity-val').textContent = this.value + '%'"/>
+                  </div>
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Frequency <span id="amb-boats-frequency-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-boats-frequency" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-boats-frequency-val').textContent = this.value + '%'"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="map-amb-row" data-amb-row="planes" style="padding-top:16px;border-top:1px solid var(--border)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
+                    <input type="checkbox" id="amb-planes-enabled" checked/> ✈️ Planes
+                  </label>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Intensity <span id="amb-planes-intensity-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-planes-intensity" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-planes-intensity-val').textContent = this.value + '%'"/>
+                  </div>
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Frequency <span id="amb-planes-frequency-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-planes-frequency" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-planes-frequency-val').textContent = this.value + '%'"/>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn primary" style="margin-top:18px" onclick="saveMapAmbienceSettings()">Save map settings</button>
+          </div>
+
           <!-- Next ticket number -->
           </div>
 
@@ -8755,6 +8821,47 @@ async function saveVersion() {
   const prevV=document.getElementById('footer-version')?.textContent||'unknown'; logSystemEvent('version_updated',`${prevV} → v${v}`);
 }
 
+/* ── Map ambience settings ── */
+const MAP_AMBIENCE_DEFAULTS = {
+  clouds: { enabled: true, intensity: 50, frequency: 50 },
+  boats:  { enabled: true, intensity: 50, frequency: 50 },
+  planes: { enabled: true, intensity: 50, frequency: 50 },
+};
+
+async function loadMapAmbienceSettings() {
+  let settings = MAP_AMBIENCE_DEFAULTS;
+  try {
+    const { data } = await sbClient.from('app_settings').select('value').eq('key', 'map_ambience').maybeSingle();
+    if (data?.value) settings = { ...MAP_AMBIENCE_DEFAULTS, ...JSON.parse(data.value) };
+  } catch(e) { /* fall back to defaults */ }
+
+  ['clouds', 'boats', 'planes'].forEach(el => {
+    const s = settings[el] || MAP_AMBIENCE_DEFAULTS[el];
+    const enabledCb = document.getElementById(`amb-${el}-enabled`);
+    const intensityInput = document.getElementById(`amb-${el}-intensity`);
+    const frequencyInput = document.getElementById(`amb-${el}-frequency`);
+    if (enabledCb) enabledCb.checked = s.enabled !== false;
+    if (intensityInput) { intensityInput.value = s.intensity ?? 50; document.getElementById(`amb-${el}-intensity-val`).textContent = (s.intensity ?? 50) + '%'; }
+    if (frequencyInput) { frequencyInput.value = s.frequency ?? 50; document.getElementById(`amb-${el}-frequency-val`).textContent = (s.frequency ?? 50) + '%'; }
+  });
+}
+
+async function saveMapAmbienceSettings() {
+  const settings = {};
+  ['clouds', 'boats', 'planes'].forEach(el => {
+    settings[el] = {
+      enabled:   document.getElementById(`amb-${el}-enabled`)?.checked !== false,
+      intensity: parseInt(document.getElementById(`amb-${el}-intensity`)?.value, 10) || 0,
+      frequency: parseInt(document.getElementById(`amb-${el}-frequency`)?.value, 10) || 0,
+    };
+  });
+  const { error } = await sbClient.from('app_settings')
+    .upsert({ key: 'map_ambience', value: JSON.stringify(settings) }, { onConflict: 'key' });
+  if (error) { toast('Error saving map settings: ' + error.message); return; }
+  toast('Map settings saved');
+  logSystemEvent('map_ambience_updated', JSON.stringify(settings));
+}
+
 /* ── Lightbox ── */
 let _lbUrls = [], _lbIdx = 0;
 
@@ -9865,6 +9972,7 @@ function navToSettingsTab(tab) {
   loadCategories(); loadCannedResponses(); loadRateLimits(); loadSessionTimeout();
   loadReportStart(); loadOrphanedAccounts(); loadWaTriggers();
   loadEmailSignature(); loadAllEmailTemplates(); initSettingsDrag();
+  loadMapAmbienceSettings();
   applySettingsSectionAccess(currentProfile?.role);
   if (tab) requestAnimationFrame(() => switchSettingsTab(tab));
 }
