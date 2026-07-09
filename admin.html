@@ -9012,7 +9012,11 @@ function onWaterRegionMouseUp(e) {
   waterRegionDrawStart = null;
   syncWaterRegionRectsFromState();
   renderWaterRegionsList();
-  toggleWaterRegionDrawMode(); // exit draw mode after each drag
+  // A Shift-drag adds a region and stays in draw mode, so you can keep
+  // Shift-dragging to add several without re-clicking the button each
+  // time. A plain drag replaces everything and exits, since that's a
+  // "start fresh" action.
+  if (!shiftHeld) toggleWaterRegionDrawMode();
 }
 
 function removeWaterRegion(idx) {
