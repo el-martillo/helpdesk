@@ -2497,6 +2497,20 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
 <div id="toast"></div>
 
 <script>
+// An ordinary click-hold-drag across plain text or whitespace lets the
+// browser start a native text-selection drag (standard behaviour: select
+// text, then drag it elsewhere) — which renders a semi-transparent
+// "ghost" snapshot of the page following the cursor. Nothing in this app
+// scoped user-select:none broadly enough to prevent that, so this could
+// trigger on almost any click-drag anywhere on the page, looking like the
+// whole screen was zooming/duplicating. This blocks that specific native
+// drag start, while leaving the app's own draggable="true" reorder
+// features (canned responses, categories, directory colours) working,
+// since those are excluded via the closest() check below.
+document.addEventListener('dragstart', e => {
+  if (!e.target.closest('[draggable="true"]')) e.preventDefault();
+});
+
 /* Leaflet's default marker icon auto-detects its image path from its own
    <script> tag, which is unreliable when loaded from a CDN rather than a
    bundler — the marker-icon.png/marker-shadow.png files 404 (or, as found
@@ -9000,6 +9014,17 @@ function initWaterRegionMap() {
   // and leaving our custom draw-gesture with almost no distance to work
   // with (looks like the "whole window drags, then reverts" glitch).
   el.addEventListener('dragstart', e => e.preventDefault());
+
+  // Trackpad pinch gestures are treated by Chrome/Firefox as page-zoom
+  // (fired as a 'wheel' event with ctrlKey:true, even though no key is
+  // actually pressed) and by Safari as gesturestart/gesturechange events.
+  // Left unhandled, a two-finger drag meant for drawing a region can
+  // instead zoom the ENTIRE browser page — which looks exactly like "the
+  // whole screen drags" and produces a blurred, doubled appearance during
+  // the zoom transition.
+  el.addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+  el.addEventListener('gesturestart',  e => e.preventDefault());
+  el.addEventListener('gesturechange', e => e.preventDefault());
 
   setTimeout(() => waterRegionMap.invalidateSize(), 100);
 }
