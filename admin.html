@@ -8983,6 +8983,15 @@ function initWaterRegionMap() {
   waterRegionMap.on('mouseup', onWaterRegionMouseUp);
   waterRegionMap.on('mousedown', onWaterRegionMapMouseDown);
 
+  // Capture-phase raw DOM listener, firing before Leaflet's own internal
+  // handlers (which listen in bubble phase). preventDefault() here stops
+  // the browser's native drag/select/scroll gesture from ever starting,
+  // regardless of which specific native behavior would otherwise trigger
+  // it — more reliable than only targeting image-drag specifically.
+  el.addEventListener('mousedown', e => {
+    if (waterRegionDrawMode) e.preventDefault();
+  }, true);
+
   // Leaflet's own pan handler normally prevents native browser image-drag
   // ghosting on the tiles automatically, but disabling it (dragging.disable(),
   // used while drawing/dragging a region) removes that protection too —
@@ -9022,7 +9031,8 @@ function highlightWaterRegion(idx, on) {
 
 /* ── Entering / exiting draw mode ── */
 function enterWaterRegionDrawMode(forceAdd) {
-  if (!waterRegionMap || waterRegionDrawMode) return;
+  if (!waterRegionMap) { toast('Map still loading — try again in a moment'); return; }
+  if (waterRegionDrawMode) return;
   waterRegionDrawMode = true;
   waterRegionForceAdd = forceAdd;
   waterRegionMap.dragging.disable();
@@ -9084,6 +9094,7 @@ function startDraggingRegion(idx, e) {
 /* ── Drawing a brand-new region ── */
 function onWaterRegionMapMouseDown(e) {
   if (!waterRegionDrawMode) return;
+  if (e.originalEvent) e.originalEvent.preventDefault();
   waterRegionDrawStart = e.latlng;
 }
 
