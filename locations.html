@@ -817,12 +817,12 @@ function initMapAmbience(canvasId, settings, map) {
     const scale = scaleFor('ripples') * currentZoomScale();
     const p = projectUV(rp.u, rp.v, corners);
     const t = rp.age / rp.life;
-    const radius = (6 + t * 26) * scale;
-    const alpha = (1 - t) * Math.min(0.5, 0.25 + settings.ripples.intensity / 200);
+    const radius = (8 + t * 34) * scale;
+    const alpha = (1 - t) * Math.min(0.85, 0.5 + settings.ripples.intensity / 120);
     ctx.save();
     ctx.globalAlpha = Math.max(0, alpha);
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = Math.max(0.5, 1.4 * (1 - t));
+    ctx.strokeStyle = '#eaf6ff';
+    ctx.lineWidth = Math.max(0.8, 2.2 * (1 - t * 0.7));
     ctx.beginPath();
     ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
     ctx.stroke();
@@ -843,19 +843,27 @@ function initMapAmbience(canvasId, settings, map) {
   function drawDolphin(d, regions) {
     const corners = regions[d.regionIdx];
     if (!corners) return;
-    const scale = scaleFor('dolphins') * currentZoomScale();
+    const scale = scaleFor('dolphins') * currentZoomScale() * 1.3;
     const t = Math.min(1, d.age / d.life);
     const u = d.u0 + (d.u1 - d.u0) * t;
     const p = projectUV(Math.max(0, Math.min(1, u)), d.v, corners);
-    const arc = Math.sin(Math.PI * t) * 16 * currentZoomScale();
+    const arc = Math.sin(Math.PI * t) * 24 * currentZoomScale();
     const x = p.x, y = p.y - arc;
 
+    // Gentler envelope than a plain sine — reaches full opacity quickly
+    // and holds it, rather than being dim through most of the arc.
+    const fadeIn  = Math.min(1, t / 0.2);
+    const fadeOut = Math.min(1, (1 - t) / 0.2);
+    const envelope = Math.min(fadeIn, fadeOut);
+
     ctx.save();
-    ctx.globalAlpha = Math.min(1, 0.55 + settings.dolphins.intensity / 100) * Math.sin(Math.PI * Math.min(1, t + 0.05));
+    ctx.globalAlpha = Math.min(1, 0.75 + settings.dolphins.intensity / 150) * envelope;
     ctx.translate(x, y);
     ctx.scale(d.dir < 0 ? -scale : scale, scale);
     ctx.rotate(Math.max(-0.6, Math.min(0.6, -Math.cos(Math.PI * t) * 0.6)));
-    ctx.fillStyle = '#5c7a8a';
+    ctx.fillStyle = '#3d5a6b';
+    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.lineWidth = 0.5;
     ctx.beginPath();
     ctx.moveTo(-10, 2);
     ctx.quadraticCurveTo(-4, -6, 6, -2);
@@ -863,6 +871,7 @@ function initMapAmbience(canvasId, settings, map) {
     ctx.quadraticCurveTo(4, 1, -10, 2);
     ctx.closePath();
     ctx.fill();
+    ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(-1, -3);
     ctx.lineTo(2, -9);
@@ -887,8 +896,8 @@ function initMapAmbience(canvasId, settings, map) {
     if (settings.clouds.enabled   && t - lastCloud   > (9000  + Math.random() * 6000)  * cf) { spawnCloud();   lastCloud   = t; }
     if (settings.boats.enabled    && regionCount && t - lastBoat    > (22000 + Math.random() * 20000) * bf) { spawnBoat(regionCount);    lastBoat    = t; }
     if (settings.planes.enabled   && t - lastPlane   > (16000 + Math.random() * 14000) * pf) { spawnPlane();   lastPlane   = t; }
-    if (settings.ripples.enabled  && regionCount && t - lastRipple  > (4000  + Math.random() * 5000)  * rf) { spawnRipple(regionCount);  lastRipple  = t; }
-    if (settings.dolphins.enabled && regionCount && t - lastDolphin > (18000 + Math.random() * 22000) * df) { spawnDolphin(regionCount); lastDolphin = t; }
+    if (settings.ripples.enabled  && regionCount && t - lastRipple  > (2500  + Math.random() * 3000)  * rf) { spawnRipple(regionCount);  lastRipple  = t; }
+    if (settings.dolphins.enabled && regionCount && t - lastDolphin > (8000  + Math.random() * 10000) * df) { spawnDolphin(regionCount); lastDolphin = t; }
 
     for (let i = boats.length - 1; i >= 0; i--) {
       const b = boats[i]; b.u += b.speed * b.dir * dt; b.bob += dt * 2; drawBoat(b, regions);
