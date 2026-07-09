@@ -683,7 +683,7 @@ function initMapAmbience(canvasId, settings, map) {
   //    size still reads live zoom scale every frame. ──
   function spawnCloud() {
     const baseScale = 0.6 + Math.random() * 1.1;
-    clouds.push({ x: -80, y: 16 + Math.random() * (H * 0.35), speed: (7 + Math.random() * 9) * baseScale, baseScale });
+    clouds.push({ x: -80, y: Math.random() * H, speed: (7 + Math.random() * 9) * baseScale, baseScale });
   }
 
   function drawCloud(c) {
@@ -890,10 +890,6 @@ function initMapAmbience(canvasId, settings, map) {
     if (settings.ripples.enabled  && regionCount && t - lastRipple  > (4000  + Math.random() * 5000)  * rf) { spawnRipple(regionCount);  lastRipple  = t; }
     if (settings.dolphins.enabled && regionCount && t - lastDolphin > (18000 + Math.random() * 22000) * df) { spawnDolphin(regionCount); lastDolphin = t; }
 
-    for (let i = clouds.length - 1; i >= 0; i--) {
-      const c = clouds[i]; c.x += c.speed * dt; drawCloud(c);
-      if (c.x - 70 > W) clouds.splice(i, 1);
-    }
     for (let i = boats.length - 1; i >= 0; i--) {
       const b = boats[i]; b.u += b.speed * b.dir * dt; b.bob += dt * 2; drawBoat(b, regions);
       if (b.u > 1.15 || b.u < -0.15) boats.splice(i, 1);
@@ -909,6 +905,11 @@ function initMapAmbience(canvasId, settings, map) {
     for (let i = dolphins.length - 1; i >= 0; i--) {
       const d = dolphins[i]; d.age += dt; drawDolphin(d, regions);
       if (d.age >= d.life) dolphins.splice(i, 1);
+    }
+    // Clouds drawn last so they layer above boats/planes/ripples/dolphins.
+    for (let i = clouds.length - 1; i >= 0; i--) {
+      const c = clouds[i]; c.x += c.speed * dt; drawCloud(c);
+      if (c.x - 70 > W) clouds.splice(i, 1);
     }
 
     raf = requestAnimationFrame(loop);
