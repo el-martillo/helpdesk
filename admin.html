@@ -23,6 +23,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="styles.css"/>
 <style>
+/* Belt-and-braces alongside the dragstart JS listener: stop the water
+   region mini-map's tiles from being natively drag-ghosted, which
+   otherwise fights with the custom click-drag-to-draw gesture. */
+#water-region-map img { -webkit-user-drag: none; user-drag: none; }
+#water-region-map { user-select: none; -webkit-user-select: none; }
+
 /* Compact numbered label on water-region rectangles (overrides Leaflet's
    default tooltip box styling, which is sized for text, not a badge) */
 .water-region-label {
@@ -8976,6 +8982,15 @@ function initWaterRegionMap() {
   waterRegionMap.on('mousemove', onWaterRegionMouseMove);
   waterRegionMap.on('mouseup', onWaterRegionMouseUp);
   waterRegionMap.on('mousedown', onWaterRegionMapMouseDown);
+
+  // Leaflet's own pan handler normally prevents native browser image-drag
+  // ghosting on the tiles automatically, but disabling it (dragging.disable(),
+  // used while drawing/dragging a region) removes that protection too —
+  // without this, clicking and dragging on the map tries to natively
+  // drag the tile image itself, eating most of the real mouse movement
+  // and leaving our custom draw-gesture with almost no distance to work
+  // with (looks like the "whole window drags, then reverts" glitch).
+  el.addEventListener('dragstart', e => e.preventDefault());
 
   setTimeout(() => waterRegionMap.invalidateSize(), 100);
 }
