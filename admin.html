@@ -2482,16 +2482,17 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
 <script>
 /* Leaflet's default marker icon auto-detects its image path from its own
    <script> tag, which is unreliable when loaded from a CDN rather than a
-   bundler — the marker-icon.png/marker-shadow.png files 404, showing a
-   broken-image icon instead of a pin. Point them at the same CDN version
-   explicitly so every plain L.marker() (site/org location pickers) gets
-   a working icon. */
+   bundler — the marker-icon.png/marker-shadow.png files 404 (or, as found
+   here, get blocked outright by this site's img-src Content-Security-Policy,
+   which only allows 'self' + a short domain allowlist that doesn't include
+   any CDN). Self-hosting these three small files alongside admin.html
+   avoids needing to loosen the CSP at all — 'self' is already permitted. */
 if (typeof L !== 'undefined') {
   delete L.Icon.Default.prototype._getIconUrl;
   L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    iconUrl:       'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-icon.png',
-    shadowUrl:     'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconRetinaUrl: 'marker-icon-2x.png',
+    iconUrl:       'marker-icon.png',
+    shadowUrl:     'marker-shadow.png',
   });
 }
 
