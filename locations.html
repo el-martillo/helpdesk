@@ -80,7 +80,19 @@
   -webkit-backface-visibility:hidden;
   background-color:#fff;
 }
-.loc-map-outer .leaflet-control-zoom{transform:rotate(90deg);transform-origin:center center}
+/* Leaflet's native zoom control is disabled — rotating its tall two-button
+   stack 90deg swapped its effective width/height without Leaflet
+   recalculating the layout box, clipping part of it. Replaced with plain
+   unrotated custom buttons (see .loc-zoom-btn below) that call
+   locMap.zoomIn()/zoomOut() directly. */
+.loc-zoom-ctrl{position:absolute;left:10px;bottom:10px;z-index:450;display:flex;flex-direction:column;box-shadow:0 1px 5px rgba(0,0,0,.4);border-radius:4px;overflow:hidden}
+.loc-zoom-btn{width:30px;height:30px;background:#fff;border:none;border-bottom:1px solid #ccc;font-size:18px;line-height:30px;cursor:pointer;color:#333;padding:0;font-family:Arial,sans-serif}
+.loc-zoom-btn:last-child{border-bottom:none}
+.loc-zoom-btn:hover{background:#f4f4f4}
+@media(prefers-color-scheme:dark){
+  .loc-zoom-btn{background:#2a2a2a;color:#eee;border-bottom-color:#444}
+  .loc-zoom-btn:hover{background:#383838}
+}
 .loc-map-outer .leaflet-control-attribution{transform:rotate(90deg);transform-origin:center center}
 /* Marker artwork counter-rotated so pins stay upright; Leaflet still positions
    the outer .leaflet-marker-icon wrapper via the rotated container as normal. */
@@ -269,6 +281,10 @@
         <div class="loc-map-outer" id="loc-map-outer">
           <div id="loc-map"></div>
           <canvas id="loc-ambience-canvas" style="position:absolute;inset:0;pointer-events:none;z-index:2"></canvas>
+          <div class="loc-zoom-ctrl">
+            <button class="loc-zoom-btn" onclick="locMap.zoomIn()" aria-label="Zoom in">+</button>
+            <button class="loc-zoom-btn" onclick="locMap.zoomOut()" aria-label="Zoom out">&minus;</button>
+          </div>
         </div>
 
       </div>
@@ -928,7 +944,7 @@ async function loadMapAmbienceSettings() {
 
 function initMap() {
   sizeRotatedMap();
-  locMap = L.map('loc-map', { zoomControl: true }).setView([36.1408, -5.3536], 13);
+  locMap = L.map('loc-map', { zoomControl: false }).setView([36.1408, -5.3536], 13);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'

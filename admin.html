@@ -1264,11 +1264,14 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
                   Boats, ripples, and dolphins are confined to these boxes rather than actual water pixels — browsers block reading pixel colour data from OpenStreetMap's tiles (a CORS security restriction, not something configurable). Click "Redraw region", then drag on the map. Hold <strong>Shift</strong> while dragging to add another region instead of replacing the existing one(s) — useful for separate bodies of water like a bay and a marina.
                 </div>
                 <div id="water-region-map" style="height:220px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:10px"></div>
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                  <button class="btn sm" type="button" id="water-region-draw-btn" onclick="toggleWaterRegionDrawMode()">✎ Redraw region</button>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+                  <button class="btn sm" type="button" id="water-region-redraw-btn" onclick="startRedrawRegionMode()">✎ Redraw region</button>
+                  <button class="btn sm" type="button" id="water-region-add-btn" onclick="startAddRegionMode()">+ Add region</button>
+                  <button class="btn sm" type="button" id="water-region-cancel-btn" onclick="exitWaterRegionDrawMode()" style="display:none">✕ Cancel</button>
                   <button class="btn sm" type="button" onclick="clearWaterRegions()">🗑 Clear</button>
-                  <span id="water-region-draw-hint" style="font-size:11px;color:var(--text3);display:none">Drag to draw — hold Shift to add another region instead of replacing</span>
+                  <span id="water-region-draw-hint" style="font-size:11px;color:var(--text3);display:none">Drag to draw a region</span>
                 </div>
+                <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Click and hold an existing region on the map to drag it into place.</div>
                 <div id="water-regions-list" style="display:flex;flex-direction:column;gap:8px"></div>
               </div>
             </div>
@@ -8927,8 +8930,11 @@ let waterRegionMap = null;
 let waterRegionRectLayers = []; // one L.rectangle per entry in waterRegions
 let waterRegionDrawMode = false;
 let waterRegionDrawStart = null;
-let waterRegionDrawRect = null; // in-progress rectangle while dragging
-let waterRegionShiftHeld = false;
+let waterRegionDrawRect = null;  // in-progress new-region rectangle while dragging
+let waterRegionForceAdd = false; // true when draw mode was entered via "+ Add region"
+let waterRegionDraggingIdx = null;       // index of an existing region being repositioned, or null
+let waterRegionDraggingStartLatLng = null;
+let waterRegionDraggingOrigBounds = null;
 
 function initWaterRegionMap() {
   const el = document.getElementById('water-region-map');
@@ -8947,15 +8953,16 @@ function initWaterRegionMap() {
     } catch(e) {}
   }
 
-  waterRegionMap.on('mousedown', onWaterRegionMouseDown);
   waterRegionMap.on('mousemove', onWaterRegionMouseMove);
   waterRegionMap.on('mouseup', onWaterRegionMouseUp);
+  waterRegionMap.on('mousedown', onWaterRegionMapMouseDown);
 
   setTimeout(() => waterRegionMap.invalidateSize(), 100);
 }
 
 // Redraws all persistent region rectangles on the mini-map from the
-// current waterRegions array (the source of truth).
+// current waterRegions array (the source of truth). Each rectangle can be
+// click-and-held to drag it into a new position (when not in draw mode).
 function syncWaterRegionRectsFromState() {
   if (!waterRegionMap) return;
   waterRegionRectLayers.forEach(r => waterRegionMap.removeLayer(r));
@@ -8964,6 +8971,7 @@ function syncWaterRegionRectsFromState() {
     rect.bindTooltip(String(i + 1), { permanent: true, direction: 'center', className: 'water-region-label' });
     rect.on('mouseover', () => highlightWaterRegion(i, true));
     rect.on('mouseout',  () => highlightWaterRegion(i, false));
+    rect.on('mousedown', e => startDraggingRegion(i, e));
     return rect;
   });
 }
@@ -8977,40 +8985,84 @@ function highlightWaterRegion(idx, on) {
   if (row) row.style.borderColor = on ? '#e08a1e' : 'var(--border)';
 }
 
-function toggleWaterRegionDrawMode() {
-  if (!waterRegionMap) return;
-  waterRegionDrawMode = !waterRegionDrawMode;
-  const btn = document.getElementById('water-region-draw-btn');
-  const hint = document.getElementById('water-region-draw-hint');
+/* ── Entering / exiting draw mode ── */
+function enterWaterRegionDrawMode(forceAdd) {
+  if (!waterRegionMap || waterRegionDrawMode) return;
+  waterRegionDrawMode = true;
+  waterRegionForceAdd = forceAdd;
+  waterRegionMap.dragging.disable();
   const mapEl = document.getElementById('water-region-map');
-  if (waterRegionDrawMode) {
-    waterRegionMap.dragging.disable();
-    if (mapEl) mapEl.style.cursor = 'crosshair';
-    if (btn) btn.textContent = '✕ Cancel';
-    if (hint) hint.style.display = 'inline';
-  } else {
-    waterRegionMap.dragging.enable();
-    if (mapEl) mapEl.style.cursor = '';
-    if (btn) btn.innerHTML = '✎ Redraw region';
-    if (hint) hint.style.display = 'none';
-    waterRegionDrawStart = null;
-    if (waterRegionDrawRect) { waterRegionMap.removeLayer(waterRegionDrawRect); waterRegionDrawRect = null; }
+  if (mapEl) mapEl.style.cursor = 'crosshair';
+  const redrawBtn = document.getElementById('water-region-redraw-btn');
+  const addBtn = document.getElementById('water-region-add-btn');
+  redrawBtn.disabled = true; redrawBtn.style.opacity = '0.5';
+  addBtn.disabled = true; addBtn.style.opacity = '0.5';
+  document.getElementById('water-region-cancel-btn').style.display = '';
+  const hint = document.getElementById('water-region-draw-hint');
+  if (hint) {
+    hint.style.display = 'inline';
+    hint.textContent = forceAdd ? 'Drag to draw — keeps adding until you click Cancel' : 'Drag to draw a region (replaces existing ones)';
   }
 }
 
+function exitWaterRegionDrawMode() {
+  if (!waterRegionMap) return;
+  waterRegionDrawMode = false;
+  waterRegionForceAdd = false;
+  waterRegionMap.dragging.enable();
+  const mapEl = document.getElementById('water-region-map');
+  if (mapEl) mapEl.style.cursor = '';
+  const redrawBtn = document.getElementById('water-region-redraw-btn');
+  const addBtn = document.getElementById('water-region-add-btn');
+  redrawBtn.disabled = false; redrawBtn.style.opacity = '';
+  addBtn.disabled = false; addBtn.style.opacity = '';
+  document.getElementById('water-region-cancel-btn').style.display = 'none';
+  const hint = document.getElementById('water-region-draw-hint');
+  if (hint) hint.style.display = 'none';
+  waterRegionDrawStart = null;
+  if (waterRegionDrawRect) { waterRegionMap.removeLayer(waterRegionDrawRect); waterRegionDrawRect = null; }
+}
+
+function startRedrawRegionMode() { enterWaterRegionDrawMode(false); }
+function startAddRegionMode()    { enterWaterRegionDrawMode(true); }
+
 function clearWaterRegions() {
+  exitWaterRegionDrawMode();
+  waterRegionDraggingIdx = null;
   waterRegions = [];
   syncWaterRegionRectsFromState();
   renderWaterRegionsList();
 }
 
-function onWaterRegionMouseDown(e) {
+/* ── Dragging an existing region into place ── */
+function startDraggingRegion(idx, e) {
+  if (waterRegionDrawMode) return; // drawing a new region takes priority over repositioning
+  L.DomEvent.stopPropagation(e);
+  waterRegionDraggingIdx = idx;
+  waterRegionDraggingStartLatLng = e.latlng;
+  waterRegionDraggingOrigBounds = { ...waterRegions[idx] };
+  waterRegionMap.dragging.disable();
+  const mapEl = document.getElementById('water-region-map');
+  if (mapEl) mapEl.style.cursor = 'grabbing';
+}
+
+/* ── Drawing a brand-new region ── */
+function onWaterRegionMapMouseDown(e) {
   if (!waterRegionDrawMode) return;
   waterRegionDrawStart = e.latlng;
-  waterRegionShiftHeld = !!(e.originalEvent && e.originalEvent.shiftKey);
 }
 
 function onWaterRegionMouseMove(e) {
+  if (waterRegionDraggingIdx !== null) {
+    const dLat = e.latlng.lat - waterRegionDraggingStartLatLng.lat;
+    const dLng = e.latlng.lng - waterRegionDraggingStartLatLng.lng;
+    const ob = waterRegionDraggingOrigBounds;
+    waterRegionRectLayers[waterRegionDraggingIdx].setBounds([
+      [ob.minLat + dLat, ob.minLng + dLng],
+      [ob.maxLat + dLat, ob.maxLng + dLng],
+    ]);
+    return;
+  }
   if (!waterRegionDrawMode || !waterRegionDrawStart) return;
   const bounds = L.latLngBounds(waterRegionDrawStart, e.latlng);
   if (waterRegionDrawRect) waterRegionMap.removeLayer(waterRegionDrawRect);
@@ -9018,9 +9070,26 @@ function onWaterRegionMouseMove(e) {
 }
 
 function onWaterRegionMouseUp(e) {
+  if (waterRegionDraggingIdx !== null) {
+    const dLat = e.latlng.lat - waterRegionDraggingStartLatLng.lat;
+    const dLng = e.latlng.lng - waterRegionDraggingStartLatLng.lng;
+    const ob = waterRegionDraggingOrigBounds;
+    waterRegions[waterRegionDraggingIdx] = {
+      minLat: ob.minLat + dLat, maxLat: ob.maxLat + dLat,
+      minLng: ob.minLng + dLng, maxLng: ob.maxLng + dLng,
+    };
+    waterRegionMap.dragging.enable();
+    const mapEl = document.getElementById('water-region-map');
+    if (mapEl) mapEl.style.cursor = '';
+    waterRegionDraggingIdx = null;
+    syncWaterRegionRectsFromState();
+    renderWaterRegionsList();
+    return;
+  }
+
   if (!waterRegionDrawMode || !waterRegionDrawStart) return;
   const bounds = L.latLngBounds(waterRegionDrawStart, e.latlng);
-  const shiftHeld = waterRegionShiftHeld || (e.originalEvent && e.originalEvent.shiftKey);
+  const shiftHeld = waterRegionForceAdd || (e.originalEvent && e.originalEvent.shiftKey);
   const newRegion = {
     minLat: bounds.getSouth(), maxLat: bounds.getNorth(),
     minLng: bounds.getWest(),  maxLng: bounds.getEast(),
@@ -9034,11 +9103,10 @@ function onWaterRegionMouseUp(e) {
   waterRegionDrawStart = null;
   syncWaterRegionRectsFromState();
   renderWaterRegionsList();
-  // A Shift-drag adds a region and stays in draw mode, so you can keep
-  // Shift-dragging to add several without re-clicking the button each
-  // time. A plain drag replaces everything and exits, since that's a
-  // "start fresh" action.
-  if (!shiftHeld) toggleWaterRegionDrawMode();
+  // "+ Add region" (or a Shift-drag on Redraw) keeps drawing so you can
+  // add several without re-clicking. A plain Redraw drag replaces
+  // everything and exits, since that's a "start fresh" action.
+  if (!waterRegionForceAdd && !shiftHeld) exitWaterRegionDrawMode();
 }
 
 function removeWaterRegion(idx) {
