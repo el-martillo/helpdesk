@@ -1056,6 +1056,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
 <button class="stab" onclick="switchSettingsTab('tickets')" data-stab="tickets">🎫 Tickets</button>
 <button class="stab" onclick="switchSettingsTab('email')" data-stab="email">✉️ Email & Notifications</button>
 <button class="stab" onclick="switchSettingsTab('data')" data-stab="data">🗄️ Data & Maintenance</button>
+<button class="stab" onclick="switchSettingsTab('location')" data-stab="location">📍 Location</button>
         </div>
 
         <div class="settings-grid" id="settings-grid" style="padding-left:4px">
@@ -1158,125 +1159,6 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
               <input class="fc" id="settings-version" type="text" placeholder="e.g. 1.0.0" style="max-width:220px"/>
             </div>
             <button class="btn primary" onclick="saveVersion()">Save version</button>
-          </div>
-
-          <!-- Map ambience -->
-          <div class="table-card" data-card-id="map" style="padding:20px">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Map</div><label class="settings-admin-toggle" data-card-id="map" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0;background:var(--border2);border-radius:20px;transition:background .2s" data-admin-toggle-track="map"><input type="checkbox" data-admin-access-cb="map" style="opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer" onchange="onAdminAccessToggle('map', this.checked); syncAdminToggleVisual(this)"/><span style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s;pointer-events:none" data-admin-toggle-knob="map"></span></span></label></div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Controls the ambient clouds, boats, and planes that drift across the company locations map. Intensity affects their size/visibility; Frequency affects how often each one appears. Applies live on <code style="font-size:11px">locations.html</code> — no deploy needed.
-            </div>
-
-            <div style="display:flex;flex-direction:column;gap:16px">
-              <div class="map-amb-row" data-amb-row="clouds">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
-                    <input type="checkbox" id="amb-clouds-enabled" checked/> ☁️ Clouds
-                  </label>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-                  <div class="fg" style="margin-bottom:0">
-                    <label class="fl">Intensity <span id="amb-clouds-intensity-val" style="color:var(--text3);font-weight:400">50%</span></label>
-                    <input type="range" id="amb-clouds-intensity" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-clouds-intensity-val').textContent = this.value + '%'"/>
-                  </div>
-                  <div class="fg" style="margin-bottom:0">
-                    <label class="fl">Frequency <span id="amb-clouds-frequency-val" style="color:var(--text3);font-weight:400">50%</span></label>
-                    <input type="range" id="amb-clouds-frequency" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-clouds-frequency-val').textContent = this.value + '%'"/>
-                  </div>
-                </div>
-              </div>
-
-              <div class="map-amb-row" data-amb-row="boats" style="padding-top:16px;border-top:1px solid var(--border)">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
-                    <input type="checkbox" id="amb-boats-enabled" checked/> ⛵ Boats
-                  </label>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-                  <div class="fg" style="margin-bottom:0">
-                    <label class="fl">Intensity <span id="amb-boats-intensity-val" style="color:var(--text3);font-weight:400">50%</span></label>
-                    <input type="range" id="amb-boats-intensity" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-boats-intensity-val').textContent = this.value + '%'"/>
-                  </div>
-                  <div class="fg" style="margin-bottom:0">
-                    <label class="fl">Frequency <span id="amb-boats-frequency-val" style="color:var(--text3);font-weight:400">50%</span></label>
-                    <input type="range" id="amb-boats-frequency" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-boats-frequency-val').textContent = this.value + '%'"/>
-                  </div>
-                </div>
-              </div>
-
-              <div class="map-amb-row" data-amb-row="planes" style="padding-top:16px;border-top:1px solid var(--border)">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
-                    <input type="checkbox" id="amb-planes-enabled" checked/> ✈️ Planes
-                  </label>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-                  <div class="fg" style="margin-bottom:0">
-                    <label class="fl">Intensity <span id="amb-planes-intensity-val" style="color:var(--text3);font-weight:400">50%</span></label>
-                    <input type="range" id="amb-planes-intensity" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-planes-intensity-val').textContent = this.value + '%'"/>
-                  </div>
-                  <div class="fg" style="margin-bottom:0">
-                    <label class="fl">Frequency <span id="amb-planes-frequency-val" style="color:var(--text3);font-weight:400">50%</span></label>
-                    <input type="range" id="amb-planes-frequency" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-planes-frequency-val').textContent = this.value + '%'"/>
-                  </div>
-                </div>
-              </div>
-
-              <div class="map-amb-row" data-amb-row="ripples" style="padding-top:16px;border-top:1px solid var(--border)">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
-                    <input type="checkbox" id="amb-ripples-enabled" checked/> 〰️ Ripples
-                  </label>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-                  <div class="fg" style="margin-bottom:0">
-                    <label class="fl">Intensity <span id="amb-ripples-intensity-val" style="color:var(--text3);font-weight:400">50%</span></label>
-                    <input type="range" id="amb-ripples-intensity" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-ripples-intensity-val').textContent = this.value + '%'"/>
-                  </div>
-                  <div class="fg" style="margin-bottom:0">
-                    <label class="fl">Frequency <span id="amb-ripples-frequency-val" style="color:var(--text3);font-weight:400">50%</span></label>
-                    <input type="range" id="amb-ripples-frequency" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-ripples-frequency-val').textContent = this.value + '%'"/>
-                  </div>
-                </div>
-              </div>
-
-              <div class="map-amb-row" data-amb-row="dolphins" style="padding-top:16px;border-top:1px solid var(--border)">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
-                    <input type="checkbox" id="amb-dolphins-enabled" checked/> 🐬 Dolphins
-                  </label>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-                  <div class="fg" style="margin-bottom:0">
-                    <label class="fl">Intensity <span id="amb-dolphins-intensity-val" style="color:var(--text3);font-weight:400">50%</span></label>
-                    <input type="range" id="amb-dolphins-intensity" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-dolphins-intensity-val').textContent = this.value + '%'"/>
-                  </div>
-                  <div class="fg" style="margin-bottom:0">
-                    <label class="fl">Frequency <span id="amb-dolphins-frequency-val" style="color:var(--text3);font-weight:400">50%</span></label>
-                    <input type="range" id="amb-dolphins-frequency" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-dolphins-frequency-val').textContent = this.value + '%'"/>
-                  </div>
-                </div>
-              </div>
-
-              <div style="padding-top:16px;border-top:1px solid var(--border)">
-                <div style="font-size:13px;font-weight:500;margin-bottom:6px">🌊 Water region</div>
-                <div style="font-size:11.5px;color:var(--text3);margin-bottom:10px;line-height:1.6">
-                  Boats, ripples, and dolphins are confined to these boxes rather than actual water pixels — browsers block reading pixel colour data from OpenStreetMap's tiles (a CORS security restriction, not something configurable). Click "Redraw region", then drag on the map. Hold <strong>Shift</strong> while dragging to add another region instead of replacing the existing one(s) — useful for separate bodies of water like a bay and a marina.
-                </div>
-                <div id="water-region-map" style="height:220px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:10px"></div>
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-                  <button class="btn sm" type="button" id="water-region-redraw-btn" onclick="startRedrawRegionMode()">✎ Redraw region</button>
-                  <button class="btn sm" type="button" id="water-region-add-btn" onclick="startAddRegionMode()">+ Add region</button>
-                  <button class="btn sm" type="button" id="water-region-cancel-btn" onclick="exitWaterRegionDrawMode()" style="display:none">✕ Cancel</button>
-                  <button class="btn sm" type="button" onclick="clearWaterRegions()">🗑 Clear</button>
-                  <span id="water-region-draw-hint" style="font-size:11px;color:var(--text3);display:none">Drag to draw a region</span>
-                </div>
-                <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Click and hold an existing region on the map to drag it into place.</div>
-                <div id="water-regions-list" style="display:flex;flex-direction:column;gap:8px"></div>
-              </div>
-            </div>
-
-            <button class="btn primary" style="margin-top:18px" onclick="saveMapAmbienceSettings()">Save map settings</button>
           </div>
 
           <!-- Next ticket number -->
@@ -1764,6 +1646,127 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
             </div>
           </div>
 
+          </div>
+
+          <div class="stab-panel" id="stab-location">
+          <!-- Map ambience -->
+          <div class="table-card" data-card-id="map" style="padding:20px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Map</div><label class="settings-admin-toggle" data-card-id="map" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0;background:var(--border2);border-radius:20px;transition:background .2s" data-admin-toggle-track="map"><input type="checkbox" data-admin-access-cb="map" style="opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer" onchange="onAdminAccessToggle('map', this.checked); syncAdminToggleVisual(this)"/><span style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s;pointer-events:none" data-admin-toggle-knob="map"></span></span></label></div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+              Controls the ambient clouds, boats, and planes that drift across the company locations map. Intensity affects their size/visibility; Frequency affects how often each one appears. Applies live on <code style="font-size:11px">locations.html</code> — no deploy needed.
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div class="map-amb-row" data-amb-row="clouds">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
+                    <input type="checkbox" id="amb-clouds-enabled" checked/> ☁️ Clouds
+                  </label>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Intensity <span id="amb-clouds-intensity-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-clouds-intensity" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-clouds-intensity-val').textContent = this.value + '%'"/>
+                  </div>
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Frequency <span id="amb-clouds-frequency-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-clouds-frequency" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-clouds-frequency-val').textContent = this.value + '%'"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="map-amb-row" data-amb-row="boats" style="padding-top:16px;border-top:1px solid var(--border)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
+                    <input type="checkbox" id="amb-boats-enabled" checked/> ⛵ Boats
+                  </label>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Intensity <span id="amb-boats-intensity-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-boats-intensity" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-boats-intensity-val').textContent = this.value + '%'"/>
+                  </div>
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Frequency <span id="amb-boats-frequency-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-boats-frequency" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-boats-frequency-val').textContent = this.value + '%'"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="map-amb-row" data-amb-row="planes" style="padding-top:16px;border-top:1px solid var(--border)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
+                    <input type="checkbox" id="amb-planes-enabled" checked/> ✈️ Planes
+                  </label>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Intensity <span id="amb-planes-intensity-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-planes-intensity" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-planes-intensity-val').textContent = this.value + '%'"/>
+                  </div>
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Frequency <span id="amb-planes-frequency-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-planes-frequency" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-planes-frequency-val').textContent = this.value + '%'"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="map-amb-row" data-amb-row="ripples" style="padding-top:16px;border-top:1px solid var(--border)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
+                    <input type="checkbox" id="amb-ripples-enabled" checked/> 〰️ Ripples
+                  </label>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Intensity <span id="amb-ripples-intensity-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-ripples-intensity" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-ripples-intensity-val').textContent = this.value + '%'"/>
+                  </div>
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Frequency <span id="amb-ripples-frequency-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-ripples-frequency" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-ripples-frequency-val').textContent = this.value + '%'"/>
+                  </div>
+                </div>
+              </div>
+
+              <div class="map-amb-row" data-amb-row="dolphins" style="padding-top:16px;border-top:1px solid var(--border)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer">
+                    <input type="checkbox" id="amb-dolphins-enabled" checked/> 🐬 Dolphins
+                  </label>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Intensity <span id="amb-dolphins-intensity-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-dolphins-intensity" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-dolphins-intensity-val').textContent = this.value + '%'"/>
+                  </div>
+                  <div class="fg" style="margin-bottom:0">
+                    <label class="fl">Frequency <span id="amb-dolphins-frequency-val" style="color:var(--text3);font-weight:400">50%</span></label>
+                    <input type="range" id="amb-dolphins-frequency" min="0" max="100" value="50" style="width:100%" oninput="document.getElementById('amb-dolphins-frequency-val').textContent = this.value + '%'"/>
+                  </div>
+                </div>
+              </div>
+
+              <div style="padding-top:16px;border-top:1px solid var(--border)">
+                <div style="font-size:13px;font-weight:500;margin-bottom:6px">🌊 Water region</div>
+                <div style="font-size:11.5px;color:var(--text3);margin-bottom:10px;line-height:1.6">
+                  Boats, ripples, and dolphins are confined to these boxes rather than actual water pixels — browsers block reading pixel colour data from OpenStreetMap's tiles (a CORS security restriction, not something configurable). Click "Redraw region", then drag on the map. Hold <strong>Shift</strong> while dragging to add another region instead of replacing the existing one(s) — useful for separate bodies of water like a bay and a marina.
+                </div>
+                <div id="water-region-map" style="height:440px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:10px"></div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+                  <button class="btn sm" type="button" id="water-region-redraw-btn" onclick="startRedrawRegionMode()">✎ Redraw region</button>
+                  <button class="btn sm" type="button" id="water-region-add-btn" onclick="startAddRegionMode()">+ Add region</button>
+                  <button class="btn sm" type="button" id="water-region-cancel-btn" onclick="exitWaterRegionDrawMode()" style="display:none">✕ Cancel</button>
+                  <button class="btn sm" type="button" onclick="clearWaterRegions()">🗑 Clear</button>
+                  <span id="water-region-draw-hint" style="font-size:11px;color:var(--text3);display:none">Drag to draw a region</span>
+                </div>
+                <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Click and hold an existing region on the map to drag it into place.</div>
+                <div id="water-regions-list" style="display:flex;flex-direction:column;gap:8px"></div>
+              </div>
+            </div>
+
+            <button class="btn primary" style="margin-top:18px" onclick="saveMapAmbienceSettings()">Save map settings</button>
+          </div>
           </div>
 
         </div>
@@ -2906,7 +2909,7 @@ function switchSettingsTab(tid) {
   if (tid === 'all') {
     // Show all content panels, hide the empty all-panel
     document.getElementById('stab-all').classList.remove('active');
-    ['general','tickets','email','data'].forEach(id => {
+    ['general','tickets','email','data','location'].forEach(id => {
       document.getElementById('stab-' + id).classList.add('active');
     });
   } else {
@@ -2929,7 +2932,7 @@ function filterSettingsCards(q) {
     // Show all content panels when searching
     document.querySelectorAll('.stab').forEach(b => b.classList.toggle('stab-active', b.dataset.stab === 'all'));
     document.getElementById('stab-all').classList.remove('active');
-    ['general','tickets','email','data'].forEach(id => {
+    ['general','tickets','email','data','location'].forEach(id => {
       document.getElementById('stab-' + id)?.classList.add('active');
     });
   }
@@ -3991,8 +3994,6 @@ async function openTicketDetail(id) {
           ${sourcePill(t.source)}
           <span style="font-size:12px;color:var(--text2);font-weight:500;margin-left:4px">Category:</span>
           <select class="filter-sel" id="detail-cat-sel" onchange="updateCategory('${t.id}',this.value)">${categoriesList.map(c=>`<option value="${c}" ${c===t.category?'selected':''}>${c}</option>`).join('')}</select>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;row-gap:8px">
           <span style="font-size:12px;color:var(--text2);font-weight:500">Priority:</span>
           <select class="filter-sel" id="detail-pri-sel" onchange="updatePriority('${t.id}',this.value)">
             <option value="low" ${t.priority==='low'?'selected':''}>Low</option>
@@ -4000,6 +4001,8 @@ async function openTicketDetail(id) {
             <option value="high" ${t.priority==='high'?'selected':''}>High</option>
             <option value="critical" ${t.priority==='critical'?'selected':''}>Critical</option>
           </select>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;row-gap:8px">
           <span style="font-size:12px;color:var(--text2);font-weight:500">Status:</span>
           <select class="filter-sel" onchange="updateStatus('${t.id}',this.value)">
             <option value="open" ${t.status==='open'?'selected':''}>Open</option>
@@ -6366,7 +6369,7 @@ function updateSettingsTabVisibility(role) {
     document.querySelectorAll('.stab[data-stab]').forEach(btn => { btn.style.display = ''; });
     return;
   }
-  ['general', 'tickets', 'email', 'data'].forEach(tab => {
+  ['general', 'tickets', 'email', 'data', 'location'].forEach(tab => {
     const panel = document.getElementById('stab-' + tab);
     const btn = document.querySelector(`.stab[data-stab="${tab}"]`);
     if (!panel || !btn) return;
@@ -6646,7 +6649,7 @@ function initSettingsDrag() {
   // Ensure All tab shows all content panels on first load
   const allPanel = document.getElementById('stab-all');
   if (allPanel) allPanel.classList.remove('active');
-  ['general','tickets','email','data'].forEach(id => {
+  ['general','tickets','email','data','location'].forEach(id => {
     document.getElementById('stab-' + id)?.classList.add('active');
   });
 
@@ -8910,16 +8913,33 @@ async function loadMapAmbienceSettings() {
 
   // water_bounds is an array of {minLat,maxLat,minLng,maxLng} regions.
   // Older saved settings may have a single object instead of an array —
-  // migrate that transparently into a one-item array.
+  // migrate that transparently into a one-item array. Also self-heals
+  // degenerate zero-area regions (min===max, created by a click without
+  // a real drag) by expanding them to a small visible box.
   let wb = settings.water_bounds || MAP_AMBIENCE_DEFAULTS.water_bounds;
   if (!Array.isArray(wb)) wb = [wb];
-  waterRegions = wb.map(r => ({ ...r }));
+  waterRegions = wb.map(r => expandDegenerateRegion({ ...r }));
 
   requestAnimationFrame(() => {
     renderWaterRegionsList();
     if (!waterRegionMap) initWaterRegionMap();
     else { syncWaterRegionRectsFromState(); waterRegionMap.invalidateSize(); }
   });
+}
+
+// A region drawn by clicking without dragging any real distance ends up
+// with min===max on both axes — a single point, invisible on the map.
+// Expand any region below a minimum size to a small box centered on the
+// same point, so it's always visible and usable.
+const MIN_REGION_SIZE = 0.003; // roughly 300m — enough to see at typical zoom
+function expandDegenerateRegion(r) {
+  const latSize = r.maxLat - r.minLat, lngSize = r.maxLng - r.minLng;
+  if (latSize >= MIN_REGION_SIZE && lngSize >= MIN_REGION_SIZE) return r;
+  const cLat = (r.maxLat + r.minLat) / 2, cLng = (r.maxLng + r.minLng) / 2;
+  return {
+    minLat: cLat - MIN_REGION_SIZE / 2, maxLat: cLat + MIN_REGION_SIZE / 2,
+    minLng: cLng - MIN_REGION_SIZE / 2, maxLng: cLng + MIN_REGION_SIZE / 2,
+  };
 }
 
 /* ── Water region mini-map: visual + drag-to-select calibration, supports
@@ -9090,10 +9110,10 @@ function onWaterRegionMouseUp(e) {
   if (!waterRegionDrawMode || !waterRegionDrawStart) return;
   const bounds = L.latLngBounds(waterRegionDrawStart, e.latlng);
   const shiftHeld = waterRegionForceAdd || (e.originalEvent && e.originalEvent.shiftKey);
-  const newRegion = {
+  const newRegion = expandDegenerateRegion({
     minLat: bounds.getSouth(), maxLat: bounds.getNorth(),
     minLng: bounds.getWest(),  maxLng: bounds.getEast(),
-  };
+  });
   if (shiftHeld) {
     waterRegions.push(newRegion);
   } else {
@@ -9133,15 +9153,25 @@ function renderWaterRegionsList() {
     <div data-region-idx="${i}" style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);transition:border-color .15s" onmouseenter="highlightWaterRegion(${i}, true)" onmouseleave="highlightWaterRegion(${i}, false)">
       <span style="font-size:11px;color:var(--text3);width:14px;flex-shrink:0">${i + 1}</span>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;flex:1">
-        <input class="fc" style="font-size:11px;padding:5px 7px" type="number" step="0.001" value="${r.minLat}" title="Min latitude" onchange="updateWaterRegionField(${i}, 'minLat', this.value)"/>
-        <input class="fc" style="font-size:11px;padding:5px 7px" type="number" step="0.001" value="${r.maxLat}" title="Max latitude" onchange="updateWaterRegionField(${i}, 'maxLat', this.value)"/>
-        <input class="fc" style="font-size:11px;padding:5px 7px" type="number" step="0.001" value="${r.minLng}" title="Min longitude" onchange="updateWaterRegionField(${i}, 'minLng', this.value)"/>
-        <input class="fc" style="font-size:11px;padding:5px 7px" type="number" step="0.001" value="${r.maxLng}" title="Max longitude" onchange="updateWaterRegionField(${i}, 'maxLng', this.value)"/>
+        <input class="fc" style="font-size:11px;padding:5px 7px" type="number" step="0.001" value="${r.minLat}" title="Min latitude" onchange="updateWaterRegionField(${i}, 'minLat', this.value)" onfocus="focusWaterRegion(${i})"/>
+        <input class="fc" style="font-size:11px;padding:5px 7px" type="number" step="0.001" value="${r.maxLat}" title="Max latitude" onchange="updateWaterRegionField(${i}, 'maxLat', this.value)" onfocus="focusWaterRegion(${i})"/>
+        <input class="fc" style="font-size:11px;padding:5px 7px" type="number" step="0.001" value="${r.minLng}" title="Min longitude" onchange="updateWaterRegionField(${i}, 'minLng', this.value)" onfocus="focusWaterRegion(${i})"/>
+        <input class="fc" style="font-size:11px;padding:5px 7px" type="number" step="0.001" value="${r.maxLng}" title="Max longitude" onchange="updateWaterRegionField(${i}, 'maxLng', this.value)" onfocus="focusWaterRegion(${i})"/>
       </div>
       <button class="btn sm" style="flex-shrink:0" onclick="removeWaterRegion(${i})">✕</button>
     </div>
   `).join('');
 }
+
+// Clicking into any of a region's lat/lng fields highlights and pans the
+// mini-map to that region, so it's easy to see which box you're editing.
+function focusWaterRegion(idx) {
+  highlightWaterRegion(idx, true);
+  const r = waterRegions[idx];
+  if (!r || !waterRegionMap) return;
+  try { waterRegionMap.fitBounds([[r.minLat, r.minLng], [r.maxLat, r.maxLng]], { maxZoom: 17, padding: [40, 40] }); } catch(e) {}
+}
+
 
 async function saveMapAmbienceSettings() {
   const settings = {};
