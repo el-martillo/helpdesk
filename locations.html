@@ -550,23 +550,49 @@ function installRotationDragFix(mapEl) {
 // in situ and rescale as the map is panned/zoomed, without needing to
 // reason about the rotation transform at all: every point used is one
 // that was actually measured from the live DOM.
+// Lightweight ambient overlay: drifting clouds (with soft shadows on the
+// map below), planes on diagonal paths, and — anchored within one or more
+// configurable water regions — boats, ripples, and jumping dolphins.
+// Lives in loc-map-outer as an UNROTATED sibling of the (rotated) Leaflet
+// container, so screen-space elements (clouds/planes) move naturally
+// regardless of the map's 90deg CSS rotation. Purely decorative —
+// pointer-events:none.
+//
+// Water confinement: browsers block reading pixel colour data from
+// OpenStreetMap's tiles (no CORS headers on the tile server), so real
+// "is this pixel water" detection isn't possible. Instead, four invisible
+// markers are placed at each water region's corners; their ACTUAL
+// rendered screen positions (via getBoundingClientRect, same technique as
+// the info-card positioning) are read each frame and used to bilinearly
+// interpolate a screen point for any fractional (u,v) position within
+// that region. Water-anchored elements store a region index plus (u,v) —
+// a fixed point *in the geography*, not in screen pixels — so they
+// correctly stay in situ and rescale as the map is panned/zoomed, without
+// needing to reason about the rotation transform at all: every point used
+// is one that was actually measured from the live DOM.
 function initMapAmbience(canvasId, settings, map) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return () => {};
   const ctx = canvas.getContext('2d');
   let W, H, raf, running = true;
 
+  const DEFAULT_REGION = { minLat: 36.100, maxLat: 36.175, minLng: -5.420, maxLng: -5.330 };
   const DEFAULTS = {
     clouds:   { enabled: true, intensity: 50, frequency: 50 },
     boats:    { enabled: true, intensity: 50, frequency: 50 },
     planes:   { enabled: true, intensity: 50, frequency: 50 },
     ripples:  { enabled: true, intensity: 50, frequency: 50 },
     dolphins: { enabled: true, intensity: 50, frequency: 50 },
-    water_bounds: { minLat: 36.100, maxLat: 36.175, minLng: -5.420, maxLng: -5.330 },
+    water_bounds: [DEFAULT_REGION],
   };
   settings = { ...DEFAULTS, ...(settings || {}) };
   ['clouds', 'boats', 'planes', 'ripples', 'dolphins'].forEach(k => { settings[k] = { ...DEFAULTS[k], ...(settings[k] || {}) }; });
-  const wb = { ...DEFAULTS.water_bounds, ...(settings.water_bounds || {}) };
+
+  // water_bounds may be a single object (older saved settings) or an
+  // array of regions — normalise to an array either way.
+  let waterBoundsList = settings.water_bounds || DEFAULTS.water_bounds;
+  if (!Array.isArray(waterBoundsList)) waterBoundsList = [waterBoundsList];
+  if (!waterBoundsList.length) waterBoundsList = [DEFAULT_REGION];
 
   const scaleFor = key => 0.2 + (settings[key].intensity / 100) * 1.6;
   const intervalFactorFor = key => Math.max(0.15, 2 - settings[key].frequency / 50);
@@ -589,24 +615,24 @@ function initMapAmbience(canvasId, settings, map) {
     return Math.min(3, Math.max(0.4, Math.pow(1.3, map.getZoom() - baselineZoom)));
   }
 
-  // ── Water region: four invisible corner markers, measured live each
-  //    frame via getBoundingClientRect (never via Leaflet's internal
-  //    pre-rotation pixel math, which would need reasoning through the
-  //    CSS rotation transform to get right). ──
-  let waterCorners = null; // { sw, se, nw, ne }, each a real Leaflet marker
+  // ── Water regions: four invisible corner markers PER region, measured
+  //    live each frame via getBoundingClientRect. ──
+  let waterRegionMarkers = []; // [{sw,se,nw,ne}, ...] one set per region
   if (map) {
     const invisibleIcon = L.divIcon({ className: '', html: '', iconSize: [0, 0] });
-    waterCorners = {
+    waterRegionMarkers = waterBoundsList.map(wb => ({
       sw: L.marker([wb.minLat, wb.minLng], { icon: invisibleIcon, interactive: false }).addTo(map),
       se: L.marker([wb.minLat, wb.maxLng], { icon: invisibleIcon, interactive: false }).addTo(map),
       nw: L.marker([wb.maxLat, wb.minLng], { icon: invisibleIcon, interactive: false }).addTo(map),
       ne: L.marker([wb.maxLat, wb.maxLng], { icon: invisibleIcon, interactive: false }).addTo(map),
-    };
+    }));
   }
 
-  function measuredCorners() {
+  // Returns an array of measured corner-sets, one per water region (skips
+  // any region whose marker elements aren't in the DOM yet).
+  function measuredRegions() {
     const outer = document.getElementById('loc-map-outer');
-    if (!waterCorners || !outer) return null;
+    if (!waterRegionMarkers.length || !outer) return [];
     const oRect = outer.getBoundingClientRect();
     const pt = marker => {
       const el = marker.getElement();
@@ -614,17 +640,20 @@ function initMapAmbience(canvasId, settings, map) {
       const r = el.getBoundingClientRect();
       return { x: r.left - oRect.left, y: r.top - oRect.top };
     };
-    const sw = pt(waterCorners.sw), se = pt(waterCorners.se), nw = pt(waterCorners.nw), ne = pt(waterCorners.ne);
-    if (!sw || !se || !nw || !ne) return null;
-    return { sw, se, nw, ne };
+    const out = [];
+    waterRegionMarkers.forEach(m => {
+      const sw = pt(m.sw), se = pt(m.se), nw = pt(m.nw), ne = pt(m.ne);
+      if (sw && se && nw && ne) out.push({ sw, se, nw, ne });
+    });
+    return out;
   }
 
   function lerp(a, b, t) { return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }; }
 
   // Bilinearly interpolate a screen point for a fractional (u,v) position
-  // within the water box — u/v each 0..1 — from the four REAL measured
-  // corner positions. Works regardless of rotation/pan/zoom because it
-  // only ever uses actually-measured points, never calculated geometry.
+  // within a given region's corner-set — u/v each 0..1. Works regardless
+  // of rotation/pan/zoom because it only ever uses actually-measured
+  // points, never calculated geometry.
   function projectUV(u, v, corners) {
     const bottom = lerp(corners.sw, corners.se, u); // minLat edge
     const top    = lerp(corners.nw, corners.ne, u); // maxLat edge
@@ -671,13 +700,16 @@ function initMapAmbience(canvasId, settings, map) {
     ctx.restore();
   }
 
-  // ── Boats: anchored within the water box by (u,v); drift slowly along
-  //    u over their lifetime, at a fixed v "lane". Screen position is
-  //    re-derived from the live corners every frame, so they stay in situ
-  //    and rescale correctly through pan/zoom. ──
-  function spawnBoat() {
+  // ── Boats: anchored within a randomly-chosen water region by (u,v);
+  //    drift slowly along u over their lifetime, at a fixed v "lane".
+  //    Screen position is re-derived from that region's live corners
+  //    every frame, so they stay in situ and rescale correctly through
+  //    pan/zoom. ──
+  function spawnBoat(regionCount) {
+    if (!regionCount) return;
     const dir = Math.random() < 0.5 ? 1 : -1;
     boats.push({
+      regionIdx: Math.floor(Math.random() * regionCount),
       u: dir === 1 ? -0.08 : 1.08,
       v: 0.15 + Math.random() * 0.7,
       dir,
@@ -686,7 +718,8 @@ function initMapAmbience(canvasId, settings, map) {
     });
   }
 
-  function drawBoat(b, corners) {
+  function drawBoat(b, regions) {
+    const corners = regions[b.regionIdx];
     if (!corners) return;
     const scale = scaleFor('boats') * currentZoomScale();
     const p = projectUV(Math.max(-0.1, Math.min(1.1, b.u)), b.v, corners);
@@ -755,12 +788,15 @@ function initMapAmbience(canvasId, settings, map) {
     ctx.restore();
   }
 
-  // ── Ripples: anchored at a single fixed (u,v), expand and fade in place. ──
-  function spawnRipple() {
-    ripples.push({ u: Math.random(), v: Math.random(), age: 0, life: 1.6 + Math.random() * 0.8 });
+  // ── Ripples: anchored at a single fixed (u,v) within a random region,
+  //    expand and fade in place. ──
+  function spawnRipple(regionCount) {
+    if (!regionCount) return;
+    ripples.push({ regionIdx: Math.floor(Math.random() * regionCount), u: Math.random(), v: Math.random(), age: 0, life: 1.6 + Math.random() * 0.8 });
   }
 
-  function drawRipple(rp, corners) {
+  function drawRipple(rp, regions) {
+    const corners = regions[rp.regionIdx];
     if (!corners) return;
     const scale = scaleFor('ripples') * currentZoomScale();
     const p = projectUV(rp.u, rp.v, corners);
@@ -777,16 +813,19 @@ function initMapAmbience(canvasId, settings, map) {
     ctx.restore();
   }
 
-  // ── Dolphins: anchored jump between two nearby (u,v) points. ──
-  function spawnDolphin() {
+  // ── Dolphins: anchored jump between two nearby (u,v) points within a
+  //    random region. ──
+  function spawnDolphin(regionCount) {
+    if (!regionCount) return;
     const dir = Math.random() < 0.5 ? 1 : -1;
     const u0 = 0.1 + Math.random() * 0.7;
     const v0 = 0.15 + Math.random() * 0.7;
     const jump = 0.05 + Math.random() * 0.05;
-    dolphins.push({ u0, u1: u0 + jump * dir, v: v0, dir, age: 0, life: 1.1 });
+    dolphins.push({ regionIdx: Math.floor(Math.random() * regionCount), u0, u1: u0 + jump * dir, v: v0, dir, age: 0, life: 1.1 });
   }
 
-  function drawDolphin(d, corners) {
+  function drawDolphin(d, regions) {
+    const corners = regions[d.regionIdx];
     if (!corners) return;
     const scale = scaleFor('dolphins') * currentZoomScale();
     const t = Math.min(1, d.age / d.life);
@@ -824,22 +863,23 @@ function initMapAmbience(canvasId, settings, map) {
     const dt = Math.min(0.05, (t - lastT) / 1000);
     lastT = t;
     ctx.clearRect(0, 0, W, H);
-    const corners = measuredCorners();
+    const regions = measuredRegions();
+    const regionCount = regions.length;
 
     const cf = intervalFactorFor('clouds'), bf = intervalFactorFor('boats'), pf = intervalFactorFor('planes');
     const rf = intervalFactorFor('ripples'), df = intervalFactorFor('dolphins');
     if (settings.clouds.enabled   && t - lastCloud   > (9000  + Math.random() * 6000)  * cf) { spawnCloud();   lastCloud   = t; }
-    if (settings.boats.enabled    && t - lastBoat    > (22000 + Math.random() * 20000) * bf) { spawnBoat();    lastBoat    = t; }
+    if (settings.boats.enabled    && regionCount && t - lastBoat    > (22000 + Math.random() * 20000) * bf) { spawnBoat(regionCount);    lastBoat    = t; }
     if (settings.planes.enabled   && t - lastPlane   > (16000 + Math.random() * 14000) * pf) { spawnPlane();   lastPlane   = t; }
-    if (settings.ripples.enabled  && t - lastRipple  > (4000  + Math.random() * 5000)  * rf) { spawnRipple();  lastRipple  = t; }
-    if (settings.dolphins.enabled && t - lastDolphin > (18000 + Math.random() * 22000) * df) { spawnDolphin(); lastDolphin = t; }
+    if (settings.ripples.enabled  && regionCount && t - lastRipple  > (4000  + Math.random() * 5000)  * rf) { spawnRipple(regionCount);  lastRipple  = t; }
+    if (settings.dolphins.enabled && regionCount && t - lastDolphin > (18000 + Math.random() * 22000) * df) { spawnDolphin(regionCount); lastDolphin = t; }
 
     for (let i = clouds.length - 1; i >= 0; i--) {
       const c = clouds[i]; c.x += c.speed * dt; drawCloud(c);
       if (c.x - 70 > W) clouds.splice(i, 1);
     }
     for (let i = boats.length - 1; i >= 0; i--) {
-      const b = boats[i]; b.u += b.speed * b.dir * dt; b.bob += dt * 2; drawBoat(b, corners);
+      const b = boats[i]; b.u += b.speed * b.dir * dt; b.bob += dt * 2; drawBoat(b, regions);
       if (b.u > 1.15 || b.u < -0.15) boats.splice(i, 1);
     }
     for (let i = planes.length - 1; i >= 0; i--) {
@@ -847,11 +887,11 @@ function initMapAmbience(canvasId, settings, map) {
       if (p.x < -60 || p.x > W + 60 || p.y < -60 || p.y > H + 60) planes.splice(i, 1);
     }
     for (let i = ripples.length - 1; i >= 0; i--) {
-      const r = ripples[i]; r.age += dt; drawRipple(r, corners);
+      const r = ripples[i]; r.age += dt; drawRipple(r, regions);
       if (r.age >= r.life) ripples.splice(i, 1);
     }
     for (let i = dolphins.length - 1; i >= 0; i--) {
-      const d = dolphins[i]; d.age += dt; drawDolphin(d, corners);
+      const d = dolphins[i]; d.age += dt; drawDolphin(d, regions);
       if (d.age >= d.life) dolphins.splice(i, 1);
     }
 
@@ -865,9 +905,11 @@ function initMapAmbience(canvasId, settings, map) {
     running = false;
     if (raf) cancelAnimationFrame(raf);
     window.removeEventListener('resize', resize);
-    if (waterCorners && map) {
-      map.removeLayer(waterCorners.sw); map.removeLayer(waterCorners.se);
-      map.removeLayer(waterCorners.nw); map.removeLayer(waterCorners.ne);
+    if (map) {
+      waterRegionMarkers.forEach(m => {
+        map.removeLayer(m.sw); map.removeLayer(m.se);
+        map.removeLayer(m.nw); map.removeLayer(m.ne);
+      });
     }
   };
 }
