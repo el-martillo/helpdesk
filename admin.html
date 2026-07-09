@@ -4252,15 +4252,9 @@ async function addComment(ticketId) {
   const {error}=await sbClient.from('comments').insert({ticket_id:ticketId,author_id:currentUser.id,body,is_internal:isInternal});
   if (error){toast('Error: '+error.message);return;}
   document.getElementById('reply-text').value=''; toast('Reply sent'); openTicketDetail(ticketId);
-  if (!isInternal) {
-    try {
-      await fetch(`${SB_URL}/functions/v1/ticket-notify`, {
-        method:'POST',
-        headers:{'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
-        body:JSON.stringify({ticket_id:ticketId,new_status:'new_comment',changed_by:currentProfile?.full_name||'Admin',comment_preview:body.slice(0,120)})
-      });
-    } catch(e) { console.warn('WA comment notify failed:',e.message); }
-  }
+  // No Telegram alert here on purpose — an admin replying doesn't need a
+  // Telegram ping to tell them what they just did. Client-authored replies
+  // still alert the team via wa-trigger -> ticket-notify.
 }
 async function updateStatus(id, status) {
   await sbClient.from('tickets').update({status}).eq('id',id);
