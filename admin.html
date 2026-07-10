@@ -6336,6 +6336,7 @@ const WA_TRIGGER_DEFS = [
   { key: 'escalated',   label: 'Priority escalated',       desc: 'Fires when a ticket priority is raised (non-critical)' },
   { key: 'new_comment', label: 'New client message',       desc: 'Fires when a client adds a public comment' },
   { key: 'new_user',    label: 'New user registration',    desc: 'Fires when a new client profile is created' },
+  { key: 'email_bounced', label: 'Email bounced',          desc: 'Fires when a sent email hard-bounces (e.g. recipient mailbox does not exist) — requires the resend-webhook function' },
 ];
 
 let waEnabledTriggers = [];
