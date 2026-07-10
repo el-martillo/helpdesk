@@ -866,21 +866,21 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
               </div>
             </div>
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
-              <a href="https://analytics.google.com/analytics/web/#/p$(G-EHHF524M5T)/reports/intelligenthome" target="_blank" style="text-decoration:none">
+              <a href="https://analytics.google.com/analytics/web/#/p$(G-EHHF524M5T)/reports/intelligenthome" target="_blank" rel="noopener noreferrer" style="text-decoration:none">
                 <div class="table-card" style="padding:16px;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--accent)'" onmouseout="this.style.boxShadow=''">
                   <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:8px">Overview</div>
                   <div style="font-size:13px;font-weight:500;color:var(--accent)">Home report →</div>
                   <div style="font-size:11px;color:var(--text2);margin-top:4px">Traffic summary &amp; key metrics</div>
                 </div>
               </a>
-              <a href="https://analytics.google.com/analytics/web/#/p$(G-EHHF524M5T)/reports/realtimeoverview" target="_blank" style="text-decoration:none">
+              <a href="https://analytics.google.com/analytics/web/#/p$(G-EHHF524M5T)/reports/realtimeoverview" target="_blank" rel="noopener noreferrer" style="text-decoration:none">
                 <div class="table-card" style="padding:16px;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--success)'" onmouseout="this.style.boxShadow=''">
                   <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:8px">Realtime</div>
                   <div style="font-size:13px;font-weight:500;color:var(--success)">Live users →</div>
                   <div style="font-size:11px;color:var(--text2);margin-top:4px">Active users right now</div>
                 </div>
               </a>
-              <a href="https://analytics.google.com/analytics/web/#/p$(G-EHHF524M5T)/reports/acquisition-overview" target="_blank" style="text-decoration:none">
+              <a href="https://analytics.google.com/analytics/web/#/p$(G-EHHF524M5T)/reports/acquisition-overview" target="_blank" rel="noopener noreferrer" style="text-decoration:none">
                 <div class="table-card" style="padding:16px;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 0 0 2px var(--purple)'" onmouseout="this.style.boxShadow=''">
                   <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-bottom:8px">Acquisition</div>
                   <div style="font-size:13px;font-weight:500;color:var(--purple)">Traffic sources →</div>
@@ -1099,7 +1099,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
           <div class="table-card" data-card-id="organisations" style="padding:20px">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Organisations</div><label class="settings-admin-toggle" data-card-id="organisations" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0;background:var(--border2);border-radius:20px;transition:background .2s" data-admin-toggle-track="organisations"><input type="checkbox" data-admin-access-cb="organisations" style="opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer" onchange="onAdminAccessToggle('organisations', this.checked); syncAdminToggleVisual(this)"/><span style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s;pointer-events:none" data-admin-toggle-knob="organisations"></span></span></label></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Manage the list of organisations, their accent colours, and their map location (address &amp; pin). Used in dropdowns, directory, user profiles, and the <a href="locations.html" target="_blank" style="color:var(--accent)">company locations map</a> across the system.
+              Manage the list of organisations, their accent colours, and their map location (address &amp; pin). Used in dropdowns, directory, user profiles, and the <a href="locations.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">company locations map</a> across the system.
             </div>
             <div id="org-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
               <div style="text-align:center;padding:16px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
@@ -1117,7 +1117,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
           <div class="table-card" data-card-id="sites" style="padding:20px">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px"><div style="font-size:13px;font-weight:600">Sites</div><label class="settings-admin-toggle" data-card-id="sites" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);cursor:pointer;user-select:none;flex-shrink:0"><span style="white-space:nowrap">Admin access</span><span style="position:relative;display:inline-block;width:32px;height:18px;flex-shrink:0;background:var(--border2);border-radius:20px;transition:background .2s" data-admin-toggle-track="sites"><input type="checkbox" data-admin-access-cb="sites" style="opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer" onchange="onAdminAccessToggle('sites', this.checked); syncAdminToggleVisual(this)"/><span style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s;pointer-events:none" data-admin-toggle-knob="sites"></span></span></label></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">
-              Extra named locations that are <strong>not</strong> organisations — they never appear in the Directory or its dropdowns. Use these for your own branches, depots, or other sites you just want plotted on the <a href="locations.html" target="_blank" style="color:var(--accent)">locations map</a> alongside organisations.
+              Extra named locations that are <strong>not</strong> organisations — they never appear in the Directory or its dropdowns. Use these for your own branches, depots, or other sites you just want plotted on the <a href="locations.html" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">locations map</a> alongside organisations.
             </div>
             <div id="site-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
               <div style="text-align:center;padding:16px;color:var(--text3);font-size:12px"><div class="loader"></div></div>
@@ -10086,7 +10086,7 @@ function renderMsgAttachments() {
   msgClonedAttachments.forEach((a,i) => rows.push(`
     <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);font-size:12px">
       <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0;color:var(--text3)"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-      <a href="${esc(a.url)}" target="_blank" style="color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escH(a.name)}</a>
+      <a href="${esc(a.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escH(a.name)}</a>
       <span style="color:var(--text3);font-size:10px;flex-shrink:0">(existing)</span>
       <button onclick="removeMsgClonedAttachment(${i})" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text3);flex-shrink:0">✕</button>
     </div>`));
@@ -10220,7 +10220,7 @@ function viewBroadcast(id) {
   document.getElementById('msgv-subject').textContent   = m.subject || '';
   document.getElementById('msgv-to').textContent        = `${m.recipient_type === 'admins' ? 'Admins' : 'All users'} (${m.recipient_count ?? 0})`;
   document.getElementById('msgv-attachments').innerHTML = atts.length
-    ? atts.map(a => `<a href="${esc(a.url)}" target="_blank" style="color:var(--accent);text-decoration:none;margin-right:10px">${escH(a.name)}</a>`).join('')
+    ? atts.map(a => `<a href="${esc(a.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none;margin-right:10px">${escH(a.name)}</a>`).join('')
     : '—';
   document.getElementById('msgv-body').innerHTML = m.body_html || '';
   openModal('modal-msg-view');
