@@ -4661,11 +4661,11 @@ function ntPopulateRequesterDropdown() {
   const sel = document.getElementById('nt-requester');
   if (!sel) return;
   const sorted = [...allProfiles].sort((a, b) => {
-    const order = { client:0, agent:1, admin:2 };
+    const order = { client:0, admin:1 };
     if (a.role !== b.role) return (order[a.role]??9) - (order[b.role]??9);
     return (a.full_name||'').localeCompare(b.full_name||'');
   });
-  const groups = { client:[], agent:[], admin:[] };
+  const groups = { client:[], admin:[] };
   sorted.forEach(p => { if (groups[p.role]) groups[p.role].push(p); });
   const makeOpts = (list, label) => {
     if (!list.length) return '';
@@ -4676,7 +4676,6 @@ function ntPopulateRequesterDropdown() {
   sel.innerHTML =
     '<option value="">— Select a user, or fill contact details manually below —</option>' +
     makeOpts(groups.client, 'Clients') +
-    makeOpts(groups.agent,  'Agents') +
     makeOpts(groups.admin,  'Admins');
   ntPopulateCategoryDropdown();
 }
@@ -6476,7 +6475,7 @@ async function loadWaTriggers() {
     const { data, error } = await sbClient
       .from('profiles')
       .select('id, full_name, email, role, telegram_alerts, telegram_chat_id')
-      .in('role', ['admin', 'super_admin', 'agent'])
+      .in('role', ['admin', 'super_admin'])
       .order('full_name');
     if (error) throw error;
     waAdminProfiles = data || [];

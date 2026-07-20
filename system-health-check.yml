@@ -1,0 +1,114 @@
+name: System Health Check
+
+# Independent uptime monitor for the El Martillo Helpdesk.
+# Runs outside Supabase on purpose: if Supabase itself is down, a Supabase
+# Edge Function can't reliably alert about its own outage. GitHub Actions
+# checks both the static site and the Supabase backend from the outside,
+# and only messages Telegram when the status actually changes (down -> up
+# or up -> down), so you get one alert per incident, not one per run.
+#
+# Setup required (one-time):
+#   Repo Settings -> Secrets and variables -> Actions -> New repository secret
+#     TELEGRAM_BOT_TOKEN  = your bot's token (from @BotFather)
+#     TELEGRAM_CHAT_ID    = chat/group id to receive alerts
+#   Place this file at: .github/workflows/system-health-check.yml
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # every 5 min (GitHub may delay this under load)
+  workflow_dispatch: {}       # lets you trigger a manual test run
+
+permissions:
+  contents: write            # needed to commit the last-known-status file
+
+concurrency:
+  group: system-health-check
+  cancel-in-progress: false
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check site + backend health
+        id: check
+        run: |
+          set +e
+          SITE_URL="https://el-martillo.github.io/helpdesk/index.html"
+          SB_URL="https://gtcrmqbmlvtlyiwnshma.supabase.co"
+          # Public anon key (intentionally client-side, see index.html comment)
+          SB_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0Y3JtcWJtbHZ0bHlpd25zaG1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTk5MDYsImV4cCI6MjA5NDIzNTkwNn0.NO2OPT5q-xH6SexYIKCZkSlOxjptHu7FyClsp1HdbQc"
+
+          check_url() {
+            for i in 1 2 3; do
+              if curl --fail --silent --show-error --max-time 10 "$1" -o /dev/null; then
+                return 0
+              fi
+              sleep 5
+            done
+            return 1
+          }
+
+          site_ok=true
+          check_url "$SITE_URL" || site_ok=false
+
+          sb_ok=true
+          check_url_auth() {
+            for i in 1 2 3; do
+              if curl --fail --silent --show-error --max-time 10 \
+                   -H "apikey: $SB_ANON_KEY" \
+                   -H "Authorization: Bearer $SB_ANON_KEY" \
+                   "$SB_URL/rest/v1/app_settings?select=key&limit=1" -o /dev/null; then
+                return 0
+              fi
+              sleep 5
+            done
+            return 1
+          }
+          check_url_auth || sb_ok=false
+
+          echo "site_ok=$site_ok" >> "$GITHUB_OUTPUT"
+          echo "sb_ok=$sb_ok" >> "$GITHUB_OUTPUT"
+
+          if [ "$site_ok" = true ] && [ "$sb_ok" = true ]; then
+            echo "status=up" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=down" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Read previous status
+        id: prev
+        run: |
+          if [ -f .github/health-status.txt ]; then
+            echo "prev_status=$(cat .github/health-status.txt)" >> "$GITHUB_OUTPUT"
+          else
+            echo "prev_status=up" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Notify Telegram on state change
+        if: steps.check.outputs.status != steps.prev.outputs.prev_status
+        run: |
+          if [ "${{ steps.check.outputs.status }}" = "down" ]; then
+            TEXT="🔴 El Martillo Helpdesk is DOWN%0ASite reachable: ${{ steps.check.outputs.site_ok }}%0ASupabase reachable: ${{ steps.check.outputs.sb_ok }}%0ATime: $(date -u '+%Y-%m-%d %H:%M UTC')"
+          else
+            TEXT="🟢 El Martillo Helpdesk is back UP%0ATime: $(date -u '+%Y-%m-%d %H:%M UTC')"
+          fi
+          curl --silent --show-error -X POST \
+            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            --data-urlencode "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            --data-urlencode "text=$TEXT"
+
+      - name: Persist status
+        run: |
+          mkdir -p .github
+          echo "${{ steps.check.outputs.status }}" > .github/health-status.txt
+
+      - name: Commit status file if changed
+        run: |
+          git config user.name "health-check-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add .github/health-status.txt
+          git diff --staged --quiet || git commit -m "chore: update health status [skip ci]"
+          git push
