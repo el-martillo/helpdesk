@@ -735,14 +735,33 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
              should match (same email) but disagree, are missing from one
              side, or are orphaned on the Directory side. -->
         <div class="table-card" id="dir-sync-card" style="margin-bottom:20px">
-          <div class="table-toolbar">
-            <div style="font-size:13px;font-weight:600;flex:1">Directory sync check</div>
-            <button class="btn sm" onclick="renderDirectorySyncPanel()">
+          <div class="table-toolbar" style="cursor:pointer" onclick="toggleDirSyncCollapse()">
+            <svg id="dir-sync-chevron" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="transition:transform .15s;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>
+            <div style="font-size:13px;font-weight:600">Directory sync check</div>
+            <span id="dir-sync-count-badge" style="font-size:11px;color:var(--text3)"></span>
+            <div style="flex:1"></div>
+            <button class="btn sm" onclick="event.stopPropagation();renderDirectorySyncPanel()">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
               Refresh
             </button>
           </div>
-          <div id="dir-sync-body" style="padding:14px 16px;font-size:12.5px;color:var(--text3)">Checking&hellip;</div>
+          <div id="dir-sync-content">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border)">
+              <select class="filter-sel" id="dir-sync-issue-filter" onchange="renderDirectorySyncPanel()" style="font-size:12px">
+                <option value="">All issues</option>
+                <option value="company">Company differs</option>
+                <option value="name">Name differs</option>
+                <option value="phone">Phone/Ext. differs</option>
+                <option value="missing">Missing from Directory</option>
+                <option value="orphan">In Directory only</option>
+              </select>
+              <div class="search-wrap" style="max-width:220px">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" id="dir-sync-search" placeholder="Search name or company…" oninput="renderDirectorySyncPanel()"/>
+              </div>
+            </div>
+            <div id="dir-sync-body" style="padding:14px 16px;font-size:12.5px;color:var(--text3)">Checking&hellip;</div>
+          </div>
         </div>
 
         <!-- Clients section -->
@@ -9961,7 +9980,27 @@ async function applyProfileToDirectory(profileId) {
 // profiles with a company but no Directory entry, and Directory entries
 // with no matching profile at all (queue/team lines are skipped, since
 // those are intentionally not tied to a person).
+// Remembers whether the Directory sync check panel is collapsed, across
+// page loads, the same way card positions are remembered elsewhere.
+function applyDirSyncCollapsedState() {
+  const content = document.getElementById('dir-sync-content');
+  const chevron = document.getElementById('dir-sync-chevron');
+  if (!content) return;
+  const collapsed = localStorage.getItem('dir_sync_collapsed') === '1';
+  content.style.display = collapsed ? 'none' : '';
+  if (chevron) chevron.style.transform = collapsed ? 'rotate(-90deg)' : '';
+}
+
+function toggleDirSyncCollapse() {
+  const content = document.getElementById('dir-sync-content');
+  if (!content) return;
+  const collapsed = content.style.display !== 'none';
+  localStorage.setItem('dir_sync_collapsed', collapsed ? '1' : '0');
+  applyDirSyncCollapsedState();
+}
+
 async function renderDirectorySyncPanel() {
+  applyDirSyncCollapsedState();
   const body = document.getElementById('dir-sync-body');
   if (!body) return;
   body.innerHTML = '<div class="loader" style="margin:8px auto"></div>';
@@ -9985,9 +10024,9 @@ async function renderDirectorySyncPanel() {
       if (entry) {
         matchedDirIds.add(entry.id);
         const diffs = [];
-        if ((p.company   || '') !== (entry.company   || '')) diffs.push({ field: 'Company',    users: p.company   || '—', directory: entry.company   || '—' });
-        if ((p.full_name || '') !== (entry.name      || '')) diffs.push({ field: 'Name',       users: p.full_name || '—', directory: entry.name      || '—' });
-        if ((p.phone     || '') !== (entry.extension || '')) diffs.push({ field: 'Phone/Ext.', users: p.phone     || '—', directory: entry.extension || '—' });
+        if ((p.company   || '') !== (entry.company   || '')) diffs.push({ type: 'company', field: 'Company',    users: p.company   || '—', directory: entry.company   || '—' });
+        if ((p.full_name || '') !== (entry.name      || '')) diffs.push({ type: 'name',    field: 'Name',       users: p.full_name || '—', directory: entry.name      || '—' });
+        if ((p.phone     || '') !== (entry.extension || '')) diffs.push({ type: 'phone',   field: 'Phone/Ext.', users: p.phone     || '—', directory: entry.extension || '—' });
         if (diffs.length) mismatchRows.push({ profile: p, diffs });
       } else if (p.company) {
         missingRows.push(p);
@@ -9999,8 +10038,35 @@ async function renderDirectorySyncPanel() {
     !allProfiles.some(p => (p.email || '').trim().toLowerCase() === e.email.trim().toLowerCase())
   );
 
-  if (!mismatchRows.length && !missingRows.length && !orphanRows.length) {
+  // Total, unfiltered issue count -- shown in the header badge so it's
+  // visible even while the panel is collapsed.
+  const totalIssues = mismatchRows.reduce((n, r) => n + r.diffs.length, 0) + missingRows.length + orphanRows.length;
+  const badge = document.getElementById('dir-sync-count-badge');
+  if (badge) badge.textContent = totalIssues ? `${totalIssues} issue${totalIssues===1?'':'s'}` : '';
+
+  if (!totalIssues) {
     body.innerHTML = '<div style="padding:2px 0;color:var(--success)">&#10003; Users and Directory are in sync.</div>';
+    return;
+  }
+
+  // Apply the issue-type filter and free-text search
+  const issueFilter = document.getElementById('dir-sync-issue-filter')?.value || '';
+  const q = (document.getElementById('dir-sync-search')?.value || '').trim().toLowerCase();
+  const matchesQ = (...vals) => !q || vals.some(v => (v || '').toLowerCase().includes(q));
+
+  const showMismatch = !issueFilter || ['company','name','phone'].includes(issueFilter);
+  const showMissing  = !issueFilter || issueFilter === 'missing';
+  const showOrphan   = !issueFilter || issueFilter === 'orphan';
+
+  const filteredMismatch = showMismatch ? mismatchRows
+    .map(r => ({ profile: r.profile, diffs: r.diffs.filter(d => !issueFilter || d.type === issueFilter) }))
+    .filter(r => r.diffs.length && matchesQ(r.profile.full_name, r.profile.email, r.profile.company))
+    : [];
+  const filteredMissing = showMissing ? missingRows.filter(p => matchesQ(p.full_name, p.email, p.company)) : [];
+  const filteredOrphan  = showOrphan  ? orphanRows.filter(e => matchesQ(e.name, e.email, e.company)) : [];
+
+  if (!filteredMismatch.length && !filteredMissing.length && !filteredOrphan.length) {
+    body.innerHTML = '<div style="padding:2px 0">No issues match this filter.</div>';
     return;
   }
 
@@ -10012,7 +10078,7 @@ async function renderDirectorySyncPanel() {
     '<th style="padding:4px 8px"></th>' +
     '</tr></thead><tbody>';
 
-  mismatchRows.forEach(r => {
+  filteredMismatch.forEach(r => {
     r.diffs.forEach((d, i) => {
       html += `<tr>
         <td style="padding:4px 8px">${i===0 ? escH(r.profile.full_name || r.profile.email) : ''}</td>
@@ -10024,7 +10090,7 @@ async function renderDirectorySyncPanel() {
     });
   });
 
-  missingRows.forEach(p => {
+  filteredMissing.forEach(p => {
     html += `<tr>
       <td style="padding:4px 8px">${escH(p.full_name || p.email)}</td>
       <td style="padding:4px 8px">Missing from Directory</td>
@@ -10034,7 +10100,7 @@ async function renderDirectorySyncPanel() {
     </tr>`;
   });
 
-  orphanRows.forEach(e => {
+  filteredOrphan.forEach(e => {
     html += `<tr>
       <td style="padding:4px 8px">${escH(e.name)}</td>
       <td style="padding:4px 8px">In Directory, no matching user</td>
