@@ -731,6 +731,20 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
           <div id="agents-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px"></div>
         </div>
 
+        <!-- Directory sync check -- flags Users/Directory records that
+             should match (same email) but disagree, are missing from one
+             side, or are orphaned on the Directory side. -->
+        <div class="table-card" id="dir-sync-card" style="margin-bottom:20px">
+          <div class="table-toolbar">
+            <div style="font-size:13px;font-weight:600;flex:1">Directory sync check</div>
+            <button class="btn sm" onclick="renderDirectorySyncPanel()">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+              Refresh
+            </button>
+          </div>
+          <div id="dir-sync-body" style="padding:14px 16px;font-size:12.5px;color:var(--text3)">Checking&hellip;</div>
+        </div>
+
         <!-- Clients section -->
         <div class="table-card">
           <div class="table-toolbar">
@@ -5422,6 +5436,7 @@ async function loadAllProfiles() {
   const realProfileCount = allProfiles.filter(p => (p.email || '').toLowerCase() !== 'deleted@system.local').length;
   const sub = document.getElementById('users-count-sub'); if(sub) sub.textContent = realProfileCount + ' registered profiles';
   const fuc = document.getElementById('footer-user-count'); if(fuc) fuc.textContent = realProfileCount;
+  renderDirectorySyncPanel();
 }
 
 function getFilteredUsers() {
@@ -5943,7 +5958,8 @@ async function inviteAgent() {
 }
 
 async function saveUser() {
-  const id      = document.getElementById('eu-id').value;
+  const id       = document.getElementById('eu-id').value;
+  const original = allProfiles.find(p => p.id === id); // pre-update state, for Directory sync lookup
   const name    = document.getElementById('eu-name').value.trim();
   const email   = document.getElementById('eu-email').value.trim();
   const phone   = document.getElementById('eu-phone').value.trim();
@@ -5974,6 +5990,12 @@ async function saveUser() {
   if (idx !== -1) allProfiles[idx] = { ...allProfiles[idx], ...updates };
   renderUsersTable();
   renderAgents();
+
+  // Company (or name/email/phone) changed -> reflect it on the matching
+  // Directory entry too, so the two lists don't drift apart.
+  const merged = idx !== -1 ? allProfiles[idx] : { full_name: name, email, phone, company };
+  await syncDirectoryFromProfile({ oldEmail: original?.email, name: merged.full_name, email: merged.email, phone: merged.phone, company: merged.company });
+  renderDirectorySyncPanel();
 
   toast('User updated');
   const euName=document.getElementById('eu-name').value; const euEmail=document.getElementById('eu-email').value; const euRole=document.getElementById('eu-role').value; const euCompany=document.getElementById('eu-company').value;
@@ -6016,6 +6038,7 @@ async function deleteUser(id) {
   }
   closeModal('modal-edit-user');
   loadAllProfiles(); loadProfiles();
+  renderDirectorySyncPanel();
 }
 
 // Escapes ILIKE wildcard characters (%, _, \) so an email lookup can safely
@@ -6068,6 +6091,9 @@ async function addUser() {
       if (error.code === '23505') { toast('A user with this email already exists'); return; }
       toast('Error: ' + error.message); return;
     }
+    // New user with an organisation -> mirror them into the company
+    // Directory (name, company, email, phone) so they show up there too.
+    await syncDirectoryFromProfile({ oldEmail: null, name, email, phone, company });
     closeModal('modal-add-user');
     ['au-name','au-email','au-phone','au-company','au-notes'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('au-role').value = 'client';
@@ -9797,6 +9823,165 @@ document.addEventListener('change', e => {
   if (e.target.closest('.filter-wrap')) updateFilterWraps();
 });
 document.addEventListener('DOMContentLoaded', () => { initSupabase(); initKeyboardShortcuts(); startBeachCanvas(); });
+
+/* ── Users <-> Directory sync ─────────────────────────────────────────────
+   Every profile that belongs to a company should have exactly one matching
+   directory_entries row, matched by email. These helpers keep them in sync
+   when users are added/edited, and power the "Directory sync check" panel
+   on the Users page that surfaces anything left out of step. ── */
+
+// Fetches a fresh copy of directory_entries into the shared `dirEntries`
+// array. Safe to call from any page (unlike loadDirPage(), which bails out
+// if the Directory tab's table isn't in the DOM yet).
+async function ensureDirEntriesLoaded() {
+  const { data, error } = await sbClient.from('directory_entries').select('*').order('sort_order', { ascending: true });
+  dirEntries = error ? [] : (data || []);
+  return dirEntries;
+}
+
+// Pushes a profile's name/company/email/phone into its matching Directory
+// entry (found via `oldEmail`, falling back to `email` for new users),
+// creating the entry if none exists yet, or removing it if the profile no
+// longer belongs to a company (Directory entries always require one).
+async function syncDirectoryFromProfile({ oldEmail, name, email, phone, company, allowRemove = false }) {
+  const lookupEmail = (oldEmail || email || '').trim();
+  if (!lookupEmail) return;
+
+  try {
+    const { data: existing } = await sbClient.from('directory_entries')
+      .select('id').ilike('email', escLike(lookupEmail)).maybeSingle();
+
+    if (!company) {
+      // Directory entries require a company. Clearing a user's company
+      // does NOT auto-remove their Directory entry -- it gets flagged in
+      // the Directory sync check panel instead, so an admin can review
+      // before anything is deleted. Only the panel's explicit "Remove"
+      // action (allowRemove: true) actually deletes it.
+      if (existing && allowRemove) await sbClient.from('directory_entries').delete().eq('id', existing.id);
+      return;
+    }
+
+    const payload = { name: name || '', company, email: email || '' };
+    // Directory reuses "extension" for both short internal extensions and
+    // full external numbers (see its placeholder text), so a user's phone
+    // maps straight onto it.
+    if (phone) payload.extension = phone;
+
+    if (existing) {
+      await sbClient.from('directory_entries').update(payload).eq('id', existing.id);
+    } else {
+      const { data: allEntries } = await sbClient.from('directory_entries').select('sort_order');
+      const maxOrder = allEntries?.length ? Math.max(...allEntries.map(e => e.sort_order || 0)) : 0;
+      payload.sort_order = maxOrder + 1;
+      payload.is_queue = false;
+      await sbClient.from('directory_entries').insert(payload);
+    }
+  } catch (e) {
+    console.warn('syncDirectoryFromProfile failed:', e.message);
+  }
+}
+
+// Manual "fix" action from the Directory sync check panel -- pushes one
+// profile's current values into (or out of) the Directory on demand.
+async function applyProfileToDirectory(profileId) {
+  const p = allProfiles.find(x => x.id === profileId);
+  if (!p) return;
+  await syncDirectoryFromProfile({ oldEmail: p.email, name: p.full_name, email: p.email, phone: p.phone, company: p.company, allowRemove: true });
+  toast(p.company ? 'Directory updated from user record' : 'Directory entry removed (user has no company)');
+  renderDirectorySyncPanel();
+}
+
+// Renders the "Directory sync check" panel on the Users page: profiles and
+// Directory entries matched by email that disagree on company/name/phone,
+// profiles with a company but no Directory entry, and Directory entries
+// with no matching profile at all (queue/team lines are skipped, since
+// those are intentionally not tied to a person).
+async function renderDirectorySyncPanel() {
+  const body = document.getElementById('dir-sync-body');
+  if (!body) return;
+  body.innerHTML = '<div class="loader" style="margin:8px auto"></div>';
+
+  if (!allProfiles.length) await loadAllProfiles();
+  await ensureDirEntriesLoaded();
+
+  const dirByEmail = new Map();
+  dirEntries.forEach(e => { if (e.email) dirByEmail.set(e.email.trim().toLowerCase(), e); });
+
+  const mismatchRows = [];
+  const missingRows  = [];
+  const matchedDirIds = new Set();
+
+  allProfiles
+    .filter(p => (p.email || '').toLowerCase() !== 'deleted@system.local')
+    .forEach(p => {
+      const email = (p.email || '').trim().toLowerCase();
+      const entry = email ? dirByEmail.get(email) : null;
+
+      if (entry) {
+        matchedDirIds.add(entry.id);
+        const diffs = [];
+        if ((p.company   || '') !== (entry.company   || '')) diffs.push({ field: 'Company',    users: p.company   || '—', directory: entry.company   || '—' });
+        if ((p.full_name || '') !== (entry.name      || '')) diffs.push({ field: 'Name',       users: p.full_name || '—', directory: entry.name      || '—' });
+        if ((p.phone     || '') !== (entry.extension || '')) diffs.push({ field: 'Phone/Ext.', users: p.phone     || '—', directory: entry.extension || '—' });
+        if (diffs.length) mismatchRows.push({ profile: p, diffs });
+      } else if (p.company) {
+        missingRows.push(p);
+      }
+    });
+
+  const orphanRows = dirEntries.filter(e =>
+    !e.is_queue && e.email && !matchedDirIds.has(e.id) &&
+    !allProfiles.some(p => (p.email || '').trim().toLowerCase() === e.email.trim().toLowerCase())
+  );
+
+  if (!mismatchRows.length && !missingRows.length && !orphanRows.length) {
+    body.innerHTML = '<div style="padding:2px 0;color:var(--success)">&#10003; Users and Directory are in sync.</div>';
+    return;
+  }
+
+  let html = '<table style="width:100%"><thead><tr>' +
+    '<th style="text-align:left;padding:4px 8px">Person</th>' +
+    '<th style="text-align:left;padding:4px 8px">Issue</th>' +
+    '<th style="text-align:left;padding:4px 8px">Users</th>' +
+    '<th style="text-align:left;padding:4px 8px">Directory</th>' +
+    '<th style="padding:4px 8px"></th>' +
+    '</tr></thead><tbody>';
+
+  mismatchRows.forEach(r => {
+    r.diffs.forEach((d, i) => {
+      html += `<tr>
+        <td style="padding:4px 8px">${i===0 ? escH(r.profile.full_name || r.profile.email) : ''}</td>
+        <td style="padding:4px 8px">${escH(d.field)} differs</td>
+        <td style="padding:4px 8px">${escH(d.users)}</td>
+        <td style="padding:4px 8px">${escH(d.directory)}</td>
+        <td style="padding:4px 8px">${i===0 ? `<button class="btn sm" onclick="applyProfileToDirectory('${r.profile.id}')">${r.profile.company ? 'Apply Users &rarr; Directory' : 'Remove from Directory'}</button>` : ''}</td>
+      </tr>`;
+    });
+  });
+
+  missingRows.forEach(p => {
+    html += `<tr>
+      <td style="padding:4px 8px">${escH(p.full_name || p.email)}</td>
+      <td style="padding:4px 8px">Missing from Directory</td>
+      <td style="padding:4px 8px">${escH(p.company || '—')}</td>
+      <td style="padding:4px 8px">—</td>
+      <td style="padding:4px 8px"><button class="btn sm" onclick="applyProfileToDirectory('${p.id}')">Add to Directory</button></td>
+    </tr>`;
+  });
+
+  orphanRows.forEach(e => {
+    html += `<tr>
+      <td style="padding:4px 8px">${escH(e.name)}</td>
+      <td style="padding:4px 8px">In Directory, no matching user</td>
+      <td style="padding:4px 8px">—</td>
+      <td style="padding:4px 8px">${escH(e.company || '—')}</td>
+      <td style="padding:4px 8px"></td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  body.innerHTML = html;
+}
 
 /* ── Directory admin ──────────────────────────────────────── */
 /* ── Directory admin state ── */
