@@ -10659,6 +10659,17 @@ function escH(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// Safely embeds a string as a single-quoted JS argument inside an inline
+// HTML event handler, e.g. onclick="fn('${escJsAttr(name)}')". Escapes
+// backslashes/quotes for JS first, then HTML-escapes the result for the
+// attribute. escH() alone isn't enough here: a value containing an
+// apostrophe (e.g. a company called "O'Brien's") closes the JS string
+// early and throws a syntax error, silently killing every inline handler
+// on that element -- drag, select, and the break/page-break buttons.
+function escJsAttr(s) {
+  return escH(String(s ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+}
+
 /* ── Role-based UI visibility ── */
 function toggleNavGroup(group) {
   const parent  = document.getElementById(`nav-${group}-parent`);
@@ -10832,7 +10843,8 @@ async function loadDirCoColumnBreak() {
 }
 
 async function saveDirCoColumnBreak() {
-  await sbClient.from('app_settings').upsert({ key: 'directory_column_break', value: dirCoColumnBreak }, { onConflict: 'key' });
+  const { error } = await sbClient.from('app_settings').upsert({ key: 'directory_column_break', value: dirCoColumnBreak }, { onConflict: 'key' });
+  if (error) { console.error('saveDirCoColumnBreak:', error); toast('Error saving column break: ' + error.message, true); }
 }
 
 async function loadDirCoPageBreak() {
@@ -10843,7 +10855,8 @@ async function loadDirCoPageBreak() {
 }
 
 async function saveDirCoPageBreak() {
-  await sbClient.from('app_settings').upsert({ key: 'directory_page_break', value: dirCoPageBreak }, { onConflict: 'key' });
+  const { error } = await sbClient.from('app_settings').upsert({ key: 'directory_page_break', value: dirCoPageBreak }, { onConflict: 'key' });
+  if (error) { console.error('saveDirCoPageBreak:', error); toast('Error saving page break: ' + error.message, true); }
 }
 
 async function openDirCompanies() {
@@ -10891,20 +10904,20 @@ function renderDirCoList() {
     return `<div class="dir-co-row${isActive?' dir-co-row-active':''}"
       data-co="${escH(co)}"
       ondragover="dirCoDragOver(event)"
-      ondrop="dirCoDrop(event,'${escH(co)}')"
+      ondrop="dirCoDrop(event,'${escJsAttr(co)}')"
       style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--radius);border:1px solid ${isActive?'var(--accent)':'var(--border)'};background:${isActive?'var(--accent-l)':'var(--surface)'};cursor:default;transition:border-color .12s,background .12s">
-      <span draggable="true" ondragstart="dirCoDragStart(event,'${escH(co)}')" ondragend="dirCoDragEnd(event)" style="display:inline-flex;cursor:grab;flex-shrink:0;user-select:none" title="Drag to reorder">
+      <span draggable="true" ondragstart="dirCoDragStart(event,'${escJsAttr(co)}')" ondragend="dirCoDragEnd(event)" style="display:inline-flex;cursor:grab;flex-shrink:0;user-select:none" title="Drag to reorder">
       <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:var(--text3)"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg>
       </span>
       <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;border:2px solid ${color}44"></div>
-      <span style="flex:1;font-size:13px;font-weight:500;cursor:pointer" onclick="selectDirCoEdit('${escH(co)}')">${escH(co)}</span>
+      <span style="flex:1;font-size:13px;font-weight:500;cursor:pointer" onclick="selectDirCoEdit('${escJsAttr(co)}')">${escH(co)}</span>
       <span style="font-size:11px;color:var(--text3)">${count}</span>
-      <button title="Column break after this company in PDF" onclick="toggleDirCoColumnBreak('${escH(co)}')"
+      <button title="Column break after this company in PDF" onclick="toggleDirCoColumnBreak('${escJsAttr(co)}')"
         style="padding:2px 7px;font-size:10px;font-weight:600;border-radius:4px;border:1px solid ${isBreak?'var(--accent)':'var(--border2)'};background:${isBreak?'var(--accent)':'transparent'};color:${isBreak?'#fff':'var(--text3)'};cursor:pointer;white-space:nowrap;transition:all .12s">
         ${isBreak?'⏎ break':'break'}
       </button>
       ${isPageBreak ? `<span style="font-size:9px;font-weight:700;color:var(--warn);padding:2px 5px;border-radius:3px;border:1px solid var(--warn-l);background:var(--warn-l);white-space:nowrap">pg ↓</span>` : ''}
-      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:var(--text3);cursor:pointer;flex-shrink:0" onclick="selectDirCoEdit('${escH(co)}')"><path d="M9 18l6-6-6-6"/></svg>
+      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:var(--text3);cursor:pointer;flex-shrink:0" onclick="selectDirCoEdit('${escJsAttr(co)}')"><path d="M9 18l6-6-6-6"/></svg>
     </div>
     ${isBreak ? `<div style="display:flex;align-items:center;gap:8px;padding:3px 10px;font-size:10px;color:var(--accent);font-weight:600;letter-spacing:.04em"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M17 10H3M21 6H3M21 14H3M17 18H3"/></svg> COLUMN BREAK ↓</div>` : ''}
     ${isPageBreak ? `<div style="display:flex;align-items:center;gap:8px;padding:3px 10px;font-size:10px;color:var(--warn);font-weight:600;letter-spacing:.04em"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 8V5h14v3M5 16v3h14v-3M12 5v14"/></svg> PAGE BREAK ↓</div>` : ''}`;
