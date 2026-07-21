@@ -797,6 +797,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
               <tr>
                 <th class="sortable" data-sort="u_name" onclick="setUsersSort('u_name')">User</th>
                 <th class="sortable" data-sort="u_company" onclick="setUsersSort('u_company')">Organisation</th>
+                <th class="sortable" data-sort="u_phone" onclick="setUsersSort('u_phone')">Phone</th>
                 <th class="sortable" data-sort="u_role" onclick="setUsersSort('u_role')">Role</th>
                 <th class="sortable" data-sort="u_open" onclick="setUsersSort('u_open')">Open tickets</th>
                 <th class="sortable" data-sort="u_total" onclick="setUsersSort('u_total')">Total tickets</th>
@@ -1823,11 +1824,15 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <div style="position:relative">
         <svg style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input id="dir-admin-search" class="fc" type="text" placeholder="Search…" style="padding-left:28px;width:200px" oninput="renderAdminDir()"/>
+        <input id="dir-admin-search" class="fc" type="text" placeholder="Search…" style="padding-left:28px;padding-right:26px;width:200px" oninput="renderAdminDir();toggleClear(this)"/>
+        <button class="search-clear" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);display:none" onclick="clearSearch('dir-admin-search',renderAdminDir)" title="Clear search">✕</button>
       </div>
-      <select id="dir-admin-co-filter" class="fc" style="width:160px" onchange="renderAdminDir()">
-        <option value="">All companies</option>
-      </select>
+      <div class="filter-wrap" id="fw-dir-admin-co-filter">
+        <select id="dir-admin-co-filter" class="filter-sel" style="width:160px" onchange="renderAdminDir()">
+          <option value="">All companies</option>
+        </select>
+        <button class="filter-clear" onclick="document.getElementById('dir-admin-co-filter').value='';renderAdminDir();updateFilterWraps()" title="Clear filter">✕</button>
+      </div>
       <button class="btn" onclick="openDirCompanies()">
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="4"/><rect x="14" y="3" width="7" height="4"/><rect x="3" y="10" width="7" height="4"/><rect x="14" y="10" width="7" height="4"/><rect x="3" y="17" width="7" height="4"/><rect x="14" y="17" width="7" height="4"/></svg>
         Companies
@@ -5570,7 +5575,7 @@ function renderUsersTable() {
   let list = getFilteredUsers();
   const tbody = document.getElementById('users-tbody');
   if (!tbody) return;
-  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No users found</td></tr>'; updateUsersSortHeaders(); return; }
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No users found</td></tr>'; updateUsersSortHeaders(); return; }
 
   const roleBadge = r => ({
     super_admin: '<span class="sb" style="background:var(--danger-l);color:var(--danger)">Super Admin</span>',
@@ -5598,6 +5603,7 @@ function renderUsersTable() {
     let av, bv;
     switch (usersSortKey) {
       case 'u_company':  av = (a.company||'').toLowerCase();  bv = (b.company||'').toLowerCase(); break;
+      case 'u_phone':     av = (a.phone||'').toLowerCase();    bv = (b.phone||'').toLowerCase(); break;
       case 'u_role':      av = ROLE_ORDER[a.role] ?? 9;         bv = ROLE_ORDER[b.role] ?? 9; break;
       case 'u_open':      av = openCountOf[a.id];                bv = openCountOf[b.id]; break;
       case 'u_total':     av = totalCountOf[a.id];               bv = totalCountOf[b.id]; break;
@@ -5623,6 +5629,7 @@ function renderUsersTable() {
         </div>
       </td>
       <td>${p.company ? (() => { const cs = coStyle(p.company); const col = (_coColors && _coColors[p.company]) || '#6b6963'; return `<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid transparent;${cs}color:${col}">${esc(p.company)}</span>`; })() : '<span style="color:var(--text3);font-size:12px">—</span>'}</td>
+      <td style="font-size:13px">${p.phone ? `<a href="tel:${esc(p.phone)}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${esc(p.phone)}</a>` : '<span style="color:var(--text3)">—</span>'}</td>
       <td>${roleBadge(p.role)}</td>
       <td style="font-size:13px;color:var(--text2)">${openCount || '—'}</td>
       <td style="font-size:13px;color:var(--text2)">${totalCount || '—'}</td>
@@ -5632,7 +5639,7 @@ function renderUsersTable() {
 
   const sectionHeader = (label, count) =>
     `<tr style="background:var(--surface2)">
-      <td colspan="6" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">
+      <td colspan="7" style="padding:8px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">
         ${label} <span style="font-weight:500;color:var(--text3);margin-left:4px">(${count})</span>
       </td>
     </tr>`;
@@ -5666,12 +5673,12 @@ function renderUsersTable() {
     html += visClients.map(renderRow).join('');
   }
   if (remaining > 0) {
-    html += `<tr><td colspan="6" style="text-align:center;padding:12px;border-top:1px solid var(--border)">
+    html += `<tr><td colspan="7" style="text-align:center;padding:12px;border-top:1px solid var(--border)">
       <span style="font-size:12px;color:var(--text3);margin-right:10px">Showing ${visible.length} of ${allRows.length}</span>
       <button class="btn sm" onclick="usersPerPage+=25;document.getElementById('users-per-page').value=usersPerPage<=50?usersPerPage:99999;renderUsersTable()">Show ${Math.min(remaining,25)} more</button>
      </td></tr>`;
   } else if (allRows.length > 25) {
-    html += `<tr><td colspan="5" style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">All ${allRows.length} users shown</td></tr>`;
+    html += `<tr><td colspan="7" style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">All ${allRows.length} users shown</td></tr>`;
   }
   // Deleted-user placeholder always shown in full at the end, unpaginated —
   // there's only ever one, and it should stay visible regardless of filters.
