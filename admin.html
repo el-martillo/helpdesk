@@ -718,6 +718,10 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Export CSV
             </button>
+            <button class="btn" onclick="openImportUsersModal()">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Import CSV
+            </button>
             <button class="btn primary" onclick="openModal('modal-add-user')">
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
               Add user
@@ -2185,6 +2189,53 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
     <div class="form-footer">
       <button class="btn" onclick="closeModal('modal-add-user')">Cancel</button>
       <button class="btn primary" id="au-submit-btn" onclick="addUser()">Add user</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import users from CSV -->
+<div class="overlay" id="modal-import-users">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Import users from CSV</div>
+        <div class="modal-sub">Matches existing users by email &mdash; only new ones get added</div>
+      </div>
+      <button class="close-x" data-tip="Close  Esc" onclick="closeModal('modal-import-users')">✕</button>
+    </div>
+
+    <div id="import-csv-step-pick">
+      <div class="fg">
+        <label class="fl">CSV file</label>
+        <input id="import-csv-file" class="fc" type="file" accept=".csv,text/csv" onchange="handleImportCsvFile(this)"/>
+        <div class="hint">
+          First row must be a header. Recognised columns (any order, case-insensitive): <strong>name</strong>, <strong>email</strong> (required), <strong>phone</strong>, <strong>company</strong>, <strong>role</strong>, <strong>notes</strong>.
+        </div>
+      </div>
+    </div>
+
+    <div id="import-csv-step-preview" style="display:none">
+      <div id="import-csv-summary" style="font-size:13px;margin-bottom:10px"></div>
+      <div style="max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius)">
+        <table style="width:100%;font-size:12.5px">
+          <thead>
+            <tr style="background:var(--surface2)">
+              <th style="text-align:left;padding:6px 10px">Status</th>
+              <th style="text-align:left;padding:6px 10px">Name</th>
+              <th style="text-align:left;padding:6px 10px">Email</th>
+              <th style="text-align:left;padding:6px 10px">Phone</th>
+              <th style="text-align:left;padding:6px 10px">Company</th>
+              <th style="text-align:left;padding:6px 10px">Role</th>
+            </tr>
+          </thead>
+          <tbody id="import-csv-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="form-footer">
+      <button class="btn" onclick="closeModal('modal-import-users')">Cancel</button>
+      <button class="btn primary" id="import-csv-btn" onclick="confirmImportUsers()" disabled style="display:none">Import</button>
     </div>
   </div>
 </div>
@@ -6179,6 +6230,215 @@ async function addUser() {
   } finally {
     if (btn) btn.disabled = false;
   }
+}
+
+/* ── Import users from CSV ──────────────────────────────────────────────────
+   Upload a CSV, match rows against existing profiles by email, and add only
+   the ones that don't already exist. Column headers are matched loosely
+   (case-insensitive, common synonyms) so exports from other systems tend to
+   just work without reformatting. ── */
+let importCsvRows = []; // parsed + status-tagged rows, built by handleImportCsvFile
+
+function openImportUsersModal() {
+  importCsvRows = [];
+  const fileInput = document.getElementById('import-csv-file');
+  if (fileInput) fileInput.value = '';
+  const pickStep    = document.getElementById('import-csv-step-pick');
+  const previewStep = document.getElementById('import-csv-step-preview');
+  if (pickStep)    pickStep.style.display    = '';
+  if (previewStep) previewStep.style.display = 'none';
+  const btn = document.getElementById('import-csv-btn');
+  if (btn) { btn.style.display = 'none'; btn.disabled = true; btn.textContent = 'Import'; }
+  openModal('modal-import-users');
+}
+
+// Minimal CSV parser: handles quoted fields, embedded commas, embedded
+// newlines, and "" as an escaped quote inside a quoted field. Covers
+// exports from Excel/Sheets/Numbers, which is what this is for.
+function parseCSVText(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else { inQuotes = false; }
+      } else {
+        field += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ',') {
+      row.push(field); field = '';
+    } else if (ch === '\n') {
+      row.push(field); field = '';
+      rows.push(row); row = [];
+    } else {
+      field += ch;
+    }
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(v => v.trim() !== ''));
+}
+
+const IMPORT_CSV_COLUMN_ALIASES = {
+  name:    ['name', 'full name', 'client name', 'contact', 'contact name'],
+  email:   ['email', 'e mail', 'email address'],
+  phone:   ['phone', 'telephone', 'tel', 'mobile', 'phone number'],
+  company: ['company', 'organisation', 'organization', 'org', 'client'],
+  role:    ['role'],
+  notes:   ['notes', 'note', 'comment', 'comments'],
+};
+
+function normalizeCsvHeader(h) {
+  return String(h || '').trim().toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function matchCsvColumns(headerRow) {
+  const normalized = headerRow.map(normalizeCsvHeader);
+  const colMap = {};
+  Object.keys(IMPORT_CSV_COLUMN_ALIASES).forEach(field => {
+    const idx = normalized.findIndex(h => IMPORT_CSV_COLUMN_ALIASES[field].includes(h));
+    if (idx !== -1) colMap[field] = idx;
+  });
+  return colMap;
+}
+
+async function handleImportCsvFile(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+
+  let text;
+  try { text = await file.text(); }
+  catch (e) { toast('Could not read that file: ' + e.message, true); return; }
+
+  const rows = parseCSVText(text);
+  if (rows.length < 2) { toast('No data rows found in that file', true); return; }
+
+  const [headerRow, ...dataRows] = rows;
+  const colMap = matchCsvColumns(headerRow);
+  if (colMap.email === undefined) {
+    toast('Could not find an "email" column in the CSV header', true);
+    return;
+  }
+
+  const existingByEmail = new Map(allProfiles.map(p => [(p.email || '').trim().toLowerCase(), p]));
+  const seenInFile = new Set();
+
+  importCsvRows = dataRows.map(cells => {
+    const get = field => colMap[field] !== undefined ? (cells[colMap[field]] || '').trim() : '';
+    const name    = get('name');
+    const email   = get('email').toLowerCase();
+    const phone   = get('phone');
+    const company = get('company');
+    const notes   = get('notes');
+    let   role    = get('role').toLowerCase();
+
+    if (!email) return { name, email, phone, company, role: 'client', notes, status: 'invalid', reason: 'No email' };
+    if (role === 'super_admin' && currentProfile?.role !== 'super_admin') role = 'client';
+    if (!['client','admin','super_admin'].includes(role)) role = 'client';
+
+    if (existingByEmail.has(email))  return { name, email, phone, company, role, notes, status: 'exists',    reason: 'Already a user' };
+    if (seenInFile.has(email))       return { name, email, phone, company, role, notes, status: 'duplicate', reason: 'Duplicate row in file' };
+    seenInFile.add(email);
+    return { name, email, phone, company, role, notes, status: 'new', reason: '' };
+  });
+
+  renderImportPreview();
+}
+
+function renderImportPreview() {
+  const pickStep    = document.getElementById('import-csv-step-pick');
+  const previewStep = document.getElementById('import-csv-step-preview');
+  if (pickStep)    pickStep.style.display    = 'none';
+  if (previewStep) previewStep.style.display = '';
+
+  const newCount       = importCsvRows.filter(r => r.status === 'new').length;
+  const existsCount    = importCsvRows.filter(r => r.status === 'exists').length;
+  const duplicateCount = importCsvRows.filter(r => r.status === 'duplicate').length;
+  const invalidCount   = importCsvRows.filter(r => r.status === 'invalid').length;
+
+  const summary = document.getElementById('import-csv-summary');
+  if (summary) {
+    summary.innerHTML = `${importCsvRows.length} rows parsed &mdash; ` +
+      `<strong style="color:var(--success)">${newCount} new</strong>, ` +
+      `${existsCount} already exist, ${duplicateCount} duplicate in file, ${invalidCount} invalid` +
+      (newCount ? '.' : ' &mdash; nothing to import.');
+  }
+
+  const STATUS_BADGE = {
+    new:       '<span class="sb s-resolved">New</span>',
+    exists:    '<span class="sb s-closed">Exists</span>',
+    duplicate: '<span class="sb s-waiting">Duplicate</span>',
+    invalid:   '<span class="sb" style="background:var(--danger-l);color:var(--danger)">Invalid</span>',
+  };
+
+  const tbody = document.getElementById('import-csv-tbody');
+  if (tbody) {
+    tbody.innerHTML = importCsvRows.map(r => `<tr>
+      <td style="padding:5px 10px">${STATUS_BADGE[r.status]}</td>
+      <td style="padding:5px 10px">${escH(r.name || '—')}</td>
+      <td style="padding:5px 10px">${escH(r.email || '—')}</td>
+      <td style="padding:5px 10px">${escH(r.phone || '—')}</td>
+      <td style="padding:5px 10px">${escH(r.company || '—')}</td>
+      <td style="padding:5px 10px">${escH(r.role || '—')}</td>
+    </tr>`).join('');
+  }
+
+  const btn = document.getElementById('import-csv-btn');
+  if (btn) {
+    btn.style.display = '';
+    btn.disabled = newCount === 0;
+    btn.textContent = newCount ? `Import ${newCount} user${newCount === 1 ? '' : 's'}` : 'Import';
+  }
+}
+
+async function confirmImportUsers() {
+  const toImport = importCsvRows.filter(r => r.status === 'new');
+  if (!toImport.length) return;
+
+  const btn = document.getElementById('import-csv-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Importing…'; }
+
+  let added = 0, failed = 0, raced = 0;
+  for (const r of toImport) {
+    // Re-check against the DB (not just the in-memory list from when the
+    // file was picked) in case another admin added the same email since.
+    const existing = await findProfileByEmail(r.email);
+    if (existing) { raced++; continue; }
+
+    const payload = { id: crypto.randomUUID(), full_name: r.name || r.email, role: r.role || 'client' };
+    if (r.email)   payload.email   = r.email;
+    if (r.phone)   payload.phone   = r.phone;
+    if (r.company) payload.company = r.company;
+    if (r.notes)   payload.notes   = r.notes;
+
+    const { error } = await sbClient.from('profiles').insert(payload);
+    if (error) {
+      if (error.code === '23505') { raced++; continue; }
+      failed++;
+      console.warn('CSV import: failed to add', r.email, error.message);
+      continue;
+    }
+    added++;
+    logSystemEvent('user_created', `${payload.full_name} (${payload.email}) | Role: ${payload.role}${payload.company ? ' | Org: ' + payload.company : ''} | via CSV import`);
+    if (r.company) {
+      await syncDirectoryFromProfile({ oldEmail: null, name: r.name, email: r.email, phone: r.phone, company: r.company });
+    }
+  }
+
+  closeModal('modal-import-users');
+  const parts = [`Imported ${added} user${added === 1 ? '' : 's'}`];
+  if (raced)  parts.push(`${raced} already existed by the time of import`);
+  if (failed) parts.push(`${failed} failed — see console`);
+  toast(parts.join(', '));
+  await loadAllProfiles();
+  await loadCompanies();
+  renderDirectorySyncPanel();
 }
 
 async function testTelegram() {
