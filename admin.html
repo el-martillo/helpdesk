@@ -735,12 +735,15 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
              should match (same email) but disagree, are missing from one
              side, or are orphaned on the Directory side. -->
         <div class="table-card" id="dir-sync-card" style="margin-bottom:20px">
-          <div class="table-toolbar" style="cursor:pointer" onclick="toggleDirSyncCollapse()">
-            <svg id="dir-sync-chevron" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="transition:transform .15s;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>
-            <div style="font-size:13px;font-weight:600">Directory sync check</div>
+          <div class="table-toolbar">
+            <div style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none" onclick="toggleDirSyncCollapse()" title="Click to expand/collapse">
+              <svg id="dir-sync-chevron" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="transition:transform .15s;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>
+              <div style="font-size:13px;font-weight:600">Directory sync check</div>
+              <span id="dir-sync-collapsed-hint" style="font-size:11px;color:var(--text3);font-style:italic;display:none">(collapsed — click to expand)</span>
+            </div>
             <span id="dir-sync-count-badge" style="font-size:11px;color:var(--text3)"></span>
             <div style="flex:1"></div>
-            <button class="btn sm" onclick="event.stopPropagation();renderDirectorySyncPanel()">
+            <button class="btn sm" onclick="renderDirectorySyncPanel()">
               <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
               Refresh
             </button>
@@ -2457,6 +2460,15 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
           <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M5 8V5h14v3M5 16v3h14v-3M12 5v14"/></svg>
           Page break after
         </button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <select id="dir-co-merge-target" class="fc" style="flex:1;font-size:12px" onchange="document.getElementById('dir-co-merge-btn').disabled = !this.value">
+          <option value="">Merge into…</option>
+        </select>
+        <button id="dir-co-merge-btn" class="btn sm danger" onclick="mergeDirCompanies()" disabled style="padding:6px 12px;white-space:nowrap">Merge</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5">
+        Moves every entry (people &amp; queues) and any users here into the company you pick, then removes this one. Cannot be undone.
       </div>
     </div>
 
@@ -9985,10 +9997,12 @@ async function applyProfileToDirectory(profileId) {
 function applyDirSyncCollapsedState() {
   const content = document.getElementById('dir-sync-content');
   const chevron = document.getElementById('dir-sync-chevron');
+  const hint    = document.getElementById('dir-sync-collapsed-hint');
   if (!content) return;
   const collapsed = localStorage.getItem('dir_sync_collapsed') === '1';
   content.style.display = collapsed ? 'none' : '';
   if (chevron) chevron.style.transform = collapsed ? 'rotate(-90deg)' : '';
+  if (hint) hint.style.display = collapsed ? 'inline' : 'none';
 }
 
 function toggleDirSyncCollapse() {
@@ -10269,6 +10283,11 @@ function renderAdminDir() {
     return;
   }
 
+  // Every known company, for the quick "move to" picker below -- works the
+  // same for queue lines and people, since both just live on
+  // directory_entries.company.
+  const moveCompanies = getOrderedCompanies();
+
   tbody.innerHTML = filtered.map(e => {
     const color = dirCoColors[e.company] || DIR_CO_COLORS[e.company] || '#888';
     return `<tr class="dir-row" style="cursor:pointer" onclick="openDirModal(${e.id})">
@@ -10282,12 +10301,34 @@ function renderAdminDir() {
         : '<span class="person-tag">Person</span>'}</td>
       <td>
         <div class="row-actions" onclick="event.stopPropagation()">
+          <select class="fc" style="font-size:11px;padding:2px 4px;max-width:112px" title="Move to another company" onchange="quickMoveDirEntry(${e.id}, this.value, this)">
+            <option value="">Move to…</option>
+            ${moveCompanies.filter(c => c !== e.company).map(c => `<option value="${escH(c)}">${escH(c)}</option>`).join('')}
+          </select>
           <button class="ia ia-edit" onclick="openDirModal(${e.id})">✎ Edit</button>
           <button class="ia ia-del" onclick="openDirDelete(${e.id})">✕</button>
         </div>
       </td>
     </tr>`;
   }).join('');
+}
+
+// Quick "move to another company" action from the entry row dropdown --
+// changes just the company field without opening the full edit form.
+// Works for both queue lines and people.
+async function quickMoveDirEntry(id, newCompany, selectEl) {
+  if (!newCompany) return;
+  const entry = dirEntries.find(e => e.id === id);
+  if (!entry) { if (selectEl) selectEl.value = ''; return; }
+  const oldCompany = entry.company;
+  if (newCompany === oldCompany) { if (selectEl) selectEl.value = ''; return; }
+
+  const { error } = await sbClient.from('directory_entries').update({ company: newCompany }).eq('id', id);
+  if (error) { toast('Error moving entry: ' + error.message, true); if (selectEl) selectEl.value = ''; return; }
+
+  toast(`Moved "${entry.name}" to ${newCompany}`);
+  logSystemEvent('directory_entry_updated', `Moved directory entry "${entry.name}" from "${oldCompany}" to "${newCompany}"`);
+  await loadDirPage();
 }
 
 function exportDirectoryCSV() {
@@ -11003,7 +11044,78 @@ function selectDirCoEdit(co) {
     pgBtn.style.borderColor = isPageBreak ? 'var(--warn)' : 'var(--border2)';
   }
 
+  // Populate the "Merge into…" dropdown with every other known company
+  const mergeSel = document.getElementById('dir-co-merge-target');
+  const mergeBtn = document.getElementById('dir-co-merge-btn');
+  if (mergeSel) {
+    const others = getOrderedCompanies().filter(c => c !== co);
+    mergeSel.innerHTML = '<option value="">Merge into…</option>' +
+      others.map(c => `<option value="${escH(c)}">${escH(c)}</option>`).join('');
+  }
+  if (mergeBtn) mergeBtn.disabled = true;
+
   renderDirCoList(); // re-render to show active highlight
+}
+
+// Moves every directory entry (people + queues) and every user profile from
+// dirCoEditTarget into the picked target company, then removes the source
+// company from every company-keyed list (colours, order, breaks, standalone,
+// locations, and the Settings organisations list). Use for duplicate/typo'd
+// companies -- e.g. a stray "Focus" that should really be "Focus Security".
+async function mergeDirCompanies() {
+  const source = dirCoEditTarget;
+  const target = document.getElementById('dir-co-merge-target')?.value;
+  if (!source || !target || source === target) return;
+
+  const count = dirEntries.filter(e => e.company === source).length;
+  const userCount = (allProfiles || []).filter(p => p.company === source).length;
+  const parts = [];
+  if (count) parts.push(`${count} directory ${count===1?'entry':'entries'}`);
+  if (userCount) parts.push(`${userCount} ${userCount===1?'user':'users'}`);
+  const msg = `Merge "${source}" into "${target}"?${parts.length ? ' Moves ' + parts.join(' and ') + '.' : ''} "${source}" will be removed. This cannot be undone.`;
+  try {
+    await requireReauth(msg);
+  } catch(e) { return; }
+
+  if (count > 0) {
+    const { error } = await sbClient.from('directory_entries').update({ company: target }).eq('company', source);
+    if (error) { toast('Error: ' + error.message, true); return; }
+  }
+  if (userCount > 0) {
+    await sbClient.from('profiles').update({ company: target }).eq('company', source);
+  }
+
+  companiesList = companiesList.filter(c => c !== source);
+  await persistOrgs();
+
+  dirStandaloneCompanies = dirStandaloneCompanies.filter(c => c !== source);
+  await saveDirStandaloneCompanies();
+
+  if (dirCoColors && dirCoColors[source] !== undefined) { delete dirCoColors[source]; await saveDirCoColors(); }
+
+  const orderIdx = dirCoOrder.indexOf(source);
+  if (orderIdx !== -1) { dirCoOrder.splice(orderIdx, 1); await saveDirCoOrder(); }
+
+  if (dirCoColumnBreak === source) { dirCoColumnBreak = ''; await saveDirCoColumnBreak(); }
+  if (dirCoPageBreak   === source) { dirCoPageBreak   = ''; await saveDirCoPageBreak(); }
+
+  if (orgLocations && orgLocations[source] !== undefined) {
+    delete orgLocations[source];
+    await persistOrgLocations();
+  }
+
+  toast(`Merged "${source}" into "${target}"`);
+  logSystemEvent('directory_company_deleted', `Merged "${source}" into "${target}" (${parts.join(' and ') || 'nothing to move'})`);
+
+  dirCoEditTarget = null;
+  const editPanel = document.getElementById('dir-co-edit-panel');
+  if (editPanel) editPanel.style.display = 'none';
+
+  await loadDirPage();
+  renderDirCoList();
+  renderOrgList();
+  await loadAllProfiles();
+  renderDirectorySyncPanel();
 }
 
 function selectDirCoColor(hex) {
