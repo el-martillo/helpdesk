@@ -750,7 +750,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
           </div>
           <div id="dir-sync-content">
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border)">
-              <select class="filter-sel" id="dir-sync-issue-filter" onchange="renderDirectorySyncPanel()" style="font-size:12px">
+              <select class="filter-sel" id="dir-sync-issue-filter" onchange="renderDirSyncInstance('')" style="font-size:12px">
                 <option value="">All issues</option>
                 <option value="company">Company differs</option>
                 <option value="name">Name differs</option>
@@ -760,7 +760,7 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
               </select>
               <div class="search-wrap" style="max-width:220px">
                 <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                <input type="text" id="dir-sync-search" placeholder="Search name or company…" oninput="renderDirectorySyncPanel()"/>
+                <input type="text" id="dir-sync-search" placeholder="Search name or company…" oninput="renderDirSyncInstance('')"/>
               </div>
             </div>
             <div id="dir-sync-body" style="padding:14px 16px;font-size:12.5px;color:var(--text3)">Checking&hellip;</div>
@@ -1844,6 +1844,45 @@ tbody tr.row-anim { animation: rowFadeIn .2s ease both; }
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
         View live
       </button>
+      <button class="btn" onclick="toggleDirSyncCollapse('-dir')" id="dir-sync-toggle-btn-dir">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Sync check
+      </button>
+    </div>
+  </div>
+
+  <!-- Directory sync check (same data as the Users page panel, its own
+       collapsed/filter/search state) -->
+  <div class="table-card" id="dir-sync-card-dir" style="margin-bottom:20px">
+    <div class="table-toolbar">
+      <div style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none" onclick="toggleDirSyncCollapse('-dir')" title="Click to expand/collapse">
+        <svg id="dir-sync-chevron-dir" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="transition:transform .15s;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>
+        <div style="font-size:13px;font-weight:600">Directory sync check</div>
+        <span id="dir-sync-collapsed-hint-dir" style="font-size:11px;color:var(--text3);font-style:italic;display:none">(collapsed — click to expand)</span>
+      </div>
+      <span id="dir-sync-count-badge-dir" style="font-size:11px;color:var(--text3)"></span>
+      <div style="flex:1"></div>
+      <button class="btn sm" onclick="renderDirectorySyncPanel()">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+        Refresh
+      </button>
+    </div>
+    <div id="dir-sync-content-dir">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border)">
+        <select class="filter-sel" id="dir-sync-issue-filter-dir" onchange="renderDirSyncInstance('-dir')" style="font-size:12px">
+          <option value="">All issues</option>
+          <option value="company">Company differs</option>
+          <option value="name">Name differs</option>
+          <option value="phone">Phone/Ext. differs</option>
+          <option value="missing">Missing from Directory</option>
+          <option value="orphan">In Directory only</option>
+        </select>
+        <div class="search-wrap" style="max-width:220px">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="dir-sync-search-dir" placeholder="Search name or company…" oninput="renderDirSyncInstance('-dir')"/>
+        </div>
+      </div>
+      <div id="dir-sync-body-dir" style="padding:14px 16px;font-size:12.5px;color:var(--text3)">Checking&hellip;</div>
     </div>
   </div>
 
@@ -9987,41 +10026,39 @@ async function applyProfileToDirectory(profileId) {
   renderDirectorySyncPanel();
 }
 
-// Renders the "Directory sync check" panel on the Users page: profiles and
-// Directory entries matched by email that disagree on company/name/phone,
-// profiles with a company but no Directory entry, and Directory entries
-// with no matching profile at all (queue/team lines are skipped, since
-// those are intentionally not tied to a person).
-// Remembers whether the Directory sync check panel is collapsed, across
-// page loads, the same way card positions are remembered elsewhere.
-function applyDirSyncCollapsedState() {
-  const content = document.getElementById('dir-sync-content');
-  const chevron = document.getElementById('dir-sync-chevron');
-  const hint    = document.getElementById('dir-sync-collapsed-hint');
+// "Directory sync check" flags profiles and Directory entries matched by
+// email that disagree on company/name/phone, profiles with a company but
+// no Directory entry, and Directory entries with no matching profile at
+// all (queue/team lines are skipped, since those are intentionally not
+// tied to a person). It's rendered in two places -- the Users page and the
+// Directory page -- each with its own collapsed/filter/search state,
+// remembered across page loads the same way card positions are elsewhere.
+function applyDirSyncCollapsedState(suffix) {
+  suffix = suffix || '';
+  const content = document.getElementById('dir-sync-content' + suffix);
+  const chevron = document.getElementById('dir-sync-chevron' + suffix);
+  const hint    = document.getElementById('dir-sync-collapsed-hint' + suffix);
   if (!content) return;
-  const collapsed = localStorage.getItem('dir_sync_collapsed') === '1';
+  const collapsed = localStorage.getItem('dir_sync_collapsed' + suffix) === '1';
   content.style.display = collapsed ? 'none' : '';
   if (chevron) chevron.style.transform = collapsed ? 'rotate(-90deg)' : '';
   if (hint) hint.style.display = collapsed ? 'inline' : 'none';
 }
 
-function toggleDirSyncCollapse() {
-  const content = document.getElementById('dir-sync-content');
+function toggleDirSyncCollapse(suffix) {
+  suffix = suffix || '';
+  const content = document.getElementById('dir-sync-content' + suffix);
   if (!content) return;
   const collapsed = content.style.display !== 'none';
-  localStorage.setItem('dir_sync_collapsed', collapsed ? '1' : '0');
-  applyDirSyncCollapsedState();
+  localStorage.setItem('dir_sync_collapsed' + suffix, collapsed ? '1' : '0');
+  applyDirSyncCollapsedState(suffix);
 }
 
-async function renderDirectorySyncPanel() {
-  applyDirSyncCollapsedState();
-  const body = document.getElementById('dir-sync-body');
-  if (!body) return;
-  body.innerHTML = '<div class="loader" style="margin:8px auto"></div>';
-
-  if (!allProfiles.length) await loadAllProfiles();
-  await ensureDirEntriesLoaded();
-
+// Pure data pass: which profiles/Directory entries disagree, which
+// profiles have no matching entry, and which entries have no matching
+// profile. Shared by every rendered instance of the sync panel (Users page
+// and Directory page) so they never drift from one another.
+function computeDirSyncData() {
   const dirByEmail = new Map();
   dirEntries.forEach(e => { if (e.email) dirByEmail.set(e.email.trim().toLowerCase(), e); });
 
@@ -10052,10 +10089,24 @@ async function renderDirectorySyncPanel() {
     !allProfiles.some(p => (p.email || '').trim().toLowerCase() === e.email.trim().toLowerCase())
   );
 
-  // Total, unfiltered issue count -- shown in the header badge so it's
-  // visible even while the panel is collapsed.
+  return { mismatchRows, missingRows, orphanRows };
+}
+
+// Renders one instance of the "Directory sync check" panel -- suffix ''
+// is the original one on the Users page, suffix '-dir' is the copy on the
+// Directory page. Each instance keeps its own collapsed state, issue-type
+// filter and search box, but they all read the same underlying data so
+// fixing something from either page updates both.
+function renderDirSyncInstance(suffix) {
+  suffix = suffix || '';
+  applyDirSyncCollapsedState(suffix);
+  const body = document.getElementById('dir-sync-body' + suffix);
+  if (!body) return;
+
+  const { mismatchRows, missingRows, orphanRows } = computeDirSyncData();
+
   const totalIssues = mismatchRows.reduce((n, r) => n + r.diffs.length, 0) + missingRows.length + orphanRows.length;
-  const badge = document.getElementById('dir-sync-count-badge');
+  const badge = document.getElementById('dir-sync-count-badge' + suffix);
   if (badge) badge.textContent = totalIssues ? `${totalIssues} issue${totalIssues===1?'':'s'}` : '';
 
   if (!totalIssues) {
@@ -10063,9 +10114,8 @@ async function renderDirectorySyncPanel() {
     return;
   }
 
-  // Apply the issue-type filter and free-text search
-  const issueFilter = document.getElementById('dir-sync-issue-filter')?.value || '';
-  const q = (document.getElementById('dir-sync-search')?.value || '').trim().toLowerCase();
+  const issueFilter = document.getElementById('dir-sync-issue-filter' + suffix)?.value || '';
+  const q = (document.getElementById('dir-sync-search' + suffix)?.value || '').trim().toLowerCase();
   const matchesQ = (...vals) => !q || vals.some(v => (v || '').toLowerCase().includes(q));
 
   const showMismatch = !issueFilter || ['company','name','phone'].includes(issueFilter);
@@ -10128,6 +10178,15 @@ async function renderDirectorySyncPanel() {
   body.innerHTML = html;
 }
 
+// Full refresh: refetches profiles/Directory entries, then re-renders
+// every instance of the sync panel (Users page and Directory page).
+async function renderDirectorySyncPanel() {
+  if (!allProfiles.length) await loadAllProfiles();
+  await ensureDirEntriesLoaded();
+  renderDirSyncInstance('');
+  renderDirSyncInstance('-dir');
+}
+
 /* ── Directory admin ──────────────────────────────────────── */
 /* ── Directory admin state ── */
 let dirEntries = [];
@@ -10173,6 +10232,7 @@ async function loadDirPage() {
 
   loadDirStats();
   renderAdminDir();
+  renderDirectorySyncPanel();
 }
 
 function loadDirStats() {
